@@ -69,3 +69,4 @@ node_modules/
 
 # Pytest cache
 __pytest_cache__/
+sfcs/__pycache__/
