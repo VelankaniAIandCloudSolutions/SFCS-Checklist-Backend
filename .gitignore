@@ -1,0 +1,72 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Local development settings
+*.env
+# *.sqlite3
+# *.db
+
+# Logs and backups
+*.log
+*.log.*
+*.bak
+*.backup
+
+# Media and static files
+# /media/
+# /static/
+
+# Virtual environment
+venv/
+.venv/
+env/
+env-bak/
+
+# Compiled Python files
+*.pyc
+*.pyo
+
+# Debugging files
+*.bak
+*.swp
+*~
+.vscode/
+.idea/
+
+# Django-specific files
+*.secret_key
+# db.sqlite3
+
+# Other
+node_modules/
+.env
+
+# Compiled Python files
+*.pyc
+
+# macOS specific files
+.DS_Store
+
+# Editor-specific files
+*.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+*.komodoproject
+*.komodo*
+*.recommenders
+
+# PyCharm files
+.idea/
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# Visual Studio Code files
+.vscode/
+
+# Pytest cache
+__pytest_cache__/
+sfcs/__pycache__/
