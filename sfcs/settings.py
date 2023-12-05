@@ -103,6 +103,9 @@ REST_FRAMEWORK = {
 # Password validation
 # https://docs.djangoproject.com/en/3.2/ref/settings/#auth-password-validators
 
+AUTH_USER_MODEL = 'accounts.UserAccount'
+ACCOUNT_SERIALIZER = 'accounts.serializers.UserCreateSerializer'
+
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -118,6 +121,22 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+DJOSER = {
+   'LOGIN_FIELD': 'email',
+   'USER_CREATE_PASSWORD_RETYPE': True,
+   'PASSWORD_CHANGED_EMAIL_CONFIRMATION': True,
+   'SEND_CONFIRMATION_EMAIL': True,
+   'SET_PASSWORD_RETYPE': True,
+   'PASSWORD_RESET_CONFIRM_URL': 'password/reset/confirm/{uid}/{token}',
+#    'ACTIVATION_URL': 'activate/{uid}/{token}',
+#    'SEND_ACTIVATION_EMAIL': True,
+   'SERIALIZERS': {
+       'user_create': ACCOUNT_SERIALIZER,
+       'user': ACCOUNT_SERIALIZER,
+       'current_user': ACCOUNT_SERIALIZER,
+       'user_delete': 'djoser.serializers.UserDeleteSerializer',
+   }
+}
 
 # Internationalization
 # https://docs.djangoproject.com/en/3.2/topics/i18n/
