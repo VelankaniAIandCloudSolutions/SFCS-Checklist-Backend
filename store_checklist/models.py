@@ -66,6 +66,7 @@ class BillOfMaterialsLineItem(BaseModel):
     line_item_type = models.ForeignKey(BillOfMaterialsLineItemType, on_delete=models.SET_NULL, null=True, blank=True)
     description = models.TextField(null=True, blank=True)
     manufacturer_parts = models.ManyToManyField(ManufacturerPart, blank=True)
+    customer_part_number = models.CharField(max_length=255, null=True, blank=True)
     remarks = models.TextField(null=True, blank=True)
     quantity = models.IntegerField(default=0)
     uom = models.CharField(max_length=255, null=True, blank=True)
