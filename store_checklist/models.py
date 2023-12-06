@@ -44,6 +44,7 @@ class BillOfMaterials(BaseModel):
     total_pth_locations = models.IntegerField(default=0)
     bom_rev_number = models.CharField(max_length=255)
     issue_date = models.DateField(default=timezone.now)
+    bom_file = models.FileField(upload_to='bom_files/', null=True, blank=True)
 
     def __str__(self):
         return "BOM for : " +  self.product.name 
