@@ -32,19 +32,39 @@ from django.db.models import Q
 #     })
 
 
-@api_view(['GET'])
+@api_view(['POST'])
 @authentication_classes([])
 @permission_classes([])
-def test_api(request):
+def upload_bom(request):
     # if 'file' not in request.FILES:
     #     return Response({'error': 'File is missing'}, status=status.HTTP_400_BAD_REQUEST)
 
     # try:
         # Read the Excel file using pandas
-        # file = request.FILES['file']
-        file_path  = 'media/PRYSM-Gen4_SERVER_BOM_20231120.xlsx'
-        data = pd.read_excel(file_path, header=5,sheet_name=1)
-        bom  = BillOfMaterials.objects.all()[0]
+        bom_file = request.FILES['bom_file']
+        bom_file_name = str(request.FILES['bom_file'].name)
+        # file_path  = 'media/PRYSM-Gen4_SERVER_BOM_20231120.xlsx'
+        data = pd.read_excel(bom_file, header=5,sheet_name=1).head(10)
+        product ,_  = Product.objects.get_or_create(
+            name=request.data.get('product_name'),
+            product_code = request.data.get('product_code'),
+            defaults={
+                'product_rev_number' : request.data.get('product_rev_no')
+            }
+        )
+        bom_type ,_ = BillOfMaterialsType.objects.get_or_create(name=request.data.get('bom_type'))
+
+        bom, _  = BillOfMaterials.objects.get_or_create(
+            product=product,
+            issue_date = request.data.get('issue_date'),
+            bom_file_name = bom_file_name,
+            defaults= {
+                'bom_type' : bom_type,
+                'bom_rev_number': request.data.get('bom_rev_no'),
+                'bom_file': bom_file,
+            }
+        )
+        # bom  = BillOfMaterials.objects.all()[0]
 
         for _, row in data.iterrows():
             if row['VEPL Part No'] != '':
@@ -52,17 +72,19 @@ def test_api(request):
                 assembly_stage, _ = AssemblyStage.objects.get_or_create(name=row.get('Assy Stage', None))
                 line_item_type, _ = BillOfMaterialsLineItemType.objects.get_or_create(name=row.get('Type', None))
                 
-                level = row['Level'] if pd.notnull(row['Level']) else ''
-                priority_level = row['Prioprity Level'] if pd.notnull(row['Prioprity Level']) else ''
-                value = row['Value'] if pd.notnull(row['Value']) else ''
-                pcb_footprint = row['PCB Footprint'] if pd.notnull(row['PCB Footprint']) else ''
-                description = row['Description'] if pd.notnull(row['Description']) else ''
-                customer_part_number = row['Customer Part No'] if pd.notnull(row['Customer Part No']) else ''
-                quantity = row['Qty/ Product'] if pd.notnull(row['Qty/ Product']) else 0
-                uom = row['UOM'] if pd.notnull(row['UOM']) else ''
-                ecn = row['ECN'] if pd.notnull(row['ECN']) else ''
-                msl = row['MSL'] if pd.notnull(row['MSL']) else ''
-                remarks = row['Remarks'] if pd.notnull(row['Remarks']) else ''
+                
+                level = row['Level'] if 'Level' in row and pd.notnull(row['Level']) else ''
+                priority_level = row.get('Prioprity Level') if 'Prioprity Level' in row and pd.notnull(row['Prioprity Level']) else \
+                    row.get('Priority Level') if 'Priority Level' in row and pd.notnull(row['Priority Level']) else ''
+                value = row['Value'] if 'Value' in row and pd.notnull(row['Value']) else ''
+                pcb_footprint = row['PCB Footprint'] if 'PCB Footprint' in row and pd.notnull(row['PCB Footprint']) else ''
+                description = row['Description'] if 'Description' in row and pd.notnull(row['Description']) else ''
+                customer_part_number = row['Customer Part No'] if 'Customer Part No' in row and pd.notnull(row['Customer Part No']) else ''
+                quantity = row['Qty/ Product'] if 'Qty/ Product' in row and pd.notnull(row['Qty/ Product']) else 0
+                uom = row['UOM'] if 'UOM' in row and pd.notnull(row['UOM']) else ''
+                ecn = row['ECN'] if 'ECN' in row and pd.notnull(row['ECN']) else ''
+                msl = row['MSL'] if 'MSL' in row and pd.notnull(row['MSL']) else ''
+                remarks = row['Remarks'] if 'Remarks' in row and pd.notnull(row['Remarks']) else ''
 
                 bom_line_item, created = BillOfMaterialsLineItem.objects.update_or_create(
                     part_number=row['VEPL Part No'],
