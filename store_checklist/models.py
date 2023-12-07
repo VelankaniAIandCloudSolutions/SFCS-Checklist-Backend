@@ -45,7 +45,7 @@ class BillOfMaterials(BaseModel):
     bom_rev_number = models.CharField(max_length=255)
     issue_date = models.DateField(default=timezone.now)
     bom_file = models.FileField(upload_to='bom_files/', null=True, blank=True)
-
+    bom_file_name = models.CharField(max_length=255, null=True, blank=True)
     def __str__(self):
         return "BOM for : " +  self.product.name 
     
@@ -57,15 +57,16 @@ class BillOfMaterialsLineItemType(BaseModel):
 
 
 class BillOfMaterialsLineItem(BaseModel):
-    bom = models.ForeignKey(BillOfMaterials, on_delete=models.CASCADE)
-    level = models.IntegerField(default=0)
+    bom = models.ForeignKey(BillOfMaterials, on_delete=models.CASCADE,related_name='bom_line_items')
+    level = models.CharField(max_length=4,blank = True, null = True)
     part_number = models.CharField(max_length=255)
-    priority_level = models.IntegerField(default=0)
+    priority_level = models.CharField(max_length=4,blank = True, null = True)
     value = models.CharField(max_length=255)
     pcb_footprint = models.CharField(max_length=255,null=True, blank=True)
     line_item_type = models.ForeignKey(BillOfMaterialsLineItemType, on_delete=models.SET_NULL, null=True, blank=True)
     description = models.TextField(null=True, blank=True)
     manufacturer_parts = models.ManyToManyField(ManufacturerPart, blank=True)
+    customer_part_number = models.CharField(max_length=255, null=True, blank=True)
     remarks = models.TextField(null=True, blank=True)
     quantity = models.IntegerField(default=0)
     uom = models.CharField(max_length=255, null=True, blank=True)
