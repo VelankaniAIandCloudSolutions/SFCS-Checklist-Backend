@@ -47,7 +47,7 @@ class BillOfMaterialsLineItemSerializer(serializers.ModelSerializer):
 
 class BillOfMaterialsSerializer(serializers.ModelSerializer):
     bom_type = BillOfMaterialsTypeSerializer()
-    lines = BillOfMaterialsLineItemSerializer(many=True)
+    bom_line_items = BillOfMaterialsLineItemSerializer(many=True)
 
     class Meta:
         model = BillOfMaterials
