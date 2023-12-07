@@ -42,20 +42,18 @@ def test_api(request):
     # try:
         # Read the Excel file using pandas
         # file = request.FILES['file']
-        file_path = 'media/PRYSM-Gen4_SERVER_BOM_20231120.xlsx'
-        data = pd.read_excel(file_path, header=5,sheet_name=1).head(10)
-
-        # data = pd.read_excel(file)
+        file_path  = 'media/PRYSM-Gen4_SERVER_BOM_20231120.xlsx'
+        data = pd.read_excel(file_path, header=5,sheet_name=1)
         bom  = BillOfMaterials.objects.all()[0]
-        # Process each row
+
         for _, row in data.iterrows():
-            if _ == 1:
+            if row['VEPL Part No'] != '':
                 print(row)
                 assembly_stage, _ = AssemblyStage.objects.get_or_create(name=row.get('Assy Stage', None))
                 line_item_type, _ = BillOfMaterialsLineItemType.objects.get_or_create(name=row.get('Type', None))
                 
-                level = row['Level'] if pd.notnull(row['Level']) else 0
-                priority_level = row['Prioprity Level'] if pd.notnull(row['Prioprity Level']) else 0
+                level = row['Level'] if pd.notnull(row['Level']) else ''
+                priority_level = row['Prioprity Level'] if pd.notnull(row['Prioprity Level']) else ''
                 value = row['Value'] if pd.notnull(row['Value']) else ''
                 pcb_footprint = row['PCB Footprint'] if pd.notnull(row['PCB Footprint']) else ''
                 description = row['Description'] if pd.notnull(row['Description']) else ''
@@ -85,14 +83,22 @@ def test_api(request):
                         'assembly_stage': assembly_stage
                     }
                 )
-                if row['Mfr'].startswith('\n'):
-                    row['Mfr'] = row['Mfr'].lstrip('\n')
-                if row['Mfr. Part No'].startswith('\n'):
-                    row['Mfr. Part No'] = row['Mfr. Part No'].lstrip('\n')
-                print(row['Mfr'])
-                print(row['Mfr. Part No'])
-                manufacturers = row['Mfr'].split('\n') if pd.notnull(row['Mfr']) else []
-                manufacturer_part_nos = row['Mfr. Part No'].split('\n') if pd.notnull(row['Mfr. Part No']) else []
+
+                if pd.notnull(row['Mfr']):
+                    parts = [part.strip() for part in row['Mfr'].split('\n') if part.strip()]
+                    manufacturers = parts if not row['Mfr'].startswith('\n') else parts[1:]
+                else:
+                    manufacturers = []
+
+                if pd.notnull(row['Mfr. Part No']):
+                    parts = [part.strip() for part in row['Mfr. Part No'].split('\n') if part.strip()]
+                    manufacturer_part_nos = parts if not row['Mfr. Part No'].startswith('\n') else parts[1:]
+                else:
+                    manufacturer_part_nos = []
+
+                print('manufacturer parts', manufacturer_part_nos)
+
+                bom_line_item.manufacturer_parts.clear()
                 for mfr, mfr_part_no in zip(manufacturers, manufacturer_part_nos):
                     if mfr.strip() and mfr_part_no.strip():
                         manufacturer, _ = Manufacturer.objects.get_or_create(name=mfr.strip())
@@ -104,7 +110,12 @@ def test_api(request):
                         bom_line_item.manufacturer_parts.add(manufacturer_part)
                 bom_line_item.save()
 
-        return Response({'message': 'BOM uploaded successfully'}, status=status.HTTP_201_CREATED)
+                bom_items_serializer  = BillOfMaterialsLineItemSerializer(bom.bom_line_items,many  = True)
+                
+        return Response({
+             'message': 'BOM uploaded successfully',
+             'bom_items': bom_items_serializer.data,
+             }, status=status.HTTP_201_CREATED)
 
     # except Exception as e:
     #     # Handle exceptions
