@@ -133,6 +133,13 @@ def upload_bom(request):
                         bom_line_item.manufacturer_parts.add(manufacturer_part)
                 bom_line_item.save()
 
+                if 'Reference' in row and  pd.notnull(row['Reference']):
+                    for reference in row['Reference'].split(','):
+                        ref,_ = BillOfMaterialsLineItemReference.objects.get_or_create(
+                            name = reference.strip(),
+                            bom_line_item = bom_line_item
+                        )
+
                 bom_items_serializer  = BillOfMaterialsLineItemSerializer(bom.bom_line_items,many  = True)
                 
         return Response({
@@ -161,15 +168,17 @@ def scan_code(request):
         print("Part Number:", part_number)
 
         active_bom  = ChecklistSetting.objects.first().active_bom
+        active_checklist = ChecklistSetting.objects.first().active_checklist
 
         is_present  = False
         is_quantity_sufficient = False
 
-        if active_bom:
+        if active_bom and active_checklist:
             for bom_line_item in active_bom.bom_line_items.all():
                 if bom_line_item.part_number.strip() == part_number.strip():
                     is_present = True
                     checklist_item, created  = ChecklistItem.objects.get_or_create(
+                        checklist = active_checklist,
                         bom_line_item=bom_line_item,
                         required_quantity = bom_line_item.quantity,
                     )
@@ -180,10 +189,10 @@ def scan_code(request):
                         checklist_item.present_quantity += 1
 
                     if checklist_item.present_quantity >= checklist_item.required_quantity:
-                        checklist_item.is_checked = True
                         is_quantity_sufficient = True
-                    else:
-                        checklist_item.is_checked = False
+
+                    checklist_item.is_present = is_present
+                    checklist_item.is_quantity_sufficient = is_quantity_sufficient
 
                     checklist_item.save()
             
@@ -200,3 +209,70 @@ def scan_code(request):
     else:
         print("Pattern not found in the input string.")
         return Response({'error': 'Invalid input string'}, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+def generate_new_checklist(request,bom_id):
+    try:
+        active_bom = BillOfMaterials.objects.get(id=bom_id)
+        if ChecklistSetting.objects.exists():
+            setting = ChecklistSetting.objects.first()
+            print('exists')
+        else: 
+            setting = ChecklistSetting.objects.create(active_bom=BillOfMaterials.objects.get(id=bom_id))
+            print('doesnt exist')
+        setting.active_bom = active_bom
+        setting.active_checklist = Checklist.objects.create(bom=active_bom,status = 'In Progress')
+        setting.save()
+
+        for bom_line_item in active_bom.bom_line_items.all():
+            check_list_item,created  = ChecklistItem.objects.get_or_create(
+                checklist = setting.active_checklist,
+                bom_line_item=bom_line_item,
+                required_quantity = bom_line_item.quantity,
+            )
+
+        return Response({'message': 'Active BOM set successfully'}, status=status.HTTP_200_OK)
+
+    # except ChecklistSetting.DoesNotExist:
+    #     setting = ChecklistSetting.objects.create(active_bom=BillOfMaterials.objects.get(id=bom_id))
+    #     setting.active_checklist = Checklist.objects.create(bom=BillOfMaterials.objects.get(id=bom_id),status = 'In Progress')
+    #     setting.save()
+    #     return Response({'message': 'Active BOM set successfully'}, status=status.HTTP_200_OK)
+    
+    except BillOfMaterials.DoesNotExist:
+        return Response({'error': 'BOM not found'}, status=status.HTTP_404_NOT_FOUND)
+    
+@api_view(['GET'])
+def get_active_checklist(request,bom_id):
+    try:
+        active_bom = ChecklistSetting.objects.first().active_bom
+        setting = ChecklistSetting.objects.first()
+        bom =  BillOfMaterials.objects.get(id=bom_id)
+        if(setting.active_bom == bom):
+            checklist  = Checklist.objects.get(pk = setting.active_checklist.id)
+            checklist_serializer = ChecklistSerializer(checklist)
+
+            return Response(
+                {
+                    'checklist': checklist_serializer.data,
+                }, status=status.HTTP_200_OK
+            )
+        else:
+            return Response({'error': 'The selcted BOM is not active, please make the BOM active by genrating a checklist'}, status=status.HTTP_400_BAD_REQUEST)
+
+    except ChecklistSetting.DoesNotExist:
+        setting = ChecklistSetting.objects.create(active_bom=BillOfMaterials.objects.get(id=bom_id))
+        setting.active_checklist = Checklist.objects.create(bom=BillOfMaterials.objects.get(id=bom_id),status = 'In Progress')
+        setting.save()
+        return Response({'message': 'Active Checklist and BOM not defined but new ones set successfully'}, status=status.HTTP_200_OK)
+    
+    except BillOfMaterials.DoesNotExist:
+        return Response({'error': 'BOM not found'}, status=status.HTTP_404_NOT_FOUND)
+    
+# @api_view(['GET'])
+# def get_old_checklists(request,bom_id):
+  
+# @api_view(['POST'])
+# def show_in_progress_checklist(request,bom_id):
+###     dont create the checklist just see if any in progress for that bom if not send response that no ongong is presnt 
+  

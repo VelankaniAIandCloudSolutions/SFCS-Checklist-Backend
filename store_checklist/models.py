@@ -85,17 +85,34 @@ class BillOfMaterialsLineItemReference(BaseModel):
     def __str__(self):
         return self.name
 
+class Checklist(BaseModel):
+
+    STATUS_CHOICES = (
+        ('Completed', 'Completed'),
+        ('In Progress', 'In Progress'),
+    )
+
+    bom = models.ForeignKey(BillOfMaterials, on_delete=models.CASCADE, related_name='checklists')
+    is_passed = models.BooleanField(default=False)
+    status = models.CharField(choices=STATUS_CHOICES,max_length=255, null=True, blank=True)
+
+    def __str__(self):
+        return "Checklist for BOM ID: " +  str(self.bom.id)
+
 class ChecklistItem(BaseModel):
+    checklist = models.ForeignKey(Checklist, on_delete=models.CASCADE, related_name='checklist_items',null=True)
     bom_line_item = models.ForeignKey(BillOfMaterialsLineItem, on_delete=models.CASCADE, related_name='checklist_items')
     required_quantity = models.IntegerField(default=0)
     present_quantity = models.IntegerField(default=0)
-    is_checked = models.BooleanField(default=False)
+    is_present= models.BooleanField(default=False)
+    is_quantity_sufficient= models.BooleanField(default=False)
 
     def __str__(self):
-        return "Checklist for: " + self.bom_line_item.part_number
+        return "Checklist for: " + str(self.bom_line_item.part_number)
 
 class ChecklistSetting(BaseModel):
     active_bom = models.ForeignKey(BillOfMaterials, on_delete=models.SET_NULL, null=True, blank=True, related_name='active_settings')
+    active_checklist = models.ForeignKey(Checklist, on_delete=models.SET_NULL, null=True, blank=True, related_name='active_settings')
 
     def __str__(self):
         if self.active_bom:

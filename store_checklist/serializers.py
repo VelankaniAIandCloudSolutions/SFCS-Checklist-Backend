@@ -55,11 +55,23 @@ class BillOfMaterialsSerializer(serializers.ModelSerializer):
 
 class ChecklistItemSerializer(serializers.ModelSerializer):
     bom_line_item = BillOfMaterialsLineItemSerializer()
-
+    updated_at = serializers.DateTimeField(format='%d/%m/%Y %H:%M:%S')
+    
     class Meta:
         model = ChecklistItem
         fields = '__all__'
 
+class ChecklistSerializer(serializers.ModelSerializer):
+    checklist_items = serializers.SerializerMethodField()
+    class Meta:
+        model = Checklist
+        fields = '__all__'
+
+    def get_checklist_items(self, obj):
+        checklist_items = obj.checklist_items.order_by('-updated_at')
+        serializer = ChecklistItemSerializer(checklist_items, many=True)
+        return serializer.data
+    
 class ChecklistSettingSerializer(serializers.ModelSerializer):
     active_bom = BillOfMaterialsSerializer()
 
