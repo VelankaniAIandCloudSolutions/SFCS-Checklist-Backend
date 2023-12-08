@@ -78,7 +78,7 @@ class BillOfMaterialsLineItem(BaseModel):
         return self.part_number + " for BOM ID: " + str(self.bom.id)
     
 class BillOfMaterialsLineItemReference(BaseModel):
-    bom_line_item = models.ForeignKey(BillOfMaterialsLineItem, on_delete=models.CASCADE)
+    bom_line_item = models.ForeignKey(BillOfMaterialsLineItem, on_delete=models.CASCADE, related_name='references')
     name = models.CharField(max_length=255)
 
     def __str__(self):
