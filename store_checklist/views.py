@@ -8,6 +8,7 @@ from .serializers import *
 import pandas as pd
 import json
 from django.db.models import Q
+import re
 
 # @api_view(['GET'])
 # @authentication_classes([])
@@ -142,3 +143,60 @@ def upload_bom(request):
     # except Exception as e:
     #     # Handle exceptions
     #     return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+@authentication_classes([])
+@permission_classes([])
+def scan_code(request):
+
+    # input_string = "u1UUID000128808-VEPL145154751D<Facts>Q500"
+    pattern = r'u1([^\-]+)-(VEPL\d{8})'
+    match = re.search(pattern, request.data.get('value'))
+
+    if match:
+        uuid = match.group(1)
+        part_number = match.group(2)
+
+        print("UUID:", uuid)
+        print("Part Number:", part_number)
+
+        active_bom  = ChecklistSetting.objects.first().active_bom
+
+        is_present  = False
+        is_quantity_sufficient = False
+
+        if active_bom:
+            for bom_line_item in active_bom.bom_line_items.all():
+                if bom_line_item.part_number.strip() == part_number.strip():
+                    is_present = True
+                    checklist_item, created  = ChecklistItem.objects.get_or_create(
+                        bom_line_item=bom_line_item,
+                        required_quantity = bom_line_item.quantity,
+                    )
+
+                    if created:
+                        checklist_item.present_quantity = 1
+                    else:
+                        checklist_item.present_quantity += 1
+
+                    if checklist_item.present_quantity >= checklist_item.required_quantity:
+                        checklist_item.is_checked = True
+                        is_quantity_sufficient = True
+                    else:
+                        checklist_item.is_checked = False
+
+                    checklist_item.save()
+            
+        else:
+            return Response({'error': 'No active BOM'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        return Response({
+            'uuid': uuid,
+            'part_number': part_number,
+            'is_present': is_present,
+            'is_quantity_sufficient': is_quantity_sufficient,
+        })
+    
+    else:
+        print("Pattern not found in the input string.")
+        return Response({'error': 'Invalid input string'}, status=status.HTTP_400_BAD_REQUEST)

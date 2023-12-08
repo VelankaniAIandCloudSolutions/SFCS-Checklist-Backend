@@ -59,6 +59,7 @@ class BillOfMaterialsLineItemType(BaseModel):
 class BillOfMaterialsLineItem(BaseModel):
     bom = models.ForeignKey(BillOfMaterials, on_delete=models.CASCADE, related_name='bom_line_items')
     level = models.CharField(max_length=4, blank=True, null=True)
+    uuid = models.CharField(max_length=20,blank=True,null=True)
     part_number = models.CharField(max_length=255)
     priority_level = models.CharField(max_length=4, blank=True, null=True)
     value = models.CharField(max_length=255)
