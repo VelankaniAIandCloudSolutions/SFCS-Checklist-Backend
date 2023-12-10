@@ -7,6 +7,7 @@ class ManufacturerSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class ManufacturerPartSerializer(serializers.ModelSerializer):
+    manufacturer = ManufacturerSerializer()
     class Meta:
         model = ManufacturerPart
         fields = '__all__'
@@ -40,14 +41,27 @@ class BillOfMaterialsLineItemSerializer(serializers.ModelSerializer):
     manufacturer_parts = ManufacturerPartSerializer(many=True)
     assembly_stage = AssemblyStageSerializer()
     line_item_type = BillOfMaterialsLineItemTypeSerializer()
-
+    references = BillOfMaterialsLineItemReferenceSerializer(many =True)
     class Meta:
         model = BillOfMaterialsLineItem
         fields = '__all__'
 
+
 class BillOfMaterialsSerializer(serializers.ModelSerializer):
     bom_type = BillOfMaterialsTypeSerializer()
+    # bom_line_items = BillOfMaterialsLineItemSerializer(many=True)
+    product = ProductSerializer()
+    issue_date = serializers.DateField(format="%d/%m/%Y")
+
+    class Meta:
+        model = BillOfMaterials
+        fields = '__all__'
+
+class BillOfMaterialsDetailedSerializer(serializers.ModelSerializer):
+    bom_type = BillOfMaterialsTypeSerializer()
     bom_line_items = BillOfMaterialsLineItemSerializer(many=True)
+    product = ProductSerializer()
+    issue_date = serializers.DateField(format="%d/%m/%Y")
 
     class Meta:
         model = BillOfMaterials
@@ -78,3 +92,4 @@ class ChecklistSettingSerializer(serializers.ModelSerializer):
     class Meta:
         model = ChecklistSetting
         fields = '__all__'
+

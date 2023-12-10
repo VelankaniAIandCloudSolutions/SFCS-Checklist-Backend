@@ -288,3 +288,38 @@ def get_active_checklist(request,bom_id):
 # def show_in_progress_checklist(request,bom_id):
 ###     dont create the checklist just see if any in progress for that bom if not send response that no ongong is presnt 
   
+@api_view(['GET'])
+@authentication_classes([])
+@permission_classes([])
+def get_boms(request):
+    try:
+        # Retrieve all BOM objects from the database
+        boms = BillOfMaterials.objects.all()
+       
+
+        # Serialize the BOM objects
+        serializer = BillOfMaterialsSerializer(boms, many=True)
+       
+
+        return Response({'boms': serializer.data}, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        # Handle exceptions
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+@authentication_classes([])
+@permission_classes([])
+def get_bom_by_id(request, bom_id):
+    try:
+        bom = BillOfMaterials.objects.get(id=bom_id)
+        serializer =BillOfMaterialsDetailedSerializer(bom)
+        return Response({'bom': serializer.data}, status=status.HTTP_200_OK)
+
+    except BillOfMaterials.DoesNotExist:
+        # Handle the case where the BOM with the given ID does not exist
+        return Response({'error': 'BOM not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    except Exception as e:
+        # Handle other exceptions
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
