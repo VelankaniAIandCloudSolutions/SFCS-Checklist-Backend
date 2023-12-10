@@ -281,7 +281,10 @@ def get_active_checklist(request,bom_id):
                 checklist.is_passed = True
                 checklist.status = 'Completed'
                 checklist.save()
-
+                setting = ChecklistSetting.objects.first()
+                setting.active_checklist = None
+                setting.active_bom = None
+                setting.save()
             checklist_serializer = ChecklistSerializer(checklist)
 
             return Response(
@@ -300,6 +303,19 @@ def get_active_checklist(request,bom_id):
     
     except BillOfMaterials.DoesNotExist:
         return Response({'error': 'BOM not found'}, status=status.HTTP_404_NOT_FOUND)
+    
+@api_view(['GET'])
+def get_checklist_details(request,checklist_id):
+    try:
+        checklist  = Checklist.objects.get(pk = checklist_id)
+        checklist_serializer = ChecklistSerializer(checklist)
+        return Response(
+            {
+                'checklist': checklist_serializer.data,
+            }, status=status.HTTP_200_OK
+        )
+    except Checklist.DoesNotExist:
+        return Response({'error': 'Checklist not found'}, status=status.HTTP_404_NOT_FOUND)
     
 # @api_view(['GET'])
 # def get_old_checklists(request,bom_id):
@@ -362,6 +378,7 @@ def end_checklist(request, checklist_id):
             setting = ChecklistSetting.objects.create(active_bom=BillOfMaterials.objects.get(id=checklist.bom.id))
         
         setting.active_bom = None
+        setting.active_checklist = None
         setting.save()
         
         checklist_serializer = ChecklistSerializer(checklist)
