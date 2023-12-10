@@ -233,12 +233,31 @@ def generate_new_checklist(request,bom_id):
 
         return Response({'message': 'Active BOM set successfully'}, status=status.HTTP_200_OK)
 
-    # except ChecklistSetting.DoesNotExist:
-    #     setting = ChecklistSetting.objects.create(active_bom=BillOfMaterials.objects.get(id=bom_id))
-    #     setting.active_checklist = Checklist.objects.create(bom=BillOfMaterials.objects.get(id=bom_id),status = 'In Progress')
-    #     setting.save()
-    #     return Response({'message': 'Active BOM set successfully'}, status=status.HTTP_200_OK)
-    
+    except BillOfMaterials.DoesNotExist:
+        return Response({'error': 'BOM not found'}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['POST'])
+def check_existing_checklist(request,bom_id):
+    try:
+        active_bom = BillOfMaterials.objects.get(id=bom_id)
+        is_existing = False
+        is_active = False
+        if ChecklistSetting.objects.exists():
+            setting = ChecklistSetting.objects.first()
+            if(Checklist.objects.filter(bom = active_bom,status = 'In Progress').exists()):
+                is_existing = True
+                for checklist in Checklist.objects.filter(bom = active_bom,status = 'In Progress'):
+                    if setting.active_checklist == checklist:
+                        is_active = True
+                        break
+        else:
+            setting = ChecklistSetting.objects.create(active_bom=BillOfMaterials.objects.get(id=bom_id))
+        
+        return Response({
+            'is_existing': is_existing,
+            'is_active': is_active
+        }, status=status.HTTP_200_OK)
+
     except BillOfMaterials.DoesNotExist:
         return Response({'error': 'BOM not found'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -260,6 +279,7 @@ def get_active_checklist(request,bom_id):
 
             if(is_checklist_complete(checklist)):
                 checklist.is_passed = True
+                checklist.status = 'Completed'
                 checklist.save()
 
             checklist_serializer = ChecklistSerializer(checklist)
@@ -322,4 +342,33 @@ def get_bom_by_id(request, bom_id):
 
     except Exception as e:
         # Handle other exceptions
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+def end_checklist(request, checklist_id):
+    try:
+        checklist = Checklist.objects.get(id=checklist_id)
+        if is_checklist_complete(checklist):
+            checklist.is_passed = True
+            checklist.status = 'Completed'
+            checklist.save()
+        else:
+            checklist.status = 'Failed'
+            checklist.save()
+
+        if ChecklistSetting.objects.exists():
+            setting = ChecklistSetting.objects.first()
+        else: 
+            setting = ChecklistSetting.objects.create(active_bom=BillOfMaterials.objects.get(id=checklist.bom.id))
+        
+        setting.active_bom = None
+        setting.save()
+        
+        checklist_serializer = ChecklistSerializer(checklist)
+        return Response({'checklist': checklist_serializer.data}, status=status.HTTP_200_OK)
+
+    except Checklist.DoesNotExist:
+        return Response({'error': 'Checklist not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -1,6 +1,8 @@
 from django.db import models
 from accounts.models import BaseModel
 from django.utils import timezone
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
 
 # Create your models here.
 class Product(BaseModel):
@@ -100,6 +102,13 @@ class Checklist(BaseModel):
     def __str__(self):
         return "Checklist for BOM ID: " +  str(self.bom.id)
 
+@receiver(pre_save, sender=Checklist)
+def ensure_single_in_progress_checklist(sender, instance, **kwargs):
+    if instance.status == 'In Progress':
+        existing_checklist = Checklist.objects.filter(bom=instance.bom, status='In Progress').exclude(pk=instance.pk)
+        if existing_checklist.exists():
+            raise ValueError('There is already an ongoing checklist for this BOM.')
+        
 class ChecklistItem(BaseModel):
     checklist = models.ForeignKey(Checklist, on_delete=models.CASCADE, related_name='checklist_items',null=True)
     bom_line_item = models.ForeignKey(BillOfMaterialsLineItem, on_delete=models.CASCADE, related_name='checklist_items')

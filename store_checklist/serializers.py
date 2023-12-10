@@ -77,6 +77,7 @@ class ChecklistItemSerializer(serializers.ModelSerializer):
 
 class ChecklistSerializer(serializers.ModelSerializer):
     checklist_items = serializers.SerializerMethodField()
+    bom = BillOfMaterialsSerializer()
     class Meta:
         model = Checklist
         fields = '__all__'
