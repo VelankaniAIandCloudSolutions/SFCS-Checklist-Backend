@@ -1,15 +1,17 @@
-from django.urls import path 
+from django.urls import path
 from store_checklist import views
 
-urlpatterns= [
+urlpatterns = [
     path('upload-bom/', views.upload_bom),
     path('scan-code/', views.scan_code),
     path('get-boms/', views.get_boms),
     path('get-boms/<int:bom_id>/', views.get_bom_by_id),
     path('generate-new-checklist/<int:bom_id>/', views.generate_new_checklist),
     path('get-active-checklist/<int:bom_id>/', views.get_active_checklist),
-    path('check-existing-checklist/<int:bom_id>/', views.check_existing_checklist),
+    path('check-existing-checklist/<int:bom_id>/',
+         views.check_existing_checklist),
     path('end-checklist/<int:checklist_id>/', views.end_checklist),
-]
+    path('generated-checklists/<int:bom_id>/',
+         views.get_checklists_for_bom, name='checklist-list-for-bom'),
 
-    
+]
