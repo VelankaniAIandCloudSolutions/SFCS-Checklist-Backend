@@ -241,15 +241,27 @@ def generate_new_checklist(request,bom_id):
     
     except BillOfMaterials.DoesNotExist:
         return Response({'error': 'BOM not found'}, status=status.HTTP_404_NOT_FOUND)
-    
+
+
+def is_checklist_complete(checklist):
+    # Check if all checklist items are complete
+    for item in checklist.checklist_items.all():
+        if not (item.is_present and item.is_quantity_sufficient):
+            return False
+    return True
+
 @api_view(['GET'])
 def get_active_checklist(request,bom_id):
     try:
-        active_bom = ChecklistSetting.objects.first().active_bom
         setting = ChecklistSetting.objects.first()
         bom =  BillOfMaterials.objects.get(id=bom_id)
         if(setting.active_bom == bom):
             checklist  = Checklist.objects.get(pk = setting.active_checklist.id)
+
+            if(is_checklist_complete(checklist)):
+                checklist.is_passed = True
+                checklist.save()
+
             checklist_serializer = ChecklistSerializer(checklist)
 
             return Response(

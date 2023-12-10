@@ -71,7 +71,7 @@ class ChecklistSerializer(serializers.ModelSerializer):
         checklist_items = obj.checklist_items.order_by('-updated_at')
         serializer = ChecklistItemSerializer(checklist_items, many=True)
         return serializer.data
-    
+
 class ChecklistSettingSerializer(serializers.ModelSerializer):
     active_bom = BillOfMaterialsSerializer()
 

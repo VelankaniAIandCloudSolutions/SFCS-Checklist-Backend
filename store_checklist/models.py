@@ -90,6 +90,7 @@ class Checklist(BaseModel):
     STATUS_CHOICES = (
         ('Completed', 'Completed'),
         ('In Progress', 'In Progress'),
+        ('Failed', 'Failed'),
     )
 
     bom = models.ForeignKey(BillOfMaterials, on_delete=models.CASCADE, related_name='checklists')
