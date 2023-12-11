@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import *
+from accounts.serializers import UserAccountSerializer 
 
 class ManufacturerSerializer(serializers.ModelSerializer):
     class Meta:
@@ -78,6 +79,11 @@ class ChecklistItemSerializer(serializers.ModelSerializer):
 class ChecklistSerializer(serializers.ModelSerializer):
     checklist_items = serializers.SerializerMethodField()
     bom = BillOfMaterialsSerializer()
+    created_at = serializers.DateTimeField(format='%d/%m/%Y %H:%M:%S')
+    updated_at = serializers.DateTimeField(format='%d/%m/%Y %H:%M:%S')
+    created_by = UserAccountSerializer()
+    updated_by = UserAccountSerializer()
+    
     class Meta:
         model = Checklist
         fields = '__all__'

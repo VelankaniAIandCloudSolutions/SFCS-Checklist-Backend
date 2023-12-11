@@ -444,3 +444,15 @@ def get_checklists_for_bom(request, bom_id):
     except Exception as e:
         # Handle other exceptions
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+def get_checklist_report(request):
+    try:
+        checklists = Checklist.objects.all().order_by('-created_at')
+        checklist_serializer = ChecklistSerializer(checklists, many=True)
+        return Response({
+            'checklists': checklist_serializer.data,
+        })
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
