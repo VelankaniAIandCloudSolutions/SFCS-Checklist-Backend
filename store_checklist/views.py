@@ -1,3 +1,4 @@
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
 from .models import *
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
@@ -456,3 +457,161 @@ def get_checklist_report(request):
         })
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+
+# @api_view(['GET'])
+# @authentication_classes([])
+# @permission_classes([])
+# def get_checklist_count(request):
+#     today = timezone.now().date()
+
+#     # Calculate the start and end dates for the previous week
+#     previous_week_start = today - timezone.timedelta(days=today.weekday() + 7)
+#     previous_week_end = today
+
+#     # Calculate the start and end dates for the previous month
+#     previous_month_start = today - timezone.timedelta(days=today.day + 30)
+#     previous_month_end = today - timezone.timedelta(days=today.day + 1)
+#     print("Previous Week Start:", previous_week_start)
+#     print("Previous Week End:", previous_week_end)
+#     # Get checklists with status 'In Progress' created today
+#     today_in_progress_checklists = Checklist.objects.filter(
+#         status='In Progress',
+#         created_at__date=today
+#     )
+
+#     # Get checklists with status 'Completed' created today
+#     today_completed_checklists = Checklist.objects.filter(
+#         status='Completed',
+#         created_at__date=today
+#     )
+
+#     # Get checklists with status 'Failed' created today
+#     today_failed_checklists = Checklist.objects.filter(
+#         status='Failed',
+#         created_at__date=today
+#     )
+
+#     # Get checklists with status 'In Progress' for the previous week
+#     previous_week_in_progress_checklists = Checklist.objects.filter(
+#         status='In Progress',
+#         created_at__date__range=[previous_week_start, previous_week_end]
+#     )
+
+#     # Get checklists with status 'Completed' for the previous week
+#     previous_week_completed_checklists = Checklist.objects.filter(
+#         status='Completed',
+#         created_at__date__range=[previous_week_start, previous_week_end]
+#     )
+
+#     # Get checklists with status 'Failed' for the previous week
+#     previous_week_failed_checklists = Checklist.objects.filter(
+#         status='Failed',
+#         created_at__date__range=[previous_week_start, previous_week_end]
+#     )
+
+#     # Get checklists with status 'In Progress' for the previous month
+#     previous_month_in_progress_checklists = Checklist.objects.filter(
+#         status='In Progress',
+#         created_at__date__range=[previous_month_start, previous_month_end]
+#     )
+
+#     # Get checklists with status 'Completed' for the previous month
+#     previous_month_completed_checklists = Checklist.objects.filter(
+#         status='Completed',
+#         created_at__date__range=[previous_month_start, previous_month_end]
+#     )
+
+#     # Get checklists with status 'Failed' for the previous month
+#     previous_month_failed_checklists = Checklist.objects.filter(
+#         status='Failed',
+#         created_at__date__range=[previous_month_start, previous_month_end]
+#     )
+#     print(today_in_progress_checklists)
+#     print(today_in_progress_checklists.values())
+#     serializer = ChecklistSerializer
+
+#     data = {
+#         'today': {
+#             'in_progress_count': today_in_progress_checklists.count(),
+#             'completed_count': today_completed_checklists.count(),
+#             'failed_count': today_failed_checklists.count(),
+#             'total_count': today_in_progress_checklists.count() + today_completed_checklists.count() + today_failed_checklists.count(),
+#             'in_progress_checklists': serializer(today_in_progress_checklists, many=True).data,
+#             'completed_checklists': serializer(today_completed_checklists, many=True).data,
+#             'failed_checklists': serializer(today_failed_checklists, many=True).data,
+#         },
+#         'previous_week': {
+#             'in_progress_count': previous_week_in_progress_checklists.count(),
+#             'completed_count': previous_week_completed_checklists.count(),
+#             'failed_count': previous_week_failed_checklists.count(),
+#             'total_count': previous_week_in_progress_checklists.count() + previous_week_completed_checklists.count() + previous_week_failed_checklists.count(),
+#             'in_progress_checklists': serializer(previous_week_in_progress_checklists, many=True).data,
+#             'completed_checklists': serializer(previous_week_completed_checklists, many=True).data,
+#             'failed_checklists': serializer(previous_week_failed_checklists, many=True).data,
+#         },
+#         'previous_month': {
+#             'in_progress_count': previous_month_in_progress_checklists.count(),
+#             'completed_count': previous_month_completed_checklists.count(),
+#             'failed_count': previous_month_failed_checklists.count(),
+#             'total_count': previous_month_in_progress_checklists.count() + previous_month_completed_checklists.count() + previous_month_failed_checklists.count(),
+#             'in_progress_checklists': serializer(previous_month_in_progress_checklists, many=True).data,
+#             'completed_checklists': serializer(previous_month_completed_checklists, many=True).data,
+#             'failed_checklists': serializer(previous_month_failed_checklists, many=True).data,
+#         },
+#     }
+
+#     return JsonResponse(data)
+
+@api_view(['POST'])
+@authentication_classes([])
+@permission_classes([])
+def get_checklist_count(request):
+    selected_option = request.data.get('selected_option')
+
+    def get_checklists_for_status(status, start_date, end_date):
+        checklists = Checklist.objects.filter(
+            status=status,
+            created_at__date__range=[start_date, end_date]
+        )
+        return checklists
+
+    if selected_option == 'Today':
+        today = timezone.now().date()
+        in_progress_checklists = get_checklists_for_status('In Progress', today, today)
+        completed_checklists = get_checklists_for_status('Completed', today, today)
+        failed_checklists = get_checklists_for_status('Failed', today, today)
+        response_data = {
+            'in_progress': ChecklistSerializer(in_progress_checklists, many=True).data,
+            'completed_checklists': ChecklistSerializer(completed_checklists, many=True).data,
+            'failed_checklists': ChecklistSerializer(failed_checklists, many=True).data,
+        }
+    
+    elif selected_option == 'Previous_Week':
+        today = timezone.now().date()
+        last_week_start = today - timezone.timedelta(days=today.weekday() + 6)
+        in_progress_checklists = get_checklists_for_status('In Progress', last_week_start, today)
+        completed_checklists = get_checklists_for_status('Completed', last_week_start, today)
+        failed_checklists = get_checklists_for_status('Failed', last_week_start, today)
+        response_data = {
+            'in_progress': ChecklistSerializer(in_progress_checklists, many=True).data,
+            'completed_checklists': ChecklistSerializer(completed_checklists, many=True).data,
+            'failed_checklists': ChecklistSerializer(failed_checklists, many=True).data,
+        }
+    elif selected_option == 'Previous_Month':
+        today = timezone.now().date()
+        previous_month_start = today - timezone.timedelta(days=today.day + 30)
+        previous_month_end = today - timezone.timedelta(days=today.day + 1)
+        in_progress_checklists = get_checklists_for_status('In Progress', previous_month_start, previous_month_end)
+        completed_checklists = get_checklists_for_status('Completed', previous_month_start, previous_month_end)
+        failed_checklists = get_checklists_for_status('Failed', previous_month_start, previous_month_end)
+
+        response_data = {
+            'in_progress': ChecklistSerializer(in_progress_checklists, many=True).data,
+            'completed_checklists': ChecklistSerializer(completed_checklists, many=True).data,
+            'failed_checklists': ChecklistSerializer(failed_checklists, many=True).data,
+        }
+    else:
+        return JsonResponse({'error': 'Invalid option'}, status=400)
+
+    return JsonResponse(response_data)
