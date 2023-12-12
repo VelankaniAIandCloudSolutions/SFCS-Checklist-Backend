@@ -172,7 +172,7 @@ def upload_bom(request):
 @authentication_classes([])
 @permission_classes([])
 def scan_code(request):
-
+    print(request.data)
     # input_string = "u1UUID000128808-VEPL145154751D<Facts>Q500"
     pattern = r'u1([^\-]+)-(VEPL\d{8})'
     match = re.search(pattern, request.data.get('value'))
@@ -443,4 +443,16 @@ def get_checklists_for_bom(request, bom_id):
 
     except Exception as e:
         # Handle other exceptions
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+def get_checklist_report(request):
+    try:
+        checklists = Checklist.objects.all().order_by('-created_at')
+        checklist_serializer = ChecklistSerializer(checklists, many=True)
+        return Response({
+            'checklists': checklist_serializer.data,
+        })
+    except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

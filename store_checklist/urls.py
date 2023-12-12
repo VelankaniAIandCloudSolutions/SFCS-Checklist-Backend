@@ -5,6 +5,7 @@ urlpatterns = [
     path('upload-bom/', views.upload_bom),
     path('scan-code/', views.scan_code),
     path('get-boms/', views.get_boms),
+    path('get-checklist-report/', views.get_checklist_report),
     path('get-boms/<int:bom_id>/', views.get_bom_by_id),
     path('generate-new-checklist/<int:bom_id>/', views.generate_new_checklist),
     path('get-active-checklist/<int:bom_id>/', views.get_active_checklist),

@@ -66,6 +66,13 @@ class BaseModel(models.Model):
         null=True,
         blank=True,
     )
+    created_by = models.ForeignKey(
+        'accounts.UserAccount', 
+        related_name='%(class)s_creators',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
     updated_at = models.DateTimeField(auto_now=True,blank=True,null=True)
     created_at = models.DateTimeField(default=timezone.now) 
     is_active = models.BooleanField(default=True)
