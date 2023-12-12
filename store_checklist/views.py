@@ -456,3 +456,16 @@ def get_checklist_report(request):
         })
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+@api_view(['POST'])
+def save_qr_code(request,checklist_id):
+    try:
+        print(request.data)
+        checklist  = Checklist.objects.get(pk = checklist_id)
+        checklist.qr_code_link = request.data.get('qrCodeDataURL', None)
+        checklist.unique_code = request.data.get('uniqueCode', None)
+        checklist.save()
+        checklist_serializer = ChecklistSerializer(checklist)
+        return Response({'checklist': checklist_serializer.data}, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
