@@ -1,3 +1,6 @@
+
+from datetime import datetime
+
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
 from .models import *
@@ -611,7 +614,28 @@ def get_checklist_count(request):
             'completed_checklists': ChecklistSerializer(completed_checklists, many=True).data,
             'failed_checklists': ChecklistSerializer(failed_checklists, many=True).data,
         }
+    elif selected_option == 'Custom':
+        start_date_str = request.data.get('start_date')
+        end_date_str = request.data.get('end_date')
+
+        try:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            return JsonResponse({'error': 'Invalid date format'}, status=400)
+
+        in_progress_checklists = get_checklists_for_status('In Progress', start_date, end_date)
+        completed_checklists = get_checklists_for_status('Completed', start_date, end_date)
+        failed_checklists = get_checklists_for_status('Failed', start_date, end_date)
+
+        response_data = {
+            'in_progress': ChecklistSerializer(in_progress_checklists, many=True).data,
+            'completed_checklists': ChecklistSerializer(completed_checklists, many=True).data,
+            'failed_checklists': ChecklistSerializer(failed_checklists, many=True).data,
+        }
+
     else:
         return JsonResponse({'error': 'Invalid option'}, status=400)
+  
 
     return JsonResponse(response_data)
