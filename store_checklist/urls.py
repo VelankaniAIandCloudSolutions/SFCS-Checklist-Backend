@@ -16,5 +16,6 @@ urlpatterns = [
     path('save-qr-code/<int:checklist_id>/', views.save_qr_code),
     path('generated-checklists/<int:bom_id>/',
          views.get_checklists_for_bom, name='checklist-list-for-bom'),
+    path('get-checklist-count/',views.get_checklist_count),
 
 ]
