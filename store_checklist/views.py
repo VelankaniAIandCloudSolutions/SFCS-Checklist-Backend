@@ -78,7 +78,29 @@ def upload_bom(request):
             assembly_stage, _ = AssemblyStage.objects.get_or_create(
                 name=row.get('Assy Stage', None))
             line_item_type, _ = BillOfMaterialsLineItemType.objects.get_or_create(
-                name=row.get('Type', None))
+                name=row.get('Type').strip().upper())
+            checklist_item_type_value = ''
+            if(row.get('Type')):
+                if row.get('Type').strip().upper() == 'PCB':
+                    checklist_item_type_value = 'PCB'
+                elif row.get('Type').strip().upper() == 'PCB SERIAL NUMBER LABEL':
+                    checklist_item_type_value = 'PCB SERIAL NUMBER LABEL'
+                elif row.get('Type').strip().upper() == 'SOLDER PASTE':
+                    checklist_item_type_value = 'SOLDER PASTE'
+                elif row.get('Type').strip().upper() == 'IPA':
+                    checklist_item_type_value = 'IPA'
+                elif row.get('Type').strip().upper() == 'SOLDER FLUX':
+                    checklist_item_type_value = 'SOLDER FLUX'
+                elif row.get('Type').strip().upper() == 'SOLDER WIRE':
+                    checklist_item_type_value = 'SOLDER WIRE'
+                elif row.get('Type').strip().upper() == 'SMT PALLET':
+                    checklist_item_type_value = 'SMT PALLET'
+                elif row.get('Type').strip().upper() == 'WAVE PALLET':
+                    checklist_item_type_value = 'WAVE PALLET'
+                else:
+                    checklist_item_type_value = 'RAW MATERIAL'
+            
+            checklist_item_type, _ = ChecklistItemType.objects.get_or_create(name=checklist_item_type_value)
 
             level = row['Level'] if 'Level' in row and pd.notnull(
                 row['Level']) else ''
@@ -98,8 +120,7 @@ def upload_bom(request):
             uom = row['UOM'] if 'UOM' in row and pd.notnull(row['UOM']) else ''
             ecn = row['ECN'] if 'ECN' in row and pd.notnull(row['ECN']) else ''
             msl = row['MSL'] if 'MSL' in row and pd.notnull(row['MSL']) else ''
-            remarks = row['Remarks'] if 'Remarks' in row and pd.notnull(
-                row['Remarks']) else ''
+            remarks = row['Remarks'] if 'Remarks' in row and pd.notnull(row['Remarks']) else ''
 
             bom_line_item, created = BillOfMaterialsLineItem.objects.update_or_create(
                 part_number=row['VEPL Part No'],
@@ -198,10 +219,34 @@ def scan_code(request):
             for bom_line_item in active_bom.bom_line_items.all():
                 if bom_line_item.part_number.strip() == part_number.strip():
                     is_present = True
+                    if bom_line_item.line_item_type:
+                    
+                        if bom_line_item.line_item_type.name.strip().upper() == 'PCB':
+                            checklist_item_type_value = 'PCB'
+                        elif bom_line_item.line_item_type.name.strip().upper() == 'PCB SERIAL NUMBER LABEL':
+                            checklist_item_type_value = 'PCB SERIAL NUMBER LABEL'
+                        elif bom_line_item.line_item_type.name.strip().upper() == 'SOLDER PASTE':
+                            checklist_item_type_value = 'SOLDER PASTE'
+                        elif bom_line_item.line_item_type.name.strip().upper() == 'IPA':
+                            checklist_item_type_value = 'IPA'
+                        elif bom_line_item.line_item_type.name.strip().upper() == 'SOLDER FLUX':
+                            checklist_item_type_value = 'SOLDER FLUX'
+                        elif bom_line_item.line_item_type.name.strip().upper() == 'SOLDER WIRE':
+                            checklist_item_type_value = 'SOLDER WIRE'
+                        elif bom_line_item.line_item_type.name.strip().upper() == 'SMT PALLET':
+                            checklist_item_type_value = 'SMT PALLET'
+                        elif bom_line_item.line_item_type.name.strip().upper() == 'WAVE PALLET':
+                            checklist_item_type_value = 'WAVE PALLET'
+                        else:
+                            checklist_item_type_value = 'RAW MATERIAL'
+                    
+                    checklist_item_type, _ = ChecklistItemType.objects.get(name=checklist_item_type_value)
+
                     checklist_item, created = ChecklistItem.objects.get_or_create(
                         checklist=active_checklist,
                         bom_line_item=bom_line_item,
                         required_quantity=bom_line_item.quantity,
+                        checklist_item_type = checklist_item_type
                     )
 
                     if created:
