@@ -111,8 +111,15 @@ def ensure_single_in_progress_checklist(sender, instance, **kwargs):
         if existing_checklist.exists():
             raise ValueError('There is already an ongoing checklist for this BOM.')
         
+class ChecklistItemType(BaseModel):
+    name = models.CharField(max_length=255)
+
+    def __str__(self):
+        return self.name
+    
 class ChecklistItem(BaseModel):
     checklist = models.ForeignKey(Checklist, on_delete=models.CASCADE, related_name='checklist_items',null=True)
+    checklist_item_type = models.ForeignKey(ChecklistItemType, on_delete=models.SET_NULL, null=True, blank=True)
     bom_line_item = models.ForeignKey(BillOfMaterialsLineItem, on_delete=models.CASCADE, related_name='checklist_items')
     required_quantity = models.IntegerField(default=0)
     present_quantity = models.IntegerField(default=0)

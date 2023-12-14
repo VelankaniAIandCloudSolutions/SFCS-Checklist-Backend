@@ -68,8 +68,16 @@ class BillOfMaterialsDetailedSerializer(serializers.ModelSerializer):
         model = BillOfMaterials
         fields = '__all__'
 
+class ChecklistItemTypeSerializer(serializers.ModelSerializer):
+    updated_at = serializers.DateTimeField(format='%d/%m/%Y %H:%M:%S')
+    
+    class Meta:
+        model = ChecklistItemType
+        fields = '__all__'
+
 class ChecklistItemSerializer(serializers.ModelSerializer):
     bom_line_item = BillOfMaterialsLineItemSerializer()
+    checklist_item_type = ChecklistItemTypeSerializer()
     updated_at = serializers.DateTimeField(format='%d/%m/%Y %H:%M:%S')
     
     class Meta:
