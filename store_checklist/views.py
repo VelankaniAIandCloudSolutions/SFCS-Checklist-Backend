@@ -38,8 +38,6 @@ import re
 
 
 @api_view(['POST'])
-@authentication_classes([])
-@permission_classes([])
 def upload_bom(request):
     # if 'file' not in request.FILES:
     #     return Response({'error': 'File is missing'}, status=status.HTTP_400_BAD_REQUEST)
@@ -49,16 +47,22 @@ def upload_bom(request):
     bom_file = request.FILES['bom_file']
     bom_file_name = str(request.FILES['bom_file'].name)
     # file_path  = 'media/PRYSM-Gen4_SERVER_BOM_20231120.xlsx'
-    data = pd.read_excel(bom_file, header=5, sheet_name=1).head(10)
+    data = pd.read_excel(bom_file, header=5, sheet_name=1)
     product, _ = Product.objects.get_or_create(
         name=request.data.get('product_name'),
         product_code=request.data.get('product_code'),
         defaults={
-            'product_rev_number': request.data.get('product_rev_no')
+            'product_rev_number': request.data.get('product_rev_no'),
+            'updated_by': request.user,
+            'created_by': request.user,
         }
     )
     bom_type, _ = BillOfMaterialsType.objects.get_or_create(
-        name=request.data.get('bom_type'))
+        name=request.data.get('bom_type'),
+        defaults={
+            'updated_by': request.user,
+            'created_by': request.user,
+        })
 
     bom, _ = BillOfMaterials.objects.get_or_create(
         product=product,
@@ -68,17 +72,27 @@ def upload_bom(request):
             'bom_type': bom_type,
             'bom_rev_number': request.data.get('bom_rev_no'),
             'bom_file': bom_file,
+            'updated_by': request.user,
+            'created_by': request.user,
         }
     )
     # bom  = BillOfMaterials.objects.all()[0]
 
     for _, row in data.iterrows():
-        if row['VEPL Part No'] != '':
+        if  str(row['VEPL Part No'])!='nan' and str(row['VEPL Part No']).strip().startswith('VEPL'):
             print(row)
             assembly_stage, _ = AssemblyStage.objects.get_or_create(
-                name=row.get('Assy Stage', None))
+                name=row.get('Assy Stage', None),
+                defaults={
+                    'updated_by': request.user,
+                    'created_by': request.user,
+                })
             line_item_type, _ = BillOfMaterialsLineItemType.objects.get_or_create(
-                name=row.get('Type').strip().upper())
+                name=row.get('Type').strip().upper(),
+                defaults={
+                    'updated_by': request.user,
+                    'created_by': request.user,
+                    })
             checklist_item_type_value = ''
             if(row.get('Type')):
                 if row.get('Type').strip().upper() == 'PCB':
@@ -87,6 +101,8 @@ def upload_bom(request):
                     checklist_item_type_value = 'PCB SERIAL NUMBER LABEL'
                 elif row.get('Type').strip().upper() == 'SOLDER PASTE':
                     checklist_item_type_value = 'SOLDER PASTE'
+                elif row.get('Type').strip().upper() == 'SOLDER BAR':
+                    checklist_item_type_value = 'SOLDER BAR'
                 elif row.get('Type').strip().upper() == 'IPA':
                     checklist_item_type_value = 'IPA'
                 elif row.get('Type').strip().upper() == 'SOLDER FLUX':
@@ -100,7 +116,10 @@ def upload_bom(request):
                 else:
                     checklist_item_type_value = 'RAW MATERIAL'
             
-            checklist_item_type, _ = ChecklistItemType.objects.get_or_create(name=checklist_item_type_value)
+            checklist_item_type, _ = ChecklistItemType.objects.get_or_create(name=checklist_item_type_value, defaults={
+                'updated_by': request.user,
+            'created_by': request.user,
+            })
 
             level = row['Level'] if 'Level' in row and pd.notnull(
                 row['Level']) else ''
@@ -138,13 +157,15 @@ def upload_bom(request):
                     'uom': uom,
                     'ecn': ecn,
                     'msl': msl,
-                    'assembly_stage': assembly_stage
+                    'assembly_stage': assembly_stage,
+                    'created_by': request.user,
+                    'updated_by': request.user,
                 }
             )
 
             if pd.notnull(row['Mfr']):
                 parts = [part.strip()
-                         for part in row['Mfr'].split('\n') if part.strip()]
+                        for part in row['Mfr'].split('\n') if part.strip()]
                 manufacturers = parts if not row['Mfr'].startswith(
                     '\n') else parts[1:]
             else:
@@ -152,7 +173,7 @@ def upload_bom(request):
 
             if pd.notnull(row['Mfr. Part No']):
                 parts = [part.strip()
-                         for part in row['Mfr. Part No'].split('\n') if part.strip()]
+                        for part in row['Mfr. Part No'].split('\n') if part.strip()]
                 manufacturer_part_nos = parts if not row['Mfr. Part No'].startswith(
                     '\n') else parts[1:]
             else:
@@ -164,10 +185,18 @@ def upload_bom(request):
             for mfr, mfr_part_no in zip(manufacturers, manufacturer_part_nos):
                 if mfr.strip() and mfr_part_no.strip():
                     manufacturer, _ = Manufacturer.objects.get_or_create(
-                        name=mfr.strip())
+                        name=mfr.strip(),
+                        defaults={
+                            'updated_by': request.user,
+            'created_by': request.user,
+                        })
                     manufacturer_part, _ = ManufacturerPart.objects.get_or_create(
                         part_number=mfr_part_no.strip(),
-                        manufacturer=manufacturer
+                        manufacturer=manufacturer,
+                        defaults={
+                            'updated_by': request.user,
+            'created_by': request.user,
+                        }
                     )
 
                     bom_line_item.manufacturer_parts.add(manufacturer_part)
@@ -177,7 +206,11 @@ def upload_bom(request):
                 for reference in row['Reference'].split(','):
                     ref, _ = BillOfMaterialsLineItemReference.objects.get_or_create(
                         name=reference.strip(),
-                        bom_line_item=bom_line_item
+                        bom_line_item=bom_line_item,
+                        defaults={
+                            'updated_by': request.user,
+                            'created_by': request.user,
+                        }
                     )
 
             bom_items_serializer = BillOfMaterialsLineItemSerializer(
@@ -199,12 +232,18 @@ def upload_bom(request):
 def scan_code(request):
     print(request.data)
     # input_string = "u1UUID000128808-VEPL145154751D<Facts>Q500"
-    pattern = r'ue1([^\-]+)-(VEPL\d{8})'
-    match = re.search(pattern, request.data.get('value'))
+    # pattern = r'ue1([^\-]+)-(VEPL\d{8})'
+    # match = re.search(pattern, request.data.get('value'))
 
-    if match:
-        uuid = match.group(1)
-        part_number = match.group(2)
+    text = request.data.get('value')
+    uid_pattern = r'.*?1U(.*?)-'
+    vepl_pattern = r'(VEPL.*?)(?=1D<)'
+    uid_match = re.search(uid_pattern, text)
+    vepl_match = re.search(vepl_pattern, text)
+
+    if vepl_match:
+        uuid = uid_match.group(1)
+        part_number = vepl_match.group(1)
 
         print("UUID:", uuid)
         print("Part Number:", part_number)
@@ -227,6 +266,8 @@ def scan_code(request):
                             checklist_item_type_value = 'PCB SERIAL NUMBER LABEL'
                         elif bom_line_item.line_item_type.name.strip().upper() == 'SOLDER PASTE':
                             checklist_item_type_value = 'SOLDER PASTE'
+                        elif bom_line_item.line_item_type.name.strip().upper() == 'SOLDER BAR':
+                            checklist_item_type_value = 'SOLDER BAR'
                         elif bom_line_item.line_item_type.name.strip().upper() == 'IPA':
                             checklist_item_type_value = 'IPA'
                         elif bom_line_item.line_item_type.name.strip().upper() == 'SOLDER FLUX':
@@ -240,13 +281,21 @@ def scan_code(request):
                         else:
                             checklist_item_type_value = 'RAW MATERIAL'
                     
-                    checklist_item_type, _ = ChecklistItemType.objects.get(name=checklist_item_type_value)
+                    checklist_item_type, _ = ChecklistItemType.objects.get_or_create(name=checklist_item_type_value,
+                                                                                     defaults={
+                                                                                        'updated_by': request.user,
+                                                                                        'created_by': request.user,
+                                                                                     })
 
                     checklist_item, created = ChecklistItem.objects.get_or_create(
                         checklist=active_checklist,
                         bom_line_item=bom_line_item,
                         required_quantity=bom_line_item.quantity,
-                        checklist_item_type = checklist_item_type
+                        defaults={
+                            'updated_by': request.user,
+                            'created_by': request.user,
+                            'checklist_item_type': checklist_item_type
+                        }
                     )
 
                     if created:
@@ -286,18 +335,51 @@ def generate_new_checklist(request, bom_id):
             print('exists')
         else:
             setting = ChecklistSetting.objects.create(
-                active_bom=BillOfMaterials.objects.get(id=bom_id))
+                active_bom=BillOfMaterials.objects.get(id=bom_id),created_by = request.user, updated_by = request.user)
             print('doesnt exist')
         setting.active_bom = active_bom
         setting.active_checklist = Checklist.objects.create(
-            bom=active_bom, status='In Progress')
+            bom=active_bom, status='In Progress',created_by = request.user, updated_by = request.user)
         setting.save()
 
         for bom_line_item in active_bom.bom_line_items.all():
-            check_list_item, created = ChecklistItem.objects.get_or_create(
+            if bom_line_item.line_item_type:
+                    
+                if bom_line_item.line_item_type.name.strip().upper() == 'PCB':
+                    checklist_item_type_value = 'PCB'
+                elif bom_line_item.line_item_type.name.strip().upper() == 'PCB SERIAL NUMBER LABEL':
+                    checklist_item_type_value = 'PCB SERIAL NUMBER LABEL'
+                elif bom_line_item.line_item_type.name.strip().upper() == 'SOLDER PASTE':
+                    checklist_item_type_value = 'SOLDER PASTE'
+                elif bom_line_item.line_item_type.name.strip().upper() == 'SOLDER BAR':
+                    checklist_item_type_value = 'SOLDER BAR'
+                elif bom_line_item.line_item_type.name.strip().upper() == 'IPA':
+                    checklist_item_type_value = 'IPA'
+                elif bom_line_item.line_item_type.name.strip().upper() == 'SOLDER FLUX':
+                    checklist_item_type_value = 'SOLDER FLUX'
+                elif bom_line_item.line_item_type.name.strip().upper() == 'SOLDER WIRE':
+                    checklist_item_type_value = 'SOLDER WIRE'
+                elif bom_line_item.line_item_type.name.strip().upper() == 'SMT PALLET':
+                    checklist_item_type_value = 'SMT PALLET'
+                elif bom_line_item.line_item_type.name.strip().upper() == 'WAVE PALLET':
+                    checklist_item_type_value = 'WAVE PALLET'
+                else:
+                    checklist_item_type_value = 'RAW MATERIAL'
+            
+            checklist_item_type, _ = ChecklistItemType.objects.get_or_create(name=checklist_item_type_value,
+                                                                                defaults={
+                                                                                'updated_by': request.user,
+                                                                                'created_by': request.user,
+                                                                                })
+            checklist_item, created = ChecklistItem.objects.get_or_create(
                 checklist=setting.active_checklist,
                 bom_line_item=bom_line_item,
                 required_quantity=bom_line_item.quantity,
+                defaults={
+                    'updated_by': request.user,
+                    'created_by': request.user,
+                    'checklist_item_type' : checklist_item_type
+                }
             )
 
         return Response({'message': 'Active BOM set successfully'}, status=status.HTTP_200_OK)
@@ -322,7 +404,9 @@ def check_existing_checklist(request, bom_id):
                         break
         else:
             setting = ChecklistSetting.objects.create(
-                active_bom=BillOfMaterials.objects.get(id=bom_id))
+                active_bom=BillOfMaterials.objects.get(id=bom_id),
+                created_by = request.user,
+                updated_by =request.user)
 
         return Response({
             'is_existing': is_existing,
@@ -369,9 +453,9 @@ def get_active_checklist(request, bom_id):
 
     except ChecklistSetting.DoesNotExist:
         setting = ChecklistSetting.objects.create(
-            active_bom=BillOfMaterials.objects.get(id=bom_id))
+            active_bom=BillOfMaterials.objects.get(id=bom_id),created_by = request.user, updated_by = request.user)
         setting.active_checklist = Checklist.objects.create(
-            bom=BillOfMaterials.objects.get(id=bom_id), status='In Progress')
+            bom=BillOfMaterials.objects.get(id=bom_id), status='In Progress',created_by = request.user, updated_by = request.user)
         setting.save()
         return Response({'message': 'Active Checklist and BOM not defined but new ones set successfully'}, status=status.HTTP_200_OK)
 
@@ -451,7 +535,7 @@ def end_checklist(request, checklist_id):
             setting = ChecklistSetting.objects.first()
         else:
             setting = ChecklistSetting.objects.create(
-                active_bom=BillOfMaterials.objects.get(id=checklist.bom.id))
+                active_bom=BillOfMaterials.objects.get(id=checklist.bom.id),created_by = request.user, updated_by = request.user)
 
         setting.active_bom = None
         setting.active_checklist = None
@@ -519,111 +603,6 @@ def save_qr_code(request,checklist_id):
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
-
-# @api_view(['GET'])
-# @authentication_classes([])
-# @permission_classes([])
-# def get_checklist_count(request):
-#     today = timezone.now().date()
-
-#     # Calculate the start and end dates for the previous week
-#     previous_week_start = today - timezone.timedelta(days=today.weekday() + 7)
-#     previous_week_end = today
-
-#     # Calculate the start and end dates for the previous month
-#     previous_month_start = today - timezone.timedelta(days=today.day + 30)
-#     previous_month_end = today - timezone.timedelta(days=today.day + 1)
-#     print("Previous Week Start:", previous_week_start)
-#     print("Previous Week End:", previous_week_end)
-#     # Get checklists with status 'In Progress' created today
-#     today_in_progress_checklists = Checklist.objects.filter(
-#         status='In Progress',
-#         created_at__date=today
-#     )
-
-#     # Get checklists with status 'Completed' created today
-#     today_completed_checklists = Checklist.objects.filter(
-#         status='Completed',
-#         created_at__date=today
-#     )
-
-#     # Get checklists with status 'Failed' created today
-#     today_failed_checklists = Checklist.objects.filter(
-#         status='Failed',
-#         created_at__date=today
-#     )
-
-#     # Get checklists with status 'In Progress' for the previous week
-#     previous_week_in_progress_checklists = Checklist.objects.filter(
-#         status='In Progress',
-#         created_at__date__range=[previous_week_start, previous_week_end]
-#     )
-
-#     # Get checklists with status 'Completed' for the previous week
-#     previous_week_completed_checklists = Checklist.objects.filter(
-#         status='Completed',
-#         created_at__date__range=[previous_week_start, previous_week_end]
-#     )
-
-#     # Get checklists with status 'Failed' for the previous week
-#     previous_week_failed_checklists = Checklist.objects.filter(
-#         status='Failed',
-#         created_at__date__range=[previous_week_start, previous_week_end]
-#     )
-
-#     # Get checklists with status 'In Progress' for the previous month
-#     previous_month_in_progress_checklists = Checklist.objects.filter(
-#         status='In Progress',
-#         created_at__date__range=[previous_month_start, previous_month_end]
-#     )
-
-#     # Get checklists with status 'Completed' for the previous month
-#     previous_month_completed_checklists = Checklist.objects.filter(
-#         status='Completed',
-#         created_at__date__range=[previous_month_start, previous_month_end]
-#     )
-
-#     # Get checklists with status 'Failed' for the previous month
-#     previous_month_failed_checklists = Checklist.objects.filter(
-#         status='Failed',
-#         created_at__date__range=[previous_month_start, previous_month_end]
-#     )
-#     print(today_in_progress_checklists)
-#     print(today_in_progress_checklists.values())
-#     serializer = ChecklistSerializer
-
-#     data = {
-#         'today': {
-#             'in_progress_count': today_in_progress_checklists.count(),
-#             'completed_count': today_completed_checklists.count(),
-#             'failed_count': today_failed_checklists.count(),
-#             'total_count': today_in_progress_checklists.count() + today_completed_checklists.count() + today_failed_checklists.count(),
-#             'in_progress_checklists': serializer(today_in_progress_checklists, many=True).data,
-#             'completed_checklists': serializer(today_completed_checklists, many=True).data,
-#             'failed_checklists': serializer(today_failed_checklists, many=True).data,
-#         },
-#         'previous_week': {
-#             'in_progress_count': previous_week_in_progress_checklists.count(),
-#             'completed_count': previous_week_completed_checklists.count(),
-#             'failed_count': previous_week_failed_checklists.count(),
-#             'total_count': previous_week_in_progress_checklists.count() + previous_week_completed_checklists.count() + previous_week_failed_checklists.count(),
-#             'in_progress_checklists': serializer(previous_week_in_progress_checklists, many=True).data,
-#             'completed_checklists': serializer(previous_week_completed_checklists, many=True).data,
-#             'failed_checklists': serializer(previous_week_failed_checklists, many=True).data,
-#         },
-#         'previous_month': {
-#             'in_progress_count': previous_month_in_progress_checklists.count(),
-#             'completed_count': previous_month_completed_checklists.count(),
-#             'failed_count': previous_month_failed_checklists.count(),
-#             'total_count': previous_month_in_progress_checklists.count() + previous_month_completed_checklists.count() + previous_month_failed_checklists.count(),
-#             'in_progress_checklists': serializer(previous_month_in_progress_checklists, many=True).data,
-#             'completed_checklists': serializer(previous_month_completed_checklists, many=True).data,
-#             'failed_checklists': serializer(previous_month_failed_checklists, many=True).data,
-#         },
-#     }
-
-#     return JsonResponse(data)
-
 @api_view(['POST'])
 @authentication_classes([])
 @permission_classes([])
@@ -661,8 +640,8 @@ def get_checklist_count(request):
         }
     elif selected_option == 'Previous_Month':
         today = timezone.now().date()
-        previous_month_start = today - timezone.timedelta(days=today.day + 30)
-        previous_month_end = today - timezone.timedelta(days=today.day + 1)
+        previous_month_start = today - timezone.timedelta(days=30)
+        previous_month_end = today
         in_progress_checklists = get_checklists_for_status('In Progress', previous_month_start, previous_month_end)
         completed_checklists = get_checklists_for_status('Completed', previous_month_start, previous_month_end)
         failed_checklists = get_checklists_for_status('Failed', previous_month_start, previous_month_end)
