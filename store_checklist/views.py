@@ -199,7 +199,7 @@ def upload_bom(request):
 def scan_code(request):
     print(request.data)
     # input_string = "u1UUID000128808-VEPL145154751D<Facts>Q500"
-    pattern = r'u1([^\-]+)-(VEPL\d{8})'
+    pattern = r'ue1([^\-]+)-(VEPL\d{8})'
     match = re.search(pattern, request.data.get('value'))
 
     if match:
