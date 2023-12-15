@@ -616,8 +616,11 @@ def get_checklist_count(request):
         }
     elif selected_option == 'Previous_Month':
         today = timezone.now().date()
-        previous_month_start = today - timezone.timedelta(days=today.day + 30)
-        previous_month_end = today - timezone.timedelta(days=today.day + 1)
+        # Calculate the starting date as today minus 30 days
+        previous_month_start = today - timezone.timedelta(days=30)
+        
+        # Calculate the ending date as today minus 1 day
+        previous_month_end = today 
         in_progress_checklists = get_checklists_for_status('In Progress', previous_month_start, previous_month_end)
         completed_checklists = get_checklists_for_status('Completed', previous_month_start, previous_month_end)
         failed_checklists = get_checklists_for_status('Failed', previous_month_start, previous_month_end)
