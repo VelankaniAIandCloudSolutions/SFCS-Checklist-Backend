@@ -29,6 +29,9 @@ ALLOWED_HOSTS = ['*']
 
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:8080',
+    'https://sfcs.xtractautomation.com',
+    'http://sfcs.xtractautomation.com',
+    'http://sfcs-checklist.s3-website.ap-south-1.amazonaws.com',
 ]
 # Application definition
 
