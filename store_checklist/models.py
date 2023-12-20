@@ -100,6 +100,7 @@ class Checklist(BaseModel):
     status = models.CharField(choices=STATUS_CHOICES,max_length=255, null=True, blank=True)
     qr_code_link = models.URLField(max_length=200, blank=True, null=True)
     unique_code = models.CharField(max_length=255, blank=True, null=True)
+    batch_quantity = models.IntegerField(default=1)
     
     def __str__(self):
         return "Checklist for BOM ID: " +  str(self.bom.id)
