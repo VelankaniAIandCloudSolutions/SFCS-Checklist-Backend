@@ -238,9 +238,16 @@ def scan_code(request):
     text = request.data.get('value')
     uid_pattern = r'.*?1U(.*?)-'
     vepl_pattern = r'(VEPL.*?)(?=1D<)'
+    quantity_pattern = r'Q(\d+)'
     uid_match = re.search(uid_pattern, text)
     vepl_match = re.search(vepl_pattern, text)
-
+    quantity_match = re.search(quantity_pattern, text)
+    
+    if quantity_match:
+        quantity = int(quantity_match.group(1))
+    else:
+        quantity = 0
+    
     if vepl_match:
         uuid = uid_match.group(1)
         part_number = vepl_match.group(1)
@@ -290,7 +297,6 @@ def scan_code(request):
                     checklist_item, created = ChecklistItem.objects.get_or_create(
                         checklist=active_checklist,
                         bom_line_item=bom_line_item,
-                        required_quantity=bom_line_item.quantity,
                         defaults={
                             'updated_by': request.user,
                             'created_by': request.user,
@@ -299,9 +305,9 @@ def scan_code(request):
                     )
 
                     if created:
-                        checklist_item.present_quantity = 1
+                        checklist_item.present_quantity = quantity
                     else:
-                        checklist_item.present_quantity += 1
+                        checklist_item.present_quantity += quantity
 
                     if checklist_item.present_quantity >= checklist_item.required_quantity:
                         is_quantity_sufficient = True
@@ -330,6 +336,7 @@ def scan_code(request):
 def generate_new_checklist(request, bom_id):
     try:
         active_bom = BillOfMaterials.objects.get(id=bom_id)
+        batch_quantity = request.data.get('batch_quantity') or 1
         if ChecklistSetting.objects.exists():
             setting = ChecklistSetting.objects.first()
             print('exists')
@@ -339,7 +346,7 @@ def generate_new_checklist(request, bom_id):
             print('doesnt exist')
         setting.active_bom = active_bom
         setting.active_checklist = Checklist.objects.create(
-            bom=active_bom, status='In Progress',created_by = request.user, updated_by = request.user)
+            bom=active_bom, status='In Progress',created_by = request.user, updated_by = request.user,batch_quantity = batch_quantity)
         setting.save()
 
         for bom_line_item in active_bom.bom_line_items.all():
@@ -374,7 +381,7 @@ def generate_new_checklist(request, bom_id):
             checklist_item, created = ChecklistItem.objects.get_or_create(
                 checklist=setting.active_checklist,
                 bom_line_item=bom_line_item,
-                required_quantity=bom_line_item.quantity,
+                required_quantity=bom_line_item.quantity*batch_quantity,
                 defaults={
                     'updated_by': request.user,
                     'created_by': request.user,
@@ -452,10 +459,11 @@ def get_active_checklist(request, bom_id):
             return Response({'error': 'The selcted BOM is not active, please make the BOM active by genrating a checklist'}, status=status.HTTP_400_BAD_REQUEST)
 
     except ChecklistSetting.DoesNotExist:
+        batch_quantity = request.data.get('batch_quantity') or 1
         setting = ChecklistSetting.objects.create(
             active_bom=BillOfMaterials.objects.get(id=bom_id),created_by = request.user, updated_by = request.user)
         setting.active_checklist = Checklist.objects.create(
-            bom=BillOfMaterials.objects.get(id=bom_id), status='In Progress',created_by = request.user, updated_by = request.user)
+            bom=BillOfMaterials.objects.get(id=bom_id), status='In Progress',created_by = request.user, updated_by = request.user,batch_quantity = batch_quantity)
         setting.save()
         return Response({'message': 'Active Checklist and BOM not defined but new ones set successfully'}, status=status.HTTP_200_OK)
 
