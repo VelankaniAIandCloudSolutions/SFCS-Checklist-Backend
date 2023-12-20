@@ -14,6 +14,7 @@ djoser==2.2.2
 et-xmlfile==1.1.0
 gunicorn==21.2.0
 idna==3.6
+mysqlclient==2.2.1
 numpy==1.24.4
 oauthlib==3.2.2
 openpyxl==3.1.2
