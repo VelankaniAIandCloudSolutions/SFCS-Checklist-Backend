@@ -444,10 +444,10 @@ def get_active_checklist(request, bom_id):
                 checklist.is_passed = True
                 checklist.status = 'Completed'
                 checklist.save()
-                setting = ChecklistSetting.objects.first()
-                setting.active_checklist = None
-                setting.active_bom = None
-                setting.save()
+                # setting = ChecklistSetting.objects.first()
+                # setting.active_checklist = None
+                # setting.active_bom = None
+                # setting.save()
             checklist_serializer = ChecklistSerializer(checklist)
 
             return Response(
@@ -456,7 +456,10 @@ def get_active_checklist(request, bom_id):
                 }, status=status.HTTP_200_OK
             )
         else:
-            return Response({'error': 'The selcted BOM is not active, please make the BOM active by genrating a checklist'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({
+                'error': 'No active BOM found',
+            },status=status.HTTP_400_BAD_REQUEST)
+        
 
     except ChecklistSetting.DoesNotExist:
         batch_quantity = request.data.get('batch_quantity') or 1
