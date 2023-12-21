@@ -16,7 +16,7 @@ import re
 from .tasks import test_func, process_bom_file
 import os
 from django.conf import settings
-
+from celery.result import AsyncResult
 @api_view(['POST'])
 def upload_bom_task(request):
     # try:
@@ -46,10 +46,30 @@ def upload_bom_task(request):
             'issue_date': request.data.get('issue_date'),
         }
         res = process_bom_file.delay(path,bom_file_name,bom_data,request.user.id)
-        return Response({'message': 'BOM upload task is queued for processing'}, status=status.HTTP_202_ACCEPTED)
+        task_result = AsyncResult(res.id)
+        task_status = task_result.status
+        print(task_status)
+        print(task_result)
+        return Response({'message': 'BOM upload task is queued for processing','task_id': res.id,'task_status': str(task_status)}, status=status.HTTP_202_ACCEPTED)
 
-    # except Exception as e:
-    #     return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+@api_view(['GET'])
+def check_task_status(request, task_id):
+    try:
+        
+        task = AsyncResult(task_id)
+        if task.state == 'PENDING':
+            data = {'task_id': task_id, 'task_status': 'PENDING'}
+        elif task.state == 'SUCCESS':
+            data = {'task_id': task_id, 'task_status': 'SUCCESS'}
+        elif task.state == 'FAILURE':
+            data = {'task_id': task_id, 'task_status': 'FAILURE'}
+        else:
+            data = {'task_id': task_id, 'task_status': 'IN PROGRESS'}
+        print(data)
+        return Response(data, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # @api_view(['POST'])
 # def upload_bom(request):
