@@ -13,217 +13,230 @@ import pandas as pd
 import json
 from django.db.models import Q
 import re
-
-# @api_view(['GET'])
-# @authentication_classes([])
-# @permission_classes([])
-# def test_api(request):
-
-#     file_path = 'media/PRYSM-Gen4_SERVER_BOM_20231120.xlsx'
-#     excel =  pd.read_excel(file_path,sheet_name=1)
-#     print(excel.iloc[1])
-#     print(excel.iloc[2])
-#     print(excel.iloc[3])
-#     print(excel.iloc[4])
-#     excel_data = pd.read_excel(file_path, header=5,sheet_name=1).head(10)
-#     # print(excel_data.columns.tolist())
-#     data = excel_data.to_dict('records')
-#     # for index, row in excel_data.iterrows():
-
-#     #     print(row['VEPL Part No'])
-
-#     return Response({
-#         'data': json.dumps(data)
-#     })
-
+from .tasks import test_func, process_bom_file
+import os
+from django.conf import settings
 
 @api_view(['POST'])
-def upload_bom(request):
-    # if 'file' not in request.FILES:
-    #     return Response({'error': 'File is missing'}, status=status.HTTP_400_BAD_REQUEST)
-
+def upload_bom_task(request):
     # try:
-    # Read the Excel file using pandas
-    bom_file = request.FILES['bom_file']
-    bom_file_name = str(request.FILES['bom_file'].name)
-    # file_path  = 'media/PRYSM-Gen4_SERVER_BOM_20231120.xlsx'
-    data = pd.read_excel(bom_file, header=5, sheet_name=1)
-    product, _ = Product.objects.get_or_create(
-        name=request.data.get('product_name'),
-        product_code=request.data.get('product_code'),
-        defaults={
-            'product_rev_number': request.data.get('product_rev_no'),
-            'updated_by': request.user,
-            'created_by': request.user,
+        bom_file = request.FILES.get('bom_file')
+        bom_file_name = str(request.FILES['bom_file'].name)
+        if bom_file is None:
+            return Response({'error': 'File is missing'}, status=status.HTTP_400_BAD_REQUEST)
+
+        media_directory = os.path.join('bom_files', bom_file_name)
+
+        bom_file_path = os.path.join(settings.MEDIA_ROOT, media_directory)
+
+        os.makedirs(os.path.dirname(bom_file_path), exist_ok=True)
+
+        with open(bom_file_path, 'wb') as destination:
+            for chunk in bom_file.chunks():
+                destination.write(chunk)
+
+        path = str(bom_file_path)
+
+        bom_data = {
+            'product_name': request.data.get('product_name'),
+            'product_code': request.data.get('product_code'),
+            'product_rev_no': request.data.get('product_rev_no'),
+            'bom_type': request.data.get('bom_type'),
+            'bom_rev_no': request.data.get('bom_rev_no'),
+            'issue_date': request.data.get('issue_date'),
         }
-    )
-    bom_type, _ = BillOfMaterialsType.objects.get_or_create(
-        name=request.data.get('bom_type'),
-        defaults={
-            'updated_by': request.user,
-            'created_by': request.user,
-        })
-
-    bom, _ = BillOfMaterials.objects.get_or_create(
-        product=product,
-        issue_date=request.data.get('issue_date'),
-        bom_file_name=bom_file_name,
-        defaults={
-            'bom_type': bom_type,
-            'bom_rev_number': request.data.get('bom_rev_no'),
-            'bom_file': bom_file,
-            'updated_by': request.user,
-            'created_by': request.user,
-        }
-    )
-    # bom  = BillOfMaterials.objects.all()[0]
-
-    for _, row in data.iterrows():
-        if  str(row['VEPL Part No'])!='nan' and str(row['VEPL Part No']).strip().startswith('VEPL'):
-            print(row)
-            assembly_stage, _ = AssemblyStage.objects.get_or_create(
-                name=row.get('Assy Stage', None),
-                defaults={
-                    'updated_by': request.user,
-                    'created_by': request.user,
-                })
-            line_item_type, _ = BillOfMaterialsLineItemType.objects.get_or_create(
-                name=row.get('Type').strip().upper(),
-                defaults={
-                    'updated_by': request.user,
-                    'created_by': request.user,
-                    })
-            checklist_item_type_value = ''
-            if(row.get('Type')):
-                if row.get('Type').strip().upper() == 'PCB':
-                    checklist_item_type_value = 'PCB'
-                elif row.get('Type').strip().upper() == 'PCB SERIAL NUMBER LABEL':
-                    checklist_item_type_value = 'PCB SERIAL NUMBER LABEL'
-                elif row.get('Type').strip().upper() == 'SOLDER PASTE':
-                    checklist_item_type_value = 'SOLDER PASTE'
-                elif row.get('Type').strip().upper() == 'SOLDER BAR':
-                    checklist_item_type_value = 'SOLDER BAR'
-                elif row.get('Type').strip().upper() == 'IPA':
-                    checklist_item_type_value = 'IPA'
-                elif row.get('Type').strip().upper() == 'SOLDER FLUX':
-                    checklist_item_type_value = 'SOLDER FLUX'
-                elif row.get('Type').strip().upper() == 'SOLDER WIRE':
-                    checklist_item_type_value = 'SOLDER WIRE'
-                elif row.get('Type').strip().upper() == 'SMT PALLET':
-                    checklist_item_type_value = 'SMT PALLET'
-                elif row.get('Type').strip().upper() == 'WAVE PALLET':
-                    checklist_item_type_value = 'WAVE PALLET'
-                else:
-                    checklist_item_type_value = 'RAW MATERIAL'
-            
-            checklist_item_type, _ = ChecklistItemType.objects.get_or_create(name=checklist_item_type_value, defaults={
-                'updated_by': request.user,
-            'created_by': request.user,
-            })
-
-            level = row['Level'] if 'Level' in row and pd.notnull(
-                row['Level']) else ''
-            priority_level = row.get('Prioprity Level') if 'Prioprity Level' in row and pd.notnull(row['Prioprity Level']) else \
-                row.get('Priority Level') if 'Priority Level' in row and pd.notnull(
-                    row['Priority Level']) else ''
-            value = row['Value'] if 'Value' in row and pd.notnull(
-                row['Value']) else ''
-            pcb_footprint = row['PCB Footprint'] if 'PCB Footprint' in row and pd.notnull(
-                row['PCB Footprint']) else ''
-            description = row['Description'] if 'Description' in row and pd.notnull(
-                row['Description']) else ''
-            customer_part_number = row['Customer Part No'] if 'Customer Part No' in row and pd.notnull(
-                row['Customer Part No']) else ''
-            quantity = row['Qty/ Product'] if 'Qty/ Product' in row and pd.notnull(
-                row['Qty/ Product']) else 0
-            uom = row['UOM'] if 'UOM' in row and pd.notnull(row['UOM']) else ''
-            ecn = row['ECN'] if 'ECN' in row and pd.notnull(row['ECN']) else ''
-            msl = row['MSL'] if 'MSL' in row and pd.notnull(row['MSL']) else ''
-            remarks = row['Remarks'] if 'Remarks' in row and pd.notnull(row['Remarks']) else ''
-
-            bom_line_item, created = BillOfMaterialsLineItem.objects.update_or_create(
-                part_number=row['VEPL Part No'],
-                bom=bom,
-                defaults={
-                    'level': level,
-                    'priority_level': priority_level,
-                    'value': value,
-                    'pcb_footprint': pcb_footprint,
-                    'line_item_type': line_item_type,
-                    'description': description,
-                    'customer_part_number': customer_part_number,
-                    'quantity': quantity,
-                    'remarks': remarks,
-                    'uom': uom,
-                    'ecn': ecn,
-                    'msl': msl,
-                    'assembly_stage': assembly_stage,
-                    'created_by': request.user,
-                    'updated_by': request.user,
-                }
-            )
-
-            if pd.notnull(row['Mfr']):
-                parts = [part.strip()
-                        for part in row['Mfr'].split('\n') if part.strip()]
-                manufacturers = parts if not row['Mfr'].startswith(
-                    '\n') else parts[1:]
-            else:
-                manufacturers = []
-
-            if pd.notnull(row['Mfr. Part No']):
-                parts = [part.strip()
-                        for part in row['Mfr. Part No'].split('\n') if part.strip()]
-                manufacturer_part_nos = parts if not row['Mfr. Part No'].startswith(
-                    '\n') else parts[1:]
-            else:
-                manufacturer_part_nos = []
-
-            print('manufacturer parts', manufacturer_part_nos)
-
-            bom_line_item.manufacturer_parts.clear()
-            for mfr, mfr_part_no in zip(manufacturers, manufacturer_part_nos):
-                if mfr.strip() and mfr_part_no.strip():
-                    manufacturer, _ = Manufacturer.objects.get_or_create(
-                        name=mfr.strip(),
-                        defaults={
-                            'updated_by': request.user,
-            'created_by': request.user,
-                        })
-                    manufacturer_part, _ = ManufacturerPart.objects.get_or_create(
-                        part_number=mfr_part_no.strip(),
-                        manufacturer=manufacturer,
-                        defaults={
-                            'updated_by': request.user,
-            'created_by': request.user,
-                        }
-                    )
-
-                    bom_line_item.manufacturer_parts.add(manufacturer_part)
-            bom_line_item.save()
-
-            if 'Reference' in row and pd.notnull(row['Reference']):
-                for reference in row['Reference'].split(','):
-                    ref, _ = BillOfMaterialsLineItemReference.objects.get_or_create(
-                        name=reference.strip(),
-                        bom_line_item=bom_line_item,
-                        defaults={
-                            'updated_by': request.user,
-                            'created_by': request.user,
-                        }
-                    )
-
-            bom_items_serializer = BillOfMaterialsLineItemSerializer(
-                bom.bom_line_items, many=True)
-
-    return Response({
-        'message': 'BOM uploaded successfully',
-        'bom_items': bom_items_serializer.data,
-    }, status=status.HTTP_201_CREATED)
+        res = process_bom_file.delay(path,bom_file_name,bom_data,request.user.id)
+        return Response({'message': 'BOM upload task is queued for processing'}, status=status.HTTP_202_ACCEPTED)
 
     # except Exception as e:
-    #     # Handle exceptions
     #     return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+# @api_view(['POST'])
+# def upload_bom(request):
+#     # if 'file' not in request.FILES:
+#     #     return Response({'error': 'File is missing'}, status=status.HTTP_400_BAD_REQUEST)
+
+#     # try:
+#     bom_file = request.FILES['bom_file']
+#     bom_file_name = str(request.FILES['bom_file'].name)
+#     # file_path  = 'media/PRYSM-Gen4_SERVER_BOM_20231120.xlsx'
+#     data = pd.read_excel(bom_file, header=5, sheet_name=1)
+#     product, _ = Product.objects.get_or_create(
+#         name=request.data.get('product_name'),
+#         product_code=request.data.get('product_code'),
+#         defaults={
+#             'product_rev_number': request.data.get('product_rev_no'),
+#             'updated_by': request.user,
+#             'created_by': request.user,
+#         }
+#     )
+#     bom_type, _ = BillOfMaterialsType.objects.get_or_create(
+#         name=request.data.get('bom_type'),
+#         defaults={
+#             'updated_by': request.user,
+#             'created_by': request.user,
+#         })
+
+#     bom, _ = BillOfMaterials.objects.get_or_create(
+#         product=product,
+#         issue_date=request.data.get('issue_date'),
+#         bom_file_name=bom_file_name,
+#         defaults={
+#             'bom_type': bom_type,
+#             'bom_rev_number': request.data.get('bom_rev_no'),
+#             'bom_file': bom_file,
+#             'updated_by': request.user,
+#             'created_by': request.user,
+#         }
+#     )
+#     # bom  = BillOfMaterials.objects.all()[0]
+
+#     for _, row in data.iterrows():
+#         if  str(row['VEPL Part No'])!='nan' and str(row['VEPL Part No']).strip().startswith('VEPL'):
+#             print(row)
+#             assembly_stage, _ = AssemblyStage.objects.get_or_create(
+#                 name=row.get('Assy Stage', None),
+#                 defaults={
+#                     'updated_by': request.user,
+#                     'created_by': request.user,
+#                 })
+#             line_item_type, _ = BillOfMaterialsLineItemType.objects.get_or_create(
+#                 name=row.get('Type').strip().upper(),
+#                 defaults={
+#                     'updated_by': request.user,
+#                     'created_by': request.user,
+#                     })
+#             checklist_item_type_value = ''
+#             if(row.get('Type')):
+#                 if row.get('Type').strip().upper() == 'PCB':
+#                     checklist_item_type_value = 'PCB'
+#                 elif row.get('Type').strip().upper() == 'PCB SERIAL NUMBER LABEL':
+#                     checklist_item_type_value = 'PCB SERIAL NUMBER LABEL'
+#                 elif row.get('Type').strip().upper() == 'SOLDER PASTE':
+#                     checklist_item_type_value = 'SOLDER PASTE'
+#                 elif row.get('Type').strip().upper() == 'SOLDER BAR':
+#                     checklist_item_type_value = 'SOLDER BAR'
+#                 elif row.get('Type').strip().upper() == 'IPA':
+#                     checklist_item_type_value = 'IPA'
+#                 elif row.get('Type').strip().upper() == 'SOLDER FLUX':
+#                     checklist_item_type_value = 'SOLDER FLUX'
+#                 elif row.get('Type').strip().upper() == 'SOLDER WIRE':
+#                     checklist_item_type_value = 'SOLDER WIRE'
+#                 elif row.get('Type').strip().upper() == 'SMT PALLET':
+#                     checklist_item_type_value = 'SMT PALLET'
+#                 elif row.get('Type').strip().upper() == 'WAVE PALLET':
+#                     checklist_item_type_value = 'WAVE PALLET'
+#                 else:
+#                     checklist_item_type_value = 'RAW MATERIAL'
+            
+#             checklist_item_type, _ = ChecklistItemType.objects.get_or_create(name=checklist_item_type_value, defaults={
+#                 'updated_by': request.user,
+#             'created_by': request.user,
+#             })
+
+#             level = row['Level'] if 'Level' in row and pd.notnull(
+#                 row['Level']) else ''
+#             priority_level = row.get('Prioprity Level') if 'Prioprity Level' in row and pd.notnull(row['Prioprity Level']) else \
+#                 row.get('Priority Level') if 'Priority Level' in row and pd.notnull(
+#                     row['Priority Level']) else ''
+#             value = row['Value'] if 'Value' in row and pd.notnull(
+#                 row['Value']) else ''
+#             pcb_footprint = row['PCB Footprint'] if 'PCB Footprint' in row and pd.notnull(
+#                 row['PCB Footprint']) else ''
+#             description = row['Description'] if 'Description' in row and pd.notnull(
+#                 row['Description']) else ''
+#             customer_part_number = row['Customer Part No'] if 'Customer Part No' in row and pd.notnull(
+#                 row['Customer Part No']) else ''
+#             quantity = row['Qty/ Product'] if 'Qty/ Product' in row and pd.notnull(
+#                 row['Qty/ Product']) else 0
+#             uom = row['UOM'] if 'UOM' in row and pd.notnull(row['UOM']) else ''
+#             ecn = row['ECN'] if 'ECN' in row and pd.notnull(row['ECN']) else ''
+#             msl = row['MSL'] if 'MSL' in row and pd.notnull(row['MSL']) else ''
+#             remarks = row['Remarks'] if 'Remarks' in row and pd.notnull(row['Remarks']) else ''
+
+#             bom_line_item, created = BillOfMaterialsLineItem.objects.update_or_create(
+#                 part_number=row['VEPL Part No'],
+#                 bom=bom,
+#                 defaults={
+#                     'level': level,
+#                     'priority_level': priority_level,
+#                     'value': value,
+#                     'pcb_footprint': pcb_footprint,
+#                     'line_item_type': line_item_type,
+#                     'description': description,
+#                     'customer_part_number': customer_part_number,
+#                     'quantity': quantity,
+#                     'remarks': remarks,
+#                     'uom': uom,
+#                     'ecn': ecn,
+#                     'msl': msl,
+#                     'assembly_stage': assembly_stage,
+#                     'created_by': request.user,
+#                     'updated_by': request.user,
+#                 }
+#             )
+
+#             if pd.notnull(row['Mfr']):
+#                 parts = [part.strip()
+#                         for part in row['Mfr'].split('\n') if part.strip()]
+#                 manufacturers = parts if not row['Mfr'].startswith(
+#                     '\n') else parts[1:]
+#             else:
+#                 manufacturers = []
+
+#             if pd.notnull(row['Mfr. Part No']):
+#                 parts = [part.strip()
+#                         for part in row['Mfr. Part No'].split('\n') if part.strip()]
+#                 manufacturer_part_nos = parts if not row['Mfr. Part No'].startswith(
+#                     '\n') else parts[1:]
+#             else:
+#                 manufacturer_part_nos = []
+
+#             print('manufacturer parts', manufacturer_part_nos)
+
+#             bom_line_item.manufacturer_parts.clear()
+#             for mfr, mfr_part_no in zip(manufacturers, manufacturer_part_nos):
+#                 if mfr.strip() and mfr_part_no.strip():
+#                     manufacturer, _ = Manufacturer.objects.get_or_create(
+#                         name=mfr.strip(),
+#                         defaults={
+#                             'updated_by': request.user,
+#             'created_by': request.user,
+#                         })
+#                     manufacturer_part, _ = ManufacturerPart.objects.get_or_create(
+#                         part_number=mfr_part_no.strip(),
+#                         manufacturer=manufacturer,
+#                         defaults={
+#                             'updated_by': request.user,
+#             'created_by': request.user,
+#                         }
+#                     )
+
+#                     bom_line_item.manufacturer_parts.add(manufacturer_part)
+#             bom_line_item.save()
+
+#             if 'Reference' in row and pd.notnull(row['Reference']):
+#                 for reference in row['Reference'].split(','):
+#                     ref, _ = BillOfMaterialsLineItemReference.objects.get_or_create(
+#                         name=reference.strip(),
+#                         bom_line_item=bom_line_item,
+#                         defaults={
+#                             'updated_by': request.user,
+#                             'created_by': request.user,
+#                         }
+#                     )
+
+#             bom_items_serializer = BillOfMaterialsLineItemSerializer(
+#                 bom.bom_line_items, many=True)
+
+#     return Response({
+#         'message': 'BOM uploaded successfully',
+#         'bom_items': bom_items_serializer.data,
+#     }, status=status.HTTP_201_CREATED)
+
+#     # except Exception as e:
+#     #     # Handle exceptions
+#     #     return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['POST'])
@@ -499,10 +512,7 @@ def get_checklist_details(request,checklist_id):
 @permission_classes([])
 def get_boms(request):
     try:
-        # Retrieve all BOM objects from the database
         boms = BillOfMaterials.objects.all()
-
-        # Serialize the BOM objects
         serializer = BillOfMaterialsSerializer(boms, many=True)
 
         return Response({'boms': serializer.data}, status=status.HTTP_200_OK)
