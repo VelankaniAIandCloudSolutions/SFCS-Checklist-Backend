@@ -81,7 +81,7 @@ class BillOfMaterialsLineItem(BaseModel):
         return self.part_number + " for BOM ID: " + str(self.bom.id)
 
 class BillOfMaterialsLineItemReference(BaseModel):
-    bom_line_item = models.ForeignKey(BillOfMaterialsLineItem, on_delete=models.CASCADE, related_name='references')
+    bom_line_item = models.ForeignKey(BillOfMaterialsLineItem, on_delete=models.CASCADE,blank = True,null = True,related_name='references')
     name = models.CharField(max_length=255)
 
     def __str__(self):
@@ -98,7 +98,7 @@ class Checklist(BaseModel):
     bom = models.ForeignKey(BillOfMaterials, on_delete=models.CASCADE, related_name='checklists')
     is_passed = models.BooleanField(default=False)
     status = models.CharField(choices=STATUS_CHOICES,max_length=255, null=True, blank=True)
-    qr_code_link = models.TextField(blank=True, null=True)
+    qr_code_link = models.TextField(null=True, blank=True)
     unique_code = models.CharField(max_length=255, blank=True, null=True)
     batch_quantity = models.IntegerField(default=1)
     

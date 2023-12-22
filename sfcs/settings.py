@@ -15,7 +15,6 @@ import os
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
 
@@ -47,7 +46,8 @@ INSTALLED_APPS = [
     'djoser',
     'corsheaders',
     'store_checklist',
-    'accounts'
+    'accounts',
+    'django_celery_results'
 ]
 
 MIDDLEWARE = [
@@ -178,3 +178,6 @@ AUTH_TOKEN_MODEL = 'authtoken.Token'
 
 MEDIA_ROOT = BASE_DIR / 'media'
 MEDIA_URL = '/media/'
+
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'django-db'
