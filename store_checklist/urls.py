@@ -19,8 +19,9 @@ urlpatterns = [
     path('get-checklist-count/', views.get_checklist_count),
     path('check-task-status/<str:task_id>/', views.check_task_status),
 
-    path('get-line-items/<int:pk>/', views.get_line_item_data),
-    path('get-line-item-data/', views.get_line_item_data),
+    path('edit-bom-line-item/<int:bom_line_item_id>/', views.edit_bom_line_item),
+
+
 
 
 ]

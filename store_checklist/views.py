@@ -737,72 +737,117 @@ def get_checklist_count(request):
 # crud for bom_line_items:
 
 
-@api_view(['GET', 'PUT', 'DELETE'])
-@authentication_classes([])
-@permission_classes([])
-def bill_of_materials_line_item_detail(request, pk):
-    try:
-        line_item = BillOfMaterialsLineItem.objects.get(pk=pk)
-    except BillOfMaterialsLineItem.DoesNotExist:
-        return Response(status=status.HTTP_404_NOT_FOUND)
+# @api_view(['GET', 'PUT', 'DELETE'])
+# @authentication_classes([])
+# @permission_classes([])
+# def bill_of_materials_line_item_detail(request, pk):
+#     try:
+#         line_item = BillOfMaterialsLineItem.objects.get(pk=pk)
+#     except BillOfMaterialsLineItem.DoesNotExist:
+#         return Response(status=status.HTTP_404_NOT_FOUND)
 
-    if request.method == 'GET':
-        serializer = BillOfMaterialsLineItemSerializer(line_item)
-        return Response(serializer.data)
+#     if request.method == 'GET':
+#         serializer = BillOfMaterialsLineItemSerializer(line_item)
+#         return Response(serializer.data)
 
-    elif request.method == 'PUT':
-        serializer = BillOfMaterialsLineItemSerializer(
-            line_item, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+#     elif request.method == 'PUT':
+#         serializer = BillOfMaterialsLineItemSerializer(
+#             line_item, data=request.data)
+#         if serializer.is_valid():
+#             serializer.save()
+#             return Response(serializer.data)
+#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    elif request.method == 'DELETE':
-        line_item.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+#     elif request.method == 'DELETE':
+#         line_item.delete()
+#         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-@api_view(['GET'])
-@authentication_classes([])
-@permission_classes([])
-def get_line_item_data(request):
-    if request.method == 'GET':
-        # Fetch line item types
-        line_item_types = BillOfMaterialsLineItemType.objects.all()
-        types_serializer = BillOfMaterialsLineItemTypeSerializer(
-            line_item_types, many=True)
+# @api_view(['GET'])
+# @authentication_classes([])
+# @permission_classes([])
+# def get_line_item_data(request):
+#     if request.method == 'GET':
+#         # Fetch line item types
+#         line_item_types = BillOfMaterialsLineItemType.objects.all()
+#         types_serializer = BillOfMaterialsLineItemTypeSerializer(
+#             line_item_types, many=True)
 
-        # Fetch references
-        references = BillOfMaterialsLineItemReference.objects.all()
-        references_serializer = BillOfMaterialsLineItemReferenceSerializer(
-            references, many=True)
+#         # Fetch references
+#         references = BillOfMaterialsLineItemReference.objects.all()
+#         references_serializer = BillOfMaterialsLineItemReferenceSerializer(
+#             references, many=True)
 
-        return Response({
-            'line_item_types': types_serializer.data,
-            'references': references_serializer.data
-        }, status=status.HTTP_200_OK)
+#         return Response({
+#             'line_item_types': types_serializer.data,
+#             'references': references_serializer.data
+#         }, status=status.HTTP_200_OK)
 
 
 @api_view(['GET', 'PUT'])
+@authentication_classes([])
+@permission_classes([])
 def edit_bom_line_item(request, bom_line_item_id):
+
+    bom_line_item = BillOfMaterialsLineItem.objects.get(
+        pk=bom_line_item_id)
+    bom_line_item_serializer = BillOfMaterialsLineItemSerializer(
+        bom_line_item)
+
     if request.method == 'GET':
 
-        bom_line_item = BillOfMaterialsLineItem.objects.get(
-            pk=bom_line_item_id)
-        bom_line_item_serializer = BillOfMaterialsLineItemSerializer(
-            bom_line_item)
+        manufacturer_parts = ManufacturerPart.objects.all()
+        manufacturerPartSerializer = ManufacturerPartSerializer(
+            manufacturer_parts, many=True)
 
         line_item_types = BillOfMaterialsLineItemType.objects.all()
         types_serializer = BillOfMaterialsLineItemTypeSerializer(
             line_item_types, many=True)
-        references = BillOfMaterialsLineItemReference.objects.all()
-        references_serializer = BillOfMaterialsLineItemReferenceSerializer(
-            references, many=True)
+
+        # references = BillOfMaterialsLineItemReference.objects.all()
+        # references_serializer = BillOfMaterialsLineItemReferenceSerializer(
+        #     references, many=True)
 
         return Response({
             'bom_line_item': bom_line_item_serializer.data,
             'line_item_types': types_serializer.data,
-            'references': references_serializer.data,
+            'manufacturers_parts': manufacturerPartSerializer.data
+
 
         }, status=status.HTTP_200_OK)
+
+    elif request.method == 'PUT':
+        form_data = request.data
+        bom_line_item.part_number = form_data['part_number']
+        bom_line_item.level = form_data['level']
+        bom_line_item.priority_level = form_data['priority_level']
+        bom_line_item.value = form_data['value']
+        bom_line_item.pcb_footprint = form_data['pcb_footprint']
+        bom_line_item.description = form_data['description']
+        bom_line_item.customer_part_number = form_data['customer_part_number']
+        bom_line_item.quantity = form_data['quantity']
+        bom_line_item.uom = form_data['uom']
+        bom_line_item.ecn = form_data['ecn']
+        bom_line_item.msl = form_data['msl']
+        bom_line_item.remarks = form_data['remarks']
+        bom_line_item.line_item_type = BillOfMaterialsLineItemType.objects.get(
+            pk=form_data['line_item_type']
+        )
+
+        # Update references from the updated data
+
+    # Update references from the updated data
+        references_data = form_data['references']
+        for reference_data in references_data:
+            reference_id = reference_data.get('id')
+            if reference_id:
+                reference = BillOfMaterialsLineItemReference.objects.get(
+                    pk=reference_id)
+            else:
+                reference_name = reference_data['name']
+                reference = BillOfMaterialsLineItemReference.objects.create(
+                    name=reference_name, bom_line_item=bom_line_item)
+
+        bom_line_item.save()
+
+        return Response({'message': 'BOM line item updated successfully'}, status=status.HTTP_200_OK)
