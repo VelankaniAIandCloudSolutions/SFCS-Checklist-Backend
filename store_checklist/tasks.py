@@ -217,7 +217,8 @@ def process_bom_file(bom_file,bom_file_name,data,user_id):
 
             BillOfMaterialsLineItem.objects.bulk_create(bom_line_items_to_create)
 
-            for bom_line_item in bom_line_items_to_create:
+            bom_line_items  = BillOfMaterialsLineItem.objects.filter(bom = bom)
+            for bom_line_item in bom_line_items:
                 vepl_part_no = bom_line_item.part_number
 
                 if vepl_part_no in vepl_to_manufacturer_mapping:
@@ -229,6 +230,7 @@ def process_bom_file(bom_file,bom_file_name,data,user_id):
                         reference  = BillOfMaterialsLineItemReference.objects.filter(name = ref).first()
                         reference.bom_line_item = bom_line_item
                         reference.save()
+            print(bom_line_items.first().id)
             # bom_items_serializer = BillOfMaterialsLineItemSerializer(bom.bom_line_items, many=True)
             
         return 'BOM Uploaded Successfully'
