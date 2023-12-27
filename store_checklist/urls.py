@@ -20,6 +20,8 @@ urlpatterns = [
     path('check-task-status/<str:task_id>/', views.check_task_status),
 
     path('edit-bom-line-item/<int:bom_line_item_id>/', views.edit_bom_line_item),
+    path('delete-bom-line-item/<int:bom_line_item_id>/',
+         views.delete_bom_line_item),
 
 
 

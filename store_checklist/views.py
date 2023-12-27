@@ -1,4 +1,7 @@
 
+from .serializers import BillOfMaterialsLineItemSerializer, ManufacturerPartSerializer, BillOfMaterialsLineItemReferenceSerializer, BillOfMaterialsLineItemTypeSerializer
+from .models import BillOfMaterialsLineItem, ManufacturerPart, BillOfMaterialsLineItemReference, BillOfMaterialsLineItemType
+from django.db import transaction
 from datetime import datetime
 
 from django.http import JsonResponse
@@ -788,36 +791,46 @@ def get_checklist_count(request):
 @authentication_classes([])
 @permission_classes([])
 def edit_bom_line_item(request, bom_line_item_id):
-
-    bom_line_item = BillOfMaterialsLineItem.objects.get(
-        pk=bom_line_item_id)
-    bom_line_item_serializer = BillOfMaterialsLineItemSerializer(
-        bom_line_item)
+    bom_line_item = BillOfMaterialsLineItem.objects.get(pk=bom_line_item_id)
+    bom_line_item_serializer = BillOfMaterialsLineItemSerializer(bom_line_item)
 
     if request.method == 'GET':
-
         manufacturer_parts = ManufacturerPart.objects.all()
-        manufacturerPartSerializer = ManufacturerPartSerializer(
+        manufacturer_part_serializer = ManufacturerPartSerializer(
             manufacturer_parts, many=True)
 
         line_item_types = BillOfMaterialsLineItemType.objects.all()
         types_serializer = BillOfMaterialsLineItemTypeSerializer(
             line_item_types, many=True)
 
-        # references = BillOfMaterialsLineItemReference.objects.all()
-        # references_serializer = BillOfMaterialsLineItemReferenceSerializer(
-        #     references, many=True)
+        assembly_stages = AssemblyStage.objects.all()
+        assembly_stages_serializer = AssemblyStageSerializer(
+            assembly_stages, many=True)
 
         return Response({
             'bom_line_item': bom_line_item_serializer.data,
             'line_item_types': types_serializer.data,
-            'manufacturers_parts': manufacturerPartSerializer.data
-
+            'manufacturers_parts': manufacturer_part_serializer.data,
+            'assembly_stages': assembly_stages_serializer.data
 
         }, status=status.HTTP_200_OK)
 
     elif request.method == 'PUT':
+        # Update the line item object with the form data from the request.data dictionary.
+        # Note that the form data is a JSON object, so we need to access the fields using the keys.
+        # For example, to access the part_number field, we would use request.data['part_number'].
+        # Similarly, to access the level field, we would use request.data['level'].
+        # And so on.
+        # You can access all the fields of the form data using the keys of the JSON object.
+        # For example, to access the part_number field, we would use request.data['part_number'].
+        # Similarly, to access the level field, we would use request.data['level'].
+        # And so on.
+        # You can access all the fields of the form data using the keys of the JSON object.
+        # For example, to access the part_number field, we would use request.data['part_number'].
+        # Similarly, to access the level field, we would use request.data['level'].
+        # And so on.
         form_data = request.data
+        print('hiiiiii', form_data)
         bom_line_item.part_number = form_data['part_number']
         bom_line_item.level = form_data['level']
         bom_line_item.priority_level = form_data['priority_level']
@@ -833,10 +846,31 @@ def edit_bom_line_item(request, bom_line_item_id):
         bom_line_item.line_item_type = BillOfMaterialsLineItemType.objects.get(
             pk=form_data['line_item_type']
         )
+        bom_line_item.assembly_stage = AssemblyStage.objects.get(
+            pk=form_data['assembly_stage'])
+
+        # Update many-to-many relationship (manufacturer_parts)
+        manufacturer_parts_data = form_data.get('manufacturer_parts', [])
+        bom_line_item.manufacturer_parts.clear()  # Clear existing relationships
+
+        for part_data in manufacturer_parts_data:
+            part_id = part_data.get('id')
+            if part_id:
+                manufacturer_part = ManufacturerPart.objects.get(pk=part_id)
+            else:
+                part_number = part_data.get('part_number')
+                manufacturer = part_data.get('manufacturer')
+
+                manufacturer_part = ManufacturerPart.objects.create(
+                    part_number=part_number,
+                    manufacturer=manufacturer,
+                    # bom_line_item=bom_line_item
+                )
+
+            bom_line_item.manufacturer_parts.add(manufacturer_part)
 
         # Update references from the updated data
 
-    # Update references from the updated data
         references_data = form_data['references']
         for reference_data in references_data:
             reference_id = reference_data.get('id')
@@ -846,8 +880,24 @@ def edit_bom_line_item(request, bom_line_item_id):
             else:
                 reference_name = reference_data['name']
                 reference = BillOfMaterialsLineItemReference.objects.create(
-                    name=reference_name, bom_line_item=bom_line_item)
+                    name=reference_name, bom_line_item=bom_line_item
+                )
 
         bom_line_item.save()
 
         return Response({'message': 'BOM line item updated successfully'}, status=status.HTTP_200_OK)
+
+
+@api_view(['DELETE'])
+@authentication_classes([])
+@permission_classes([])
+def delete_bom_line_item(request, bom_line_item_id):
+    try:
+        bom_line_item = BillOfMaterialsLineItem.objects.get(
+            pk=bom_line_item_id)
+    except BillOfMaterialsLineItem.DoesNotExist:
+        return Response({'message': 'BOM Line Item not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    if request.method == 'DELETE':
+        bom_line_item.delete()
+        return Response({'message': 'BOM Line Item deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
