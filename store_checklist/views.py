@@ -662,7 +662,7 @@ def get_checklist_count(request):
     def get_checklists_for_status(status, start_date, end_date):
         checklists = Checklist.objects.filter(
             status=status,
-            created_at__date__range=[start_date, end_date]
+            updated_at__date__range=[start_date, end_date]
         )
         return checklists
 

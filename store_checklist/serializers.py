@@ -1,3 +1,4 @@
+from django.conf import settings
 from rest_framework import serializers
 from .models import *
 from accounts.serializers import UserAccountSerializer
@@ -84,10 +85,14 @@ class BillOfMaterialsDetailedSerializer(serializers.ModelSerializer):
     bom_line_items = BillOfMaterialsLineItemSerializer(many=True)
     product = ProductSerializer()
     issue_date = serializers.DateField(format="%d/%m/%Y")
+    bom_file_url = serializers.SerializerMethodField()
 
     class Meta:
         model = BillOfMaterials
         fields = '__all__'
+
+    def get_bom_file_url(self, obj):
+        return f"{settings.WEBSITE_URL}{obj.bom_file.url}" if obj.bom_file else None
 
 
 class ChecklistItemTypeSerializer(serializers.ModelSerializer):
