@@ -35,6 +35,7 @@ CORS_ALLOWED_ORIGINS = [
     'http://sfcs-checklist.s3-website.ap-south-1.amazonaws.com',
 ]
 # Application definition
+CSRF_TRUSTED_ORIGINS = ['https://sfcsdev.xtractautomation.com','http://sfcsdev.xtractautomation.com']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
