@@ -901,3 +901,25 @@ def delete_bom_line_item(request, bom_line_item_id):
     if request.method == 'DELETE':
         bom_line_item.delete()
         return Response({'message': 'BOM Line Item deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(['PUT'])
+@authentication_classes([])
+@permission_classes([])
+def update_checklist_item(request, checklist_item_id):
+    try:
+        checklist_item = ChecklistItem.objects.get(id=checklist_item_id)
+        present_quantity = int(request.data.get('present_quantity', 0))
+
+        checklist_item.present_quantity = present_quantity
+
+        checklist_item.is_present = checklist_item.present_quantity > 0
+        checklist_item.is_quantity_sufficient = checklist_item.present_quantity >= checklist_item.required_quantity
+
+        checklist_item.save()
+
+        return Response({'message': 'Checklist item updated successfully'}, status=status.HTTP_200_OK)
+    except ChecklistItem.DoesNotExist:
+        return Response({'message': 'Checklist item not found'}, status=status.HTTP_404_NOT_FOUND)
+    except ValueError:
+        return Response({'message': 'Invalid present quantity'}, status=status.HTTP_400_BAD_REQUEST)

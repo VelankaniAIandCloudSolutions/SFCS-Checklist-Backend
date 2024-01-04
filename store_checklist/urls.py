@@ -22,6 +22,9 @@ urlpatterns = [
     path('edit-bom-line-item/<int:bom_line_item_id>/', views.edit_bom_line_item),
     path('delete-bom-line-item/<int:bom_line_item_id>/',
          views.delete_bom_line_item),
+    path('update-checklist-item/<int:checklist_item_id>/',
+         views.update_checklist_item),
+
 
 
 
