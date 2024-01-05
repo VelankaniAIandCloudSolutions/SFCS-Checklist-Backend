@@ -61,7 +61,7 @@ class BillOfMaterialsLineItemType(BaseModel):
 class BillOfMaterialsLineItem(BaseModel):
     bom = models.ForeignKey(BillOfMaterials, on_delete=models.CASCADE, related_name='bom_line_items')
     level = models.CharField(max_length=10, blank=True, null=True)
-    uuid = models.CharField(max_length=20,blank=True,null=True)
+    # uuid = models.CharField(max_length=20,blank=True,null=True)
     part_number = models.CharField(max_length=255)
     priority_level = models.CharField(max_length=4, blank=True, null=True)
     value = models.CharField(max_length=255)
@@ -122,6 +122,7 @@ class ChecklistItem(BaseModel):
     checklist = models.ForeignKey(Checklist, on_delete=models.CASCADE, related_name='checklist_items',null=True)
     checklist_item_type = models.ForeignKey(ChecklistItemType, on_delete=models.SET_NULL, null=True, blank=True)
     bom_line_item = models.ForeignKey(BillOfMaterialsLineItem, on_delete=models.CASCADE, related_name='checklist_items')
+    uid = models.CharField(max_length=20,blank=True,null=True)
     required_quantity = models.IntegerField(default=0)
     present_quantity = models.IntegerField(default=0)
     is_present= models.BooleanField(default=False)
