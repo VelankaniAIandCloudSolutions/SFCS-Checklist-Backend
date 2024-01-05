@@ -122,14 +122,20 @@ class ChecklistItem(BaseModel):
     checklist = models.ForeignKey(Checklist, on_delete=models.CASCADE, related_name='checklist_items',null=True)
     checklist_item_type = models.ForeignKey(ChecklistItemType, on_delete=models.SET_NULL, null=True, blank=True)
     bom_line_item = models.ForeignKey(BillOfMaterialsLineItem, on_delete=models.CASCADE, related_name='checklist_items')
-    uid = models.CharField(max_length=20,blank=True,null=True)
     required_quantity = models.IntegerField(default=0)
     present_quantity = models.IntegerField(default=0)
     is_present= models.BooleanField(default=False)
     is_quantity_sufficient= models.BooleanField(default=False)
 
     def __str__(self):
-        return "Checklist for: " + str(self.bom_line_item.part_number)
+        return "Checklist Item for: " + str(self.bom_line_item.part_number)
+    
+class ChecklistItemUID(BaseModel):
+    checklist_item = models.ForeignKey(ChecklistItem, on_delete=models.CASCADE, related_name='checklist_item_uids')
+    uid = models.CharField(max_length=30,unique = True)
+
+    def __str__(self):
+        return str(self.uid)
 
 class ChecklistSetting(BaseModel):
     active_bom = models.ForeignKey(BillOfMaterials, on_delete=models.SET_NULL, null=True, blank=True, related_name='active_settings')
