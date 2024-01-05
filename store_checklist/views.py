@@ -1,4 +1,7 @@
 
+from .serializers import BillOfMaterialsLineItemSerializer, ManufacturerPartSerializer, BillOfMaterialsLineItemReferenceSerializer, BillOfMaterialsLineItemTypeSerializer
+from .models import BillOfMaterialsLineItem, ManufacturerPart, BillOfMaterialsLineItemReference, BillOfMaterialsLineItemType
+from django.db import transaction
 from datetime import datetime
 
 from django.http import JsonResponse
@@ -17,45 +20,49 @@ from .tasks import test_func, process_bom_file
 import os
 from django.conf import settings
 from celery.result import AsyncResult
+
+
 @api_view(['POST'])
 def upload_bom_task(request):
     # try:
-        bom_file = request.FILES.get('bom_file')
-        bom_file_name = str(request.FILES['bom_file'].name)
-        if bom_file is None:
-            return Response({'error': 'File is missing'}, status=status.HTTP_400_BAD_REQUEST)
+    bom_file = request.FILES.get('bom_file')
+    bom_file_name = str(request.FILES['bom_file'].name)
+    if bom_file is None:
+        return Response({'error': 'File is missing'}, status=status.HTTP_400_BAD_REQUEST)
 
-        media_directory = os.path.join('bom_files', bom_file_name)
+    media_directory = os.path.join('bom_files', bom_file_name)
 
-        bom_file_path = os.path.join(settings.MEDIA_ROOT, media_directory)
+    bom_file_path = os.path.join(settings.MEDIA_ROOT, media_directory)
 
-        os.makedirs(os.path.dirname(bom_file_path), exist_ok=True)
+    os.makedirs(os.path.dirname(bom_file_path), exist_ok=True)
 
-        with open(bom_file_path, 'wb') as destination:
-            for chunk in bom_file.chunks():
-                destination.write(chunk)
+    with open(bom_file_path, 'wb') as destination:
+        for chunk in bom_file.chunks():
+            destination.write(chunk)
 
-        path = str(bom_file_path)
+    path = str(bom_file_path)
 
-        bom_data = {
-            'product_name': request.data.get('product_name'),
-            'product_code': request.data.get('product_code'),
-            'product_rev_no': request.data.get('product_rev_no'),
-            'bom_type': request.data.get('bom_type'),
-            'bom_rev_no': request.data.get('bom_rev_no'),
-            'issue_date': request.data.get('issue_date'),
-        }
-        res = process_bom_file.delay(path,bom_file_name,bom_data,request.user.id)
-        task_result = AsyncResult(res.id)
-        task_status = task_result.status
-        print(task_status)
-        print(task_result)
-        return Response({'message': 'BOM upload task is queued for processing','task_id': res.id,'task_status': str(task_status)}, status=status.HTTP_202_ACCEPTED)
+    bom_data = {
+        'product_name': request.data.get('product_name'),
+        'product_code': request.data.get('product_code'),
+        'product_rev_no': request.data.get('product_rev_no'),
+        'bom_type': request.data.get('bom_type'),
+        'bom_rev_no': request.data.get('bom_rev_no'),
+        'issue_date': request.data.get('issue_date'),
+    }
+    res = process_bom_file.delay(
+        path, bom_file_name, bom_data, request.user.id)
+    task_result = AsyncResult(res.id)
+    task_status = task_result.status
+    print(task_status)
+    print(task_result)
+    return Response({'message': 'BOM upload task is queued for processing', 'task_id': res.id, 'task_status': str(task_status)}, status=status.HTTP_202_ACCEPTED)
+
 
 @api_view(['GET'])
 def check_task_status(request, task_id):
     try:
-        
+
         task = AsyncResult(task_id)
         if task.state == 'PENDING':
             data = {'task_id': task_id, 'task_status': 'PENDING'}
@@ -148,7 +155,7 @@ def check_task_status(request, task_id):
 #                     checklist_item_type_value = 'WAVE PALLET'
 #                 else:
 #                     checklist_item_type_value = 'RAW MATERIAL'
-            
+
 #             checklist_item_type, _ = ChecklistItemType.objects.get_or_create(name=checklist_item_type_value, defaults={
 #                 'updated_by': request.user,
 #             'created_by': request.user,
@@ -275,12 +282,12 @@ def scan_code(request):
     uid_match = re.search(uid_pattern, text)
     vepl_match = re.search(vepl_pattern, text)
     quantity_match = re.search(quantity_pattern, text)
-    
+
     if quantity_match:
         quantity = int(quantity_match.group(1))
     else:
         quantity = 0
-    
+
     if vepl_match:
         uuid = uid_match.group(1)
         part_number = vepl_match.group(1)
@@ -299,7 +306,7 @@ def scan_code(request):
                 if bom_line_item.part_number.strip() == part_number.strip():
                     is_present = True
                     if bom_line_item.line_item_type:
-                    
+
                         if bom_line_item.line_item_type.name.strip().upper() == 'PCB':
                             checklist_item_type_value = 'PCB'
                         elif bom_line_item.line_item_type.name.strip().upper() == 'PCB SERIAL NUMBER LABEL':
@@ -320,11 +327,11 @@ def scan_code(request):
                             checklist_item_type_value = 'WAVE PALLET'
                         else:
                             checklist_item_type_value = 'RAW MATERIAL'
-                    
+
                     checklist_item_type, _ = ChecklistItemType.objects.get_or_create(name=checklist_item_type_value,
                                                                                      defaults={
-                                                                                        'updated_by': request.user,
-                                                                                        'created_by': request.user,
+                                                                                         'updated_by': request.user,
+                                                                                         'created_by': request.user,
                                                                                      })
 
                     checklist_item, created = ChecklistItem.objects.get_or_create(
@@ -375,16 +382,16 @@ def generate_new_checklist(request, bom_id):
             print('exists')
         else:
             setting = ChecklistSetting.objects.create(
-                active_bom=BillOfMaterials.objects.get(id=bom_id),created_by = request.user, updated_by = request.user)
+                active_bom=BillOfMaterials.objects.get(id=bom_id), created_by=request.user, updated_by=request.user)
             print('doesnt exist')
         setting.active_bom = active_bom
         setting.active_checklist = Checklist.objects.create(
-            bom=active_bom, status='In Progress',created_by = request.user, updated_by = request.user,batch_quantity = batch_quantity)
+            bom=active_bom, status='In Progress', created_by=request.user, updated_by=request.user, batch_quantity=batch_quantity)
         setting.save()
 
         for bom_line_item in active_bom.bom_line_items.all():
             if bom_line_item.line_item_type:
-                    
+
                 if bom_line_item.line_item_type.name.strip().upper() == 'PCB':
                     checklist_item_type_value = 'PCB'
                 elif bom_line_item.line_item_type.name.strip().upper() == 'PCB SERIAL NUMBER LABEL':
@@ -405,12 +412,12 @@ def generate_new_checklist(request, bom_id):
                     checklist_item_type_value = 'WAVE PALLET'
                 else:
                     checklist_item_type_value = 'RAW MATERIAL'
-            
+
             checklist_item_type, _ = ChecklistItemType.objects.get_or_create(name=checklist_item_type_value,
-                                                                                defaults={
-                                                                                'updated_by': request.user,
-                                                                                'created_by': request.user,
-                                                                                })
+                                                                             defaults={
+                                                                                 'updated_by': request.user,
+                                                                                 'created_by': request.user,
+                                                                             })
             checklist_item, created = ChecklistItem.objects.get_or_create(
                 checklist=setting.active_checklist,
                 bom_line_item=bom_line_item,
@@ -418,7 +425,7 @@ def generate_new_checklist(request, bom_id):
                 defaults={
                     'updated_by': request.user,
                     'created_by': request.user,
-                    'checklist_item_type' : checklist_item_type
+                    'checklist_item_type': checklist_item_type
                 }
             )
 
@@ -445,8 +452,8 @@ def check_existing_checklist(request, bom_id):
         else:
             setting = ChecklistSetting.objects.create(
                 active_bom=BillOfMaterials.objects.get(id=bom_id),
-                created_by = request.user,
-                updated_by =request.user)
+                created_by=request.user,
+                updated_by=request.user)
 
         return Response({
             'is_existing': is_existing,
@@ -491,25 +498,25 @@ def get_active_checklist(request, bom_id):
         else:
             return Response({
                 'error': 'No active BOM found',
-            },status=status.HTTP_400_BAD_REQUEST)
-        
+            }, status=status.HTTP_400_BAD_REQUEST)
 
     except ChecklistSetting.DoesNotExist:
         batch_quantity = request.data.get('batch_quantity') or 1
         setting = ChecklistSetting.objects.create(
-            active_bom=BillOfMaterials.objects.get(id=bom_id),created_by = request.user, updated_by = request.user)
+            active_bom=BillOfMaterials.objects.get(id=bom_id), created_by=request.user, updated_by=request.user)
         setting.active_checklist = Checklist.objects.create(
-            bom=BillOfMaterials.objects.get(id=bom_id), status='In Progress',created_by = request.user, updated_by = request.user,batch_quantity = batch_quantity)
+            bom=BillOfMaterials.objects.get(id=bom_id), status='In Progress', created_by=request.user, updated_by=request.user, batch_quantity=batch_quantity)
         setting.save()
         return Response({'message': 'Active Checklist and BOM not defined but new ones set successfully'}, status=status.HTTP_200_OK)
 
     except BillOfMaterials.DoesNotExist:
         return Response({'error': 'BOM not found'}, status=status.HTTP_404_NOT_FOUND)
 
+
 @api_view(['GET'])
-def get_checklist_details(request,checklist_id):
+def get_checklist_details(request, checklist_id):
     try:
-        checklist  = Checklist.objects.get(pk = checklist_id)
+        checklist = Checklist.objects.get(pk=checklist_id)
         checklist_serializer = ChecklistSerializer(checklist)
         return Response(
             {
@@ -518,7 +525,7 @@ def get_checklist_details(request,checklist_id):
         )
     except Checklist.DoesNotExist:
         return Response({'error': 'Checklist not found'}, status=status.HTTP_404_NOT_FOUND)
-    
+
 # @api_view(['GET'])
 # def get_old_checklists(request,bom_id):
 
@@ -576,7 +583,7 @@ def end_checklist(request, checklist_id):
             setting = ChecklistSetting.objects.first()
         else:
             setting = ChecklistSetting.objects.create(
-                active_bom=BillOfMaterials.objects.get(id=checklist.bom.id),created_by = request.user, updated_by = request.user)
+                active_bom=BillOfMaterials.objects.get(id=checklist.bom.id), created_by=request.user, updated_by=request.user)
 
         setting.active_bom = None
         setting.active_checklist = None
@@ -630,12 +637,13 @@ def get_checklist_report(request):
         })
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
+
+
 @api_view(['POST'])
-def save_qr_code(request,checklist_id):
+def save_qr_code(request, checklist_id):
     try:
         print(request.data)
-        checklist  = Checklist.objects.get(pk = checklist_id)
+        checklist = Checklist.objects.get(pk=checklist_id)
         checklist.qr_code_link = request.data.get('qrCodeDataURL', None)
         checklist.unique_code = request.data.get('uniqueCode', None)
         checklist.save()
@@ -643,7 +651,8 @@ def save_qr_code(request,checklist_id):
         return Response({'checklist': checklist_serializer.data}, status=status.HTTP_200_OK)
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
+
+
 @api_view(['POST'])
 @authentication_classes([])
 @permission_classes([])
@@ -653,27 +662,32 @@ def get_checklist_count(request):
     def get_checklists_for_status(status, start_date, end_date):
         checklists = Checklist.objects.filter(
             status=status,
-            created_at__date__range=[start_date, end_date]
+            updated_at__date__range=[start_date, end_date]
         )
         return checklists
 
     if selected_option == 'Today':
         today = timezone.now().date()
-        in_progress_checklists = get_checklists_for_status('In Progress', today, today)
-        completed_checklists = get_checklists_for_status('Completed', today, today)
+        in_progress_checklists = get_checklists_for_status(
+            'In Progress', today, today)
+        completed_checklists = get_checklists_for_status(
+            'Completed', today, today)
         failed_checklists = get_checklists_for_status('Failed', today, today)
         response_data = {
             'in_progress': ChecklistSerializer(in_progress_checklists, many=True).data,
             'completed_checklists': ChecklistSerializer(completed_checklists, many=True).data,
             'failed_checklists': ChecklistSerializer(failed_checklists, many=True).data,
         }
-    
+
     elif selected_option == 'Previous_Week':
         today = timezone.now().date()
         last_week_start = today - timezone.timedelta(days=today.weekday() + 6)
-        in_progress_checklists = get_checklists_for_status('In Progress', last_week_start, today)
-        completed_checklists = get_checklists_for_status('Completed', last_week_start, today)
-        failed_checklists = get_checklists_for_status('Failed', last_week_start, today)
+        in_progress_checklists = get_checklists_for_status(
+            'In Progress', last_week_start, today)
+        completed_checklists = get_checklists_for_status(
+            'Completed', last_week_start, today)
+        failed_checklists = get_checklists_for_status(
+            'Failed', last_week_start, today)
         response_data = {
             'in_progress': ChecklistSerializer(in_progress_checklists, many=True).data,
             'completed_checklists': ChecklistSerializer(completed_checklists, many=True).data,
@@ -683,9 +697,12 @@ def get_checklist_count(request):
         today = timezone.now().date()
         previous_month_start = today - timezone.timedelta(days=30)
         previous_month_end = today
-        in_progress_checklists = get_checklists_for_status('In Progress', previous_month_start, previous_month_end)
-        completed_checklists = get_checklists_for_status('Completed', previous_month_start, previous_month_end)
-        failed_checklists = get_checklists_for_status('Failed', previous_month_start, previous_month_end)
+        in_progress_checklists = get_checklists_for_status(
+            'In Progress', previous_month_start, previous_month_end)
+        completed_checklists = get_checklists_for_status(
+            'Completed', previous_month_start, previous_month_end)
+        failed_checklists = get_checklists_for_status(
+            'Failed', previous_month_start, previous_month_end)
 
         response_data = {
             'in_progress': ChecklistSerializer(in_progress_checklists, many=True).data,
@@ -702,9 +719,12 @@ def get_checklist_count(request):
         except ValueError:
             return JsonResponse({'error': 'Invalid date format'}, status=400)
 
-        in_progress_checklists = get_checklists_for_status('In Progress', start_date, end_date)
-        completed_checklists = get_checklists_for_status('Completed', start_date, end_date)
-        failed_checklists = get_checklists_for_status('Failed', start_date, end_date)
+        in_progress_checklists = get_checklists_for_status(
+            'In Progress', start_date, end_date)
+        completed_checklists = get_checklists_for_status(
+            'Completed', start_date, end_date)
+        failed_checklists = get_checklists_for_status(
+            'Failed', start_date, end_date)
 
         response_data = {
             'in_progress': ChecklistSerializer(in_progress_checklists, many=True).data,
@@ -714,6 +734,192 @@ def get_checklist_count(request):
 
     else:
         return JsonResponse({'error': 'Invalid option'}, status=400)
-  
 
     return JsonResponse(response_data)
+
+# crud for bom_line_items:
+
+
+# @api_view(['GET', 'PUT', 'DELETE'])
+# @authentication_classes([])
+# @permission_classes([])
+# def bill_of_materials_line_item_detail(request, pk):
+#     try:
+#         line_item = BillOfMaterialsLineItem.objects.get(pk=pk)
+#     except BillOfMaterialsLineItem.DoesNotExist:
+#         return Response(status=status.HTTP_404_NOT_FOUND)
+
+#     if request.method == 'GET':
+#         serializer = BillOfMaterialsLineItemSerializer(line_item)
+#         return Response(serializer.data)
+
+#     elif request.method == 'PUT':
+#         serializer = BillOfMaterialsLineItemSerializer(
+#             line_item, data=request.data)
+#         if serializer.is_valid():
+#             serializer.save()
+#             return Response(serializer.data)
+#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+#     elif request.method == 'DELETE':
+#         line_item.delete()
+#         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# @api_view(['GET'])
+# @authentication_classes([])
+# @permission_classes([])
+# def get_line_item_data(request):
+#     if request.method == 'GET':
+#         # Fetch line item types
+#         line_item_types = BillOfMaterialsLineItemType.objects.all()
+#         types_serializer = BillOfMaterialsLineItemTypeSerializer(
+#             line_item_types, many=True)
+
+#         # Fetch references
+#         references = BillOfMaterialsLineItemReference.objects.all()
+#         references_serializer = BillOfMaterialsLineItemReferenceSerializer(
+#             references, many=True)
+
+#         return Response({
+#             'line_item_types': types_serializer.data,
+#             'references': references_serializer.data
+#         }, status=status.HTTP_200_OK)
+
+
+@api_view(['GET', 'PUT'])
+@authentication_classes([])
+@permission_classes([])
+def edit_bom_line_item(request, bom_line_item_id):
+    bom_line_item = BillOfMaterialsLineItem.objects.get(pk=bom_line_item_id)
+    bom_line_item_serializer = BillOfMaterialsLineItemSerializer(bom_line_item)
+
+    if request.method == 'GET':
+        manufacturer_parts = ManufacturerPart.objects.all()
+        manufacturer_part_serializer = ManufacturerPartSerializer(
+            manufacturer_parts, many=True)
+
+        line_item_types = BillOfMaterialsLineItemType.objects.all()
+        types_serializer = BillOfMaterialsLineItemTypeSerializer(
+            line_item_types, many=True)
+
+        assembly_stages = AssemblyStage.objects.all()
+        assembly_stages_serializer = AssemblyStageSerializer(
+            assembly_stages, many=True)
+
+        return Response({
+            'bom_line_item': bom_line_item_serializer.data,
+            'line_item_types': types_serializer.data,
+            'manufacturers_parts': manufacturer_part_serializer.data,
+            'assembly_stages': assembly_stages_serializer.data
+
+        }, status=status.HTTP_200_OK)
+
+    elif request.method == 'PUT':
+        # Update the line item object with the form data from the request.data dictionary.
+        # Note that the form data is a JSON object, so we need to access the fields using the keys.
+        # For example, to access the part_number field, we would use request.data['part_number'].
+        # Similarly, to access the level field, we would use request.data['level'].
+        # And so on.
+        # You can access all the fields of the form data using the keys of the JSON object.
+        # For example, to access the part_number field, we would use request.data['part_number'].
+        # Similarly, to access the level field, we would use request.data['level'].
+        # And so on.
+        # You can access all the fields of the form data using the keys of the JSON object.
+        # For example, to access the part_number field, we would use request.data['part_number'].
+        # Similarly, to access the level field, we would use request.data['level'].
+        # And so on.
+        form_data = request.data
+        print('hiiiiii', form_data)
+        bom_line_item.part_number = form_data['part_number']
+        bom_line_item.level = form_data['level']
+        bom_line_item.priority_level = form_data['priority_level']
+        bom_line_item.value = form_data['value']
+        bom_line_item.pcb_footprint = form_data['pcb_footprint']
+        bom_line_item.description = form_data['description']
+        bom_line_item.customer_part_number = form_data['customer_part_number']
+        bom_line_item.quantity = form_data['quantity']
+        bom_line_item.uom = form_data['uom']
+        bom_line_item.ecn = form_data['ecn']
+        bom_line_item.msl = form_data['msl']
+        bom_line_item.remarks = form_data['remarks']
+        bom_line_item.line_item_type = BillOfMaterialsLineItemType.objects.get(
+            pk=form_data['line_item_type']
+        )
+        bom_line_item.assembly_stage = AssemblyStage.objects.get(
+            pk=form_data['assembly_stage'])
+
+        # Update many-to-many relationship (manufacturer_parts)
+        manufacturer_parts_data = form_data.get('manufacturer_parts', [])
+        bom_line_item.manufacturer_parts.clear()  # Clear existing relationships
+
+        for part_data in manufacturer_parts_data:
+            part_id = part_data.get('id')
+            if part_id:
+                manufacturer_part = ManufacturerPart.objects.get(pk=part_id)
+            else:
+                part_number = part_data.get('part_number')
+                manufacturer = part_data.get('manufacturer')
+
+                manufacturer_part = ManufacturerPart.objects.create(
+                    part_number=part_number,
+                    manufacturer=manufacturer,
+                    # bom_line_item=bom_line_item
+                )
+
+            bom_line_item.manufacturer_parts.add(manufacturer_part)
+
+        # Update references from the updated data
+
+        references_data = form_data['references']
+        for reference_data in references_data:
+            reference_id = reference_data.get('id')
+            if reference_id:
+                reference = BillOfMaterialsLineItemReference.objects.get(
+                    pk=reference_id)
+            else:
+                reference_name = reference_data['name']
+                reference = BillOfMaterialsLineItemReference.objects.create(
+                    name=reference_name, bom_line_item=bom_line_item
+                )
+
+        bom_line_item.save()
+
+        return Response({'message': 'BOM line item updated successfully'}, status=status.HTTP_200_OK)
+
+
+@api_view(['DELETE'])
+@authentication_classes([])
+@permission_classes([])
+def delete_bom_line_item(request, bom_line_item_id):
+    try:
+        bom_line_item = BillOfMaterialsLineItem.objects.get(
+            pk=bom_line_item_id)
+    except BillOfMaterialsLineItem.DoesNotExist:
+        return Response({'message': 'BOM Line Item not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    if request.method == 'DELETE':
+        bom_line_item.delete()
+        return Response({'message': 'BOM Line Item deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(['PUT'])
+@authentication_classes([])
+@permission_classes([])
+def update_checklist_item(request, checklist_item_id):
+    try:
+        checklist_item = ChecklistItem.objects.get(id=checklist_item_id)
+        present_quantity = int(request.data.get('present_quantity', 0))
+
+        checklist_item.present_quantity = present_quantity
+
+        checklist_item.is_present = checklist_item.present_quantity > 0
+        checklist_item.is_quantity_sufficient = checklist_item.present_quantity >= checklist_item.required_quantity
+
+        checklist_item.save()
+
+        return Response({'message': 'Checklist item updated successfully'}, status=status.HTTP_200_OK)
+    except ChecklistItem.DoesNotExist:
+        return Response({'message': 'Checklist item not found'}, status=status.HTTP_404_NOT_FOUND)
+    except ValueError:
+        return Response({'message': 'Invalid present quantity'}, status=status.HTTP_400_BAD_REQUEST)
