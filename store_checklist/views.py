@@ -302,60 +302,73 @@ def scan_code(request):
         is_quantity_sufficient = False
 
         if active_bom and active_checklist:
-            for bom_line_item in active_bom.bom_line_items.all():
-                if bom_line_item.part_number.strip() == part_number.strip():
-                    is_present = True
-                    if bom_line_item.line_item_type:
 
-                        if bom_line_item.line_item_type.name.strip().upper() == 'PCB':
-                            checklist_item_type_value = 'PCB'
-                        elif bom_line_item.line_item_type.name.strip().upper() == 'PCB SERIAL NUMBER LABEL':
-                            checklist_item_type_value = 'PCB SERIAL NUMBER LABEL'
-                        elif bom_line_item.line_item_type.name.strip().upper() == 'SOLDER PASTE':
-                            checklist_item_type_value = 'SOLDER PASTE'
-                        elif bom_line_item.line_item_type.name.strip().upper() == 'SOLDER BAR':
-                            checklist_item_type_value = 'SOLDER BAR'
-                        elif bom_line_item.line_item_type.name.strip().upper() == 'IPA':
-                            checklist_item_type_value = 'IPA'
-                        elif bom_line_item.line_item_type.name.strip().upper() == 'SOLDER FLUX':
-                            checklist_item_type_value = 'SOLDER FLUX'
-                        elif bom_line_item.line_item_type.name.strip().upper() == 'SOLDER WIRE':
-                            checklist_item_type_value = 'SOLDER WIRE'
-                        elif bom_line_item.line_item_type.name.strip().upper() == 'SMT PALLET':
-                            checklist_item_type_value = 'SMT PALLET'
-                        elif bom_line_item.line_item_type.name.strip().upper() == 'WAVE PALLET':
-                            checklist_item_type_value = 'WAVE PALLET'
+            if ChecklistItemUID.objects.filter(uid=uuid).exists():
+                return JsonResponse({'message': f'UUID {uuid} already exists in ChecklistItemUID table'}, status=400)
+            else:
+
+                for bom_line_item in active_bom.bom_line_items.all():
+                    if bom_line_item.part_number.strip() == part_number.strip():
+                        is_present = True
+                        if bom_line_item.line_item_type:
+
+                            if bom_line_item.line_item_type.name.strip().upper() == 'PCB':
+                                checklist_item_type_value = 'PCB'
+                            elif bom_line_item.line_item_type.name.strip().upper() == 'PCB SERIAL NUMBER LABEL':
+                                checklist_item_type_value = 'PCB SERIAL NUMBER LABEL'
+                            elif bom_line_item.line_item_type.name.strip().upper() == 'SOLDER PASTE':
+                                checklist_item_type_value = 'SOLDER PASTE'
+                            elif bom_line_item.line_item_type.name.strip().upper() == 'SOLDER BAR':
+                                checklist_item_type_value = 'SOLDER BAR'
+                            elif bom_line_item.line_item_type.name.strip().upper() == 'IPA':
+                                checklist_item_type_value = 'IPA'
+                            elif bom_line_item.line_item_type.name.strip().upper() == 'SOLDER FLUX':
+                                checklist_item_type_value = 'SOLDER FLUX'
+                            elif bom_line_item.line_item_type.name.strip().upper() == 'SOLDER WIRE':
+                                checklist_item_type_value = 'SOLDER WIRE'
+                            elif bom_line_item.line_item_type.name.strip().upper() == 'SMT PALLET':
+                                checklist_item_type_value = 'SMT PALLET'
+                            elif bom_line_item.line_item_type.name.strip().upper() == 'WAVE PALLET':
+                                checklist_item_type_value = 'WAVE PALLET'
+                            else:
+                                checklist_item_type_value = 'RAW MATERIAL'
+
+                        checklist_item_type, _ = ChecklistItemType.objects.get_or_create(name=checklist_item_type_value,
+                                                                                         defaults={
+                                                                                             'updated_by': request.user,
+                                                                                             'created_by': request.user,
+                                                                                         })
+
+                        checklist_item, created = ChecklistItem.objects.get_or_create(
+                            checklist=active_checklist,
+                            bom_line_item=bom_line_item,
+                            defaults={
+                                'updated_by': request.user,
+                                'created_by': request.user,
+                                'checklist_item_type': checklist_item_type
+                            }
+                        )
+                        checklist_item_uid, created = ChecklistItemUID.objects.get_or_create(
+                            checklist_item=checklist_item,
+                            uid=uuid,
+                            defaults={
+                                'updated_by': request.user,
+                                'created_by': request.user,
+                            }
+                        )
+
+                        if created:
+                            checklist_item.present_quantity = quantity
                         else:
-                            checklist_item_type_value = 'RAW MATERIAL'
+                            checklist_item.present_quantity += quantity
 
-                    checklist_item_type, _ = ChecklistItemType.objects.get_or_create(name=checklist_item_type_value,
-                                                                                     defaults={
-                                                                                         'updated_by': request.user,
-                                                                                         'created_by': request.user,
-                                                                                     })
+                        if checklist_item.present_quantity >= checklist_item.required_quantity:
+                            is_quantity_sufficient = True
 
-                    checklist_item, created = ChecklistItem.objects.get_or_create(
-                        checklist=active_checklist,
-                        bom_line_item=bom_line_item,
-                        defaults={
-                            'updated_by': request.user,
-                            'created_by': request.user,
-                            'checklist_item_type': checklist_item_type
-                        }
-                    )
+                        checklist_item.is_present = is_present
+                        checklist_item.is_quantity_sufficient = is_quantity_sufficient
 
-                    if created:
-                        checklist_item.present_quantity = quantity
-                    else:
-                        checklist_item.present_quantity += quantity
-
-                    if checklist_item.present_quantity >= checklist_item.required_quantity:
-                        is_quantity_sufficient = True
-
-                    checklist_item.is_present = is_present
-                    checklist_item.is_quantity_sufficient = is_quantity_sufficient
-
-                    checklist_item.save()
+                        checklist_item.save()
 
         else:
             return Response({'error': 'No active BOM'}, status=status.HTTP_400_BAD_REQUEST)

@@ -103,10 +103,19 @@ class ChecklistItemTypeSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class ChecklistItemUIDSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ChecklistItemUID
+        fields = '__all__'
+
+
 class ChecklistItemSerializer(serializers.ModelSerializer):
     bom_line_item = BillOfMaterialsLineItemSerializer()
     checklist_item_type = ChecklistItemTypeSerializer()
     updated_at = serializers.DateTimeField(format='%d/%m/%Y %H:%M:%S')
+
+    # Include ChecklistItemUID as a nested serializer
+    checklist_item_uids = ChecklistItemUIDSerializer(many=True, read_only=True)
 
     class Meta:
         model = ChecklistItem
