@@ -270,6 +270,7 @@ def check_task_status(request, task_id):
 @authentication_classes([])
 @permission_classes([])
 def scan_code(request):
+
     print(request.data)
     # input_string = "u1UUID000128808-VEPL145154751D<Facts>Q500"
     # pattern = r'ue1([^\-]+)-(VEPL\d{8})'
@@ -298,6 +299,9 @@ def scan_code(request):
         active_bom = ChecklistSetting.objects.first().active_bom
         active_checklist = ChecklistSetting.objects.first().active_checklist
 
+        print("Active BOM:", active_bom)
+        print("Active Checklist:", active_checklist)
+
         is_present = False
         is_quantity_sufficient = False
 
@@ -308,6 +312,10 @@ def scan_code(request):
             else:
 
                 for bom_line_item in active_bom.bom_line_items.all():
+                    print("BOM Line Item Part Number:",
+                          bom_line_item.part_number.strip())
+                    print("Input Part Number:", part_number.strip())
+
                     if bom_line_item.part_number.strip() == part_number.strip():
                         is_present = True
                         if bom_line_item.line_item_type:
@@ -339,27 +347,42 @@ def scan_code(request):
                                                                                              'created_by': request.user,
                                                                                          })
 
-                        checklist_item, created = ChecklistItem.objects.get_or_create(
+                        checklist_item, checklist_item_created = ChecklistItem.objects.get_or_create(
                             checklist=active_checklist,
                             bom_line_item=bom_line_item,
                             defaults={
-                                'updated_by': request.user,
-                                'created_by': request.user,
+                                # 'updated_by': request.user,
+                                # 'created_by': request.user,
                                 'checklist_item_type': checklist_item_type
                             }
                         )
-                        checklist_item_uid, created = ChecklistItemUID.objects.get_or_create(
+
+                        # if ChecklistItem.objects.filter(checklist = active_checklist, bom_line_item = bom_line_item).exists():
+                        #     checklist_item.checklist_item_type = checklist_item_type
+                        #     checklist_item.save()
+                        #     checklist_item_created = False
+                        # else:
+                        #     ChecklistItem.objects.create(checklist = active_checklist, bom_line_item = bom_line_item,checklist_item_type = checklist_item_type)
+                        #     checklist_item_created = True
+
+                        checklist_item_uid, checklist_item_uid_created = ChecklistItemUID.objects.get_or_create(
                             checklist_item=checklist_item,
                             uid=uuid,
-                            defaults={
-                                'updated_by': request.user,
-                                'created_by': request.user,
-                            }
-                        )
+                            # defaults={
+                            #     'updated_by': request.user,
+                            #     'created_by': request.user,
+                            # }
 
-                        if created:
+                        )
+                        print(
+                            f'ChecklistItem created: {checklist_item_created }')
+                        print(
+                            f'ChecklistItemUID created: {checklist_item_uid_created}')
+
+                        if checklist_item_created:
                             checklist_item.present_quantity = quantity
-                        else:
+
+                        if checklist_item_uid_created:
                             checklist_item.present_quantity += quantity
 
                         if checklist_item.present_quantity >= checklist_item.required_quantity:
@@ -378,6 +401,7 @@ def scan_code(request):
             'part_number': part_number,
             'is_present': is_present,
             'is_quantity_sufficient': is_quantity_sufficient,
+
         })
 
     else:
