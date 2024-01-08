@@ -7,10 +7,19 @@ from django.dispatch import receiver
 # Create your models here.
 
 
+class Project(BaseModel):
+    name = models.CharField(max_length=255)
+    project_code = models.CharField(max_length=255)
+    project_rev_number = models.CharField(max_length=255)
+
+    def __str__(self):
+        return self.name
+
 class Product(BaseModel):
     name = models.CharField(max_length=255)
     product_code = models.CharField(max_length=255)
     product_rev_number = models.CharField(max_length=255)
+    project = models.ForeignKey(Project, on_delete=models.SET_NULL,null= True, related_name='products')
 
     def __str__(self):
         return self.name
@@ -181,3 +190,10 @@ class ChecklistSetting(BaseModel):
             return "Active BOM: " + self.active_bom.product.name
         else:
             return "No Active BOM"
+
+class Order(BaseModel):
+    bom = models.ForeignKey(BillOfMaterials, on_delete=models.CASCADE, related_name='orders')
+    batch_quantity = models.IntegerField(default=1)
+    
+    def __str__(self):
+        return 'Order for: ' + str(self.bom.product.name)
