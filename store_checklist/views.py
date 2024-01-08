@@ -960,3 +960,37 @@ def update_checklist_item(request, checklist_item_id):
         return Response({'message': 'Checklist item not found'}, status=status.HTTP_404_NOT_FOUND)
     except ValueError:
         return Response({'message': 'Invalid present quantity'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET'])
+def get_projects(request):
+    try:
+        if request.method == 'GET':
+            projects = Project.objects.all()
+            project_serializer = ProjectSerializer(projects, many=True)
+            return Response({'projects': project_serializer.data}, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+def get_products_by_project(request, project_id):
+    try:
+        if request.method == 'GET':
+            products = Product.objects.filter(project_id=project_id)
+            serialized_products = ProductSerializer(products, many=True).data
+            return Response({'products': serialized_products}, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@authentication_classes([])
+@permission_classes([])
+def get_orders(request):
+    try:
+        orders = Order.objects.all()
+        serializer = OrderSerializer(orders, many=True)
+        return JsonResponse({'orders': serializer.data}, status=200)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)

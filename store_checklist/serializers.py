@@ -36,7 +36,15 @@ class BillOfMaterialsLineItemTypeSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class ProjectSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Project
+        fields = '__all__'
+
+
 class ProductSerializer(serializers.ModelSerializer):
+    project = ProjectSerializer()
+
     class Meta:
         model = Product
         fields = '__all__'
@@ -145,4 +153,13 @@ class ChecklistSettingSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ChecklistSetting
+        fields = '__all__'
+
+
+class OrderSerializer(serializers.ModelSerializer):
+
+    bom = BillOfMaterialsDetailedSerializer()
+
+    class Meta:
+        model = Order
         fields = '__all__'
