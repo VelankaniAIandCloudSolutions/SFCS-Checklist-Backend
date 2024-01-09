@@ -962,35 +962,98 @@ def update_checklist_item(request, checklist_item_id):
         return Response({'message': 'Invalid present quantity'}, status=status.HTTP_400_BAD_REQUEST)
 
 
-@api_view(['GET'])
-def get_projects(request):
-    try:
-        if request.method == 'GET':
-            projects = Project.objects.all()
-            project_serializer = ProjectSerializer(projects, many=True)
-            return Response({'projects': project_serializer.data}, status=status.HTTP_200_OK)
-    except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+# @api_view(['GET'])
+# def get_projects(request):
+#     try:
+#         if request.method == 'GET':
+#             projects = Project.objects.all()
+#             project_serializer = ProjectSerializer(projects, many=True)
+#             return Response({'projects': project_serializer.data}, status=status.HTTP_200_OK)
+#     except Exception as e:
+#         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# @api_view(['GET'])
+# def get_products_by_project(request, project_id):
+#     try:
+#         if request.method == 'GET':
+#             products = Product.objects.filter(project_id=project_id)
+#             serialized_products = ProductSerializer(products, many=True).data
+#             return Response({'products': serialized_products}, status=status.HTTP_200_OK)
+#     except Exception as e:
+#         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# @api_view(['GET'])
+# @authentication_classes([])
+# @permission_classes([])
+# def get_orders(request):
+#     try:
+#         orders = Order.objects.all()
+#         serializer = OrderSerializer(orders, many=True)
+#         return JsonResponse({'orders': serializer.data}, status=200)
+#     except Exception as e:
+#         return JsonResponse({'error': str(e)}, status=500)
+
+
+# @api_view(['GET'])
+# @authentication_classes([])
+# @permission_classes([])
+# def get_boms_without_line_items(request):
+#     try:
+#         # Fetch Bill of Materials without line items
+#         boms_without_line_items = BillOfMaterials.objects.all()
+#         serializer = BillOfMaterialsListSerializer(
+#             boms_without_line_items, many=True)
+
+#         # Return JSON with key "boms"
+#         return Response({"boms": serializer.data}, status=status.HTTP_200_OK)
+
+#     except Exception as e:
+#         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['GET'])
-def get_products_by_project(request, project_id):
+def create_order(request, *args, **kwargs):
     try:
-        if request.method == 'GET':
-            products = Product.objects.filter(project_id=project_id)
-            serialized_products = ProductSerializer(products, many=True).data
-            return Response({'products': serialized_products}, status=status.HTTP_200_OK)
-    except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        # Fetch projects
+        projects = Project.objects.all()
+        project_serializer = ProjectSerializer(projects, many=True)
 
+        # Fetch products (if project_id is provided)
+        project_id = request.query_params.get('project_id')
+        print("Project ID:", project_id)
 
-@api_view(['GET'])
-@authentication_classes([])
-@permission_classes([])
-def get_orders(request):
-    try:
+        products = Product.objects.filter(
+            project_id=project_id) if project_id else Product.objects.all()
+        serialized_products = ProductSerializer(products, many=True).data
+
+        # Fetch orders
         orders = Order.objects.all()
-        serializer = OrderSerializer(orders, many=True)
-        return JsonResponse({'orders': serializer.data}, status=200)
+        order_serializer = OrderSerializer(orders, many=True)
+
+        # Fetch Bill of Materials without line items
+        boms_without_line_items = BillOfMaterials.objects.all()
+        bom_serializer = BillOfMaterialsListSerializer(
+            boms_without_line_items, many=True)
+
+        # Fetch Bill of Materials (BOMs) based on project_id
+        # boms_by_project = BillOfMaterials.objects.filter(
+        #     product__project_id=project_id)
+        # bom_by_project_serializer = BillOfMaterialsListSerializer(
+        #     boms_by_project, many=True)
+
+        # Return all data in a single response
+        response_data = {
+            'projects': project_serializer.data,
+            'products': serialized_products,
+            'orders': order_serializer.data,
+            'boms': bom_serializer.data,
+            # 'boms_by_project': bom_by_project_serializer.data,
+
+        }
+
+        return Response(response_data, status=status.HTTP_200_OK)
+
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -103,6 +103,16 @@ class BillOfMaterialsDetailedSerializer(serializers.ModelSerializer):
         return f"{settings.WEBSITE_URL}{obj.bom_file.url}" if obj.bom_file else None
 
 
+class BillOfMaterialsListSerializer(serializers.ModelSerializer):
+    bom_type = BillOfMaterialsTypeSerializer()
+    product = ProductSerializer()
+    issue_date = serializers.DateField(format="%d/%m/%Y")
+
+    class Meta:
+        model = BillOfMaterials
+        fields = ['id', 'bom_type', 'product', 'issue_date']
+
+
 class ChecklistItemTypeSerializer(serializers.ModelSerializer):
     updated_at = serializers.DateTimeField(format='%d/%m/%Y %H:%M:%S')
 

@@ -24,9 +24,16 @@ urlpatterns = [
          views.delete_bom_line_item),
     path('update-checklist-item/<int:checklist_item_id>/',
          views.update_checklist_item),
-    path('get-products/<int:project_id>/', views.get_products_by_project),
-    path('get-projects/', views.get_projects),
-    path('get-orders/', views.get_orders),
+
+    path('create-order/', views.create_order),
+    path('create-order/<int:project_id>/', views.create_order)
+
+    #     path('get-products/<int:project_id>/', views.get_products_by_project),
+    #     path('get-projects/', views.get_projects),
+    #     path('get-orders/', views.get_orders),
+    #     path('get-boms-without-line-items/', views.get_boms_without_line_items)
+
+
 
 
 ]
