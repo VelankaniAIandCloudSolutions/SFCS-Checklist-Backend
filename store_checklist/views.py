@@ -1013,47 +1013,64 @@ def update_checklist_item(request, checklist_item_id):
 #         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-@api_view(['GET'])
+@api_view(['GET', 'POST'])
 def create_order(request, *args, **kwargs):
     try:
         # Fetch projects
-        projects = Project.objects.all()
-        project_serializer = ProjectSerializer(projects, many=True)
+        if request.method == 'GET':
+            projects = Project.objects.all()
+            project_serializer = ProjectSerializer(projects, many=True)
 
-        # Fetch products (if project_id is provided)
-        project_id = request.query_params.get('project_id')
-        print("Project ID:", project_id)
+            # Fetch products (if project_id is provided)
+            project_id = request.query_params.get('project_id')
+            print("Project ID:", project_id)
 
-        products = Product.objects.filter(
-            project_id=project_id) if project_id else Product.objects.all()
-        serialized_products = ProductSerializer(products, many=True).data
+            products = Product.objects.filter(
+                project_id=project_id) if project_id else Product.objects.all()
+            serialized_products = ProductSerializer(products, many=True).data
 
-        # Fetch orders
-        orders = Order.objects.all()
-        order_serializer = OrderSerializer(orders, many=True)
+            # Fetch orders
+            orders = Order.objects.all()
+            order_serializer = OrderSerializer(orders, many=True)
 
-        # Fetch Bill of Materials without line items
-        boms_without_line_items = BillOfMaterials.objects.all()
-        bom_serializer = BillOfMaterialsListSerializer(
-            boms_without_line_items, many=True)
+            # Fetch Bill of Materials without line items
+            boms_without_line_items = BillOfMaterials.objects.all()
+            bom_serializer = BillOfMaterialsListSerializer(
+                boms_without_line_items, many=True)
 
-        # Fetch Bill of Materials (BOMs) based on project_id
-        # boms_by_project = BillOfMaterials.objects.filter(
-        #     product__project_id=project_id)
-        # bom_by_project_serializer = BillOfMaterialsListSerializer(
-        #     boms_by_project, many=True)
+            # Fetch Bill of Materials (BOMs) based on project_id
+            # boms_by_project = BillOfMaterials.objects.filter(
+            #     product__project_id=project_id)
+            # bom_by_project_serializer = BillOfMaterialsListSerializer(
+            #     boms_by_project, many=True)
 
-        # Return all data in a single response
-        response_data = {
-            'projects': project_serializer.data,
-            'products': serialized_products,
-            'orders': order_serializer.data,
-            'boms': bom_serializer.data,
-            # 'boms_by_project': bom_by_project_serializer.data,
+            # Return all data in a single response
+            response_data = {
+                'projects': project_serializer.data,
+                'products': serialized_products,
+                'orders': order_serializer.data,
+                'boms': bom_serializer.data,
+                # 'boms_by_project': bom_by_project_serializer.data,
 
-        }
+            }
 
-        return Response(response_data, status=status.HTTP_200_OK)
+            return Response(response_data, status=status.HTTP_200_OK)
+
+        elif request.method == 'POST':
+          # Extract data from the request
+            selected_bom_id = request.data.get('selectedBomId')
+            batch_quantity = request.data.get('batchQuantity')
+
+            bom = BillOfMaterials.objects.get(id=selected_bom_id)
+
+        # Create a new Order instance with the retrieved BillOfMaterials
+            order = Order.objects.create(
+                bom=bom, batch_quantity=batch_quantity)
+
+            # You can perform additional actions if needed
+
+            # Return a success response
+            return Response({'message': 'Order created successfully'}, status=status.HTTP_201_CREATED)
 
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

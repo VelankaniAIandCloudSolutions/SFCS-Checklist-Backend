@@ -107,10 +107,14 @@ class BillOfMaterialsListSerializer(serializers.ModelSerializer):
     bom_type = BillOfMaterialsTypeSerializer()
     product = ProductSerializer()
     issue_date = serializers.DateField(format="%d/%m/%Y")
+    bom_file_url = serializers.SerializerMethodField()
 
     class Meta:
         model = BillOfMaterials
-        fields = ['id', 'bom_type', 'product', 'issue_date']
+        fields = '__all__'
+
+    def get_bom_file_url(self, obj):
+        return f"{settings.WEBSITE_URL}{obj.bom_file.url}" if obj.bom_file else None
 
 
 class ChecklistItemTypeSerializer(serializers.ModelSerializer):
