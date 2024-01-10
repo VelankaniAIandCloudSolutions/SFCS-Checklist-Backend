@@ -26,7 +26,8 @@ urlpatterns = [
          views.update_checklist_item),
 
     path('create-order/', views.create_order),
-    path('create-order/<int:project_id>/', views.create_order)
+    path('create-order/<int:project_id>/', views.create_order),
+    path('create-order-task/', views.create_order_task),
 
     #     path('get-products/<int:project_id>/', views.get_products_by_project),
     #     path('get-projects/', views.get_projects),
