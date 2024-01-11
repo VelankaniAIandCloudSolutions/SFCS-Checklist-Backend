@@ -1,4 +1,4 @@
-from celery import shared_task
+from celery import current_task, shared_task
 import pandas as pd
 from django.db import transaction
 from .models import *
@@ -448,8 +448,9 @@ def process_bom_file_and_create_order(bom_file, bom_file_name, data, user_id):
                         if existing_item.part_number in vepl_to_references_mapping:
                             reference = BillOfMaterialsLineItemReference.objects.filter(
                                 name=vepl_to_references_mapping[vepl_part_no]).first()
-                            reference.bom_line_item = existing_item
-                            reference.save()
+                            if reference and reference.bom_line_item:
+                                reference.bom_line_item = existing_item
+                                reference.save()
 
                         existing_item.save()
 
@@ -490,16 +491,23 @@ def process_bom_file_and_create_order(bom_file, bom_file_name, data, user_id):
                     for ref in vepl_to_references_mapping[vepl_part_no]:
                         reference = BillOfMaterialsLineItemReference.objects.filter(
                             name=ref).first()
-                        reference.bom_line_item = bom_line_item
-                        reference.save()
-            print(bom_line_items.first().id)
+                        if reference:
+                            if reference.bom_line_item:
+                                reference.bom_line_item = bom_line_item
+                                reference.save()
+                            else:
+                                current_task.logger.warning(
+                                    f"Warning: Bom line item not found for reference {ref_name}")
+                        else:
+                            current_task.logger.warning(
+                                f"Warning: Reference {ref} not found in the database.")
             # bom_items_serializer = BillOfMaterialsLineItemSerializer(bom.bom_line_items, many=True)
 
         order = Order.objects.create(
             bom=bom, batch_quantity=data.get('batch_quantity'), updated_by=user, created_by=user)
 
-        return 'BOM Uploaded and Order Created Successfully'
+        return ('BOM Uploaded and Order Created Successfully', 'SUCCESS', None)
 
     except Exception as e:
         print(e)
-        return 'BOM Upload Failed'
+        return ('BOM Upload Failed', 'FAILURE', str(e))

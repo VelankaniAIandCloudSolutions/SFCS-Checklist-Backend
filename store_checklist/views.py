@@ -907,7 +907,7 @@ def create_order_task(request):
             destination.write(chunk)
 
     path = str(bom_file_path)
-
+    print(path)
     bom_data = {
         # 'product_name': request.data.get('product_name'),
         # 'product_code': request.data.get('product_code'),
@@ -920,6 +920,8 @@ def create_order_task(request):
         'batch_quantity': request.data.get('batch_quantity'),
 
     }
+    print('project_id=', bom_data.get('project_id'))
+    print('batch quanitty=', bom_data.get('batch_quantity'))
     res = process_bom_file_and_create_order.delay(
         path, bom_file_name, bom_data, request.user.id)
     task_result = AsyncResult(res.id)
