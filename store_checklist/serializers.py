@@ -36,17 +36,32 @@ class BillOfMaterialsLineItemTypeSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class ProjectSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Project
-        fields = '__all__'
+# class ProjectSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = Project
+#         fields = '__all__'
+
+
+# class ProductSerializer(serializers.ModelSerializer):
+#     project = ProjectSerializer()
+
+#     class Meta:
+#         model = Product
+#         fields = '__all__'
 
 
 class ProductSerializer(serializers.ModelSerializer):
-    project = ProjectSerializer()
 
     class Meta:
         model = Product
+        fields = '__all__'
+
+
+class ProjectSerializer(serializers.ModelSerializer):
+    products = ProductSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Project
         fields = '__all__'
 
 

@@ -25,9 +25,14 @@ urlpatterns = [
     path('update-checklist-item/<int:checklist_item_id>/',
          views.update_checklist_item),
 
+
+
+    path('get-orders/', views.get_orders),
     path('create-order/', views.create_order),
     path('create-order/<int:project_id>/', views.create_order),
     path('create-order-task/', views.create_order_task),
+
+    path('create-project/', views.create_project),
 
     #     path('get-products/<int:project_id>/', views.get_products_by_project),
     #     path('get-projects/', views.get_projects),

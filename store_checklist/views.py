@@ -825,6 +825,76 @@ def update_checklist_item(request, checklist_item_id):
 #         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+# @api_view(['GET'])
+# def get_products(request):
+#     try:
+#         if request.method == 'GET':
+#             products = Product.objects.all()
+#             serializer = ProductSerializer(products, many=True)
+#             return Response({'products': serializer.data}, status=status.HTTP_200_OK)
+#     except Exception as e:
+#         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+# @api_view(['GET'])
+# def project_list_with_products(request):
+#     projects = Project.objects.all()
+#     project_data = []
+
+#     for project in projects:
+#         project_serializer = ProjectSerializer(project).data
+#         products_serializer = ProductSerializer(
+#             project.products.all(), many=True).data
+#         project_data.append({
+#             'project': project_serializer,
+#             'products': products_serializer,
+#         })
+
+#     return Response(project_data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET', 'POST'])
+def create_project(request):
+    try:
+        if request.method == 'GET':
+            # Handle GET request to retrieve all projects
+            projects = Project.objects.all()
+            project_serializer = ProjectSerializer(projects, many=True)
+            return Response({'projects': project_serializer.data}, status=status.HTTP_200_OK)
+
+        elif request.method == 'POST':
+            # Handle POST request to create a new project
+            new_project_data = {
+                'name': request.data.get('name', ''),
+                'project_code': request.data.get('project_code', ''),
+                'project_rev_number': request.data.get('project_rev_number', ''),
+                # Add more fields as needed
+            }
+
+            try:
+                # Create a new Project instance
+                Project.objects.create(**new_project_data)
+
+                # Return a success message
+                return Response({'message': 'Project created successfully'}, status=status.HTTP_201_CREATED)
+
+            except Exception as e:
+                return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+def get_orders(request):
+    try:
+        if request.method == 'GET':
+            orders = Order.objects.all()
+            serializer = OrderSerializer(orders, many=True)
+            return Response({'orders': serializer.data}, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 @api_view(['GET', 'POST'])
 def create_order(request, *args, **kwargs):
     try:
@@ -841,10 +911,6 @@ def create_order(request, *args, **kwargs):
                 project_id=project_id) if project_id else Product.objects.all()
             serialized_products = ProductSerializer(products, many=True).data
 
-            # Fetch orders
-            orders = Order.objects.all()
-            order_serializer = OrderSerializer(orders, many=True)
-
             # Fetch Bill of Materials without line items
             boms_without_line_items = BillOfMaterials.objects.all()
             bom_serializer = BillOfMaterialsListSerializer(
@@ -860,7 +926,6 @@ def create_order(request, *args, **kwargs):
             response_data = {
                 'projects': project_serializer.data,
                 'products': serialized_products,
-                'orders': order_serializer.data,
                 'boms': bom_serializer.data,
                 # 'boms_by_project': bom_by_project_serializer.data,
 
