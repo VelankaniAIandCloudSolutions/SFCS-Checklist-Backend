@@ -28,11 +28,16 @@ urlpatterns = [
 
 
     path('get-orders/', views.get_orders),
+
     path('create-order/', views.create_order),
     path('create-order/<int:project_id>/', views.create_order),
     path('create-order-task/', views.create_order_task),
 
     path('create-project/', views.create_project),
+    path('create-project/<int:project_id>/', views.create_project),
+
+    path('create-product/', views.create_product),
+    path('create-product/<int:project_id>/', views.create_product),
 
     #     path('get-products/<int:project_id>/', views.get_products_by_project),
     #     path('get-projects/', views.get_projects),
