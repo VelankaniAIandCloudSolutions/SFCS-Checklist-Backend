@@ -33,11 +33,19 @@ urlpatterns = [
     path('create-order/<int:project_id>/', views.create_order),
     path('create-order-task/', views.create_order_task),
 
+
     path('create-project/', views.create_project),
-    path('create-project/<int:project_id>/', views.create_project),
+    path('edit-project/', views.edit_project),
+    path('edit-project/<int:project_id>/', views.edit_project),
+    path('delete-project/<int:project_id>/', views.delete_project),
+
+
+
 
     path('create-product/', views.create_product),
     path('create-product/<int:project_id>/', views.create_product),
+    path('edit-product/<int:product_id>/', views.edit_product),
+    path('delete-product/<int:product_id>/', views.delete_product),
 
     #     path('get-products/<int:project_id>/', views.get_products_by_project),
     #     path('get-projects/', views.get_projects),

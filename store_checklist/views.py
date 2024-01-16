@@ -850,48 +850,112 @@ def update_checklist_item(request, checklist_item_id):
 #         })
 
 #     return Response(project_data, status=status.HTTP_200_OK)
+@api_view(['POST'])
+def create_project(request):
+    try:
+        # Extract data from the request data
+        project_data = {
+            'name': request.data.get('name', ''),
+            'project_code': request.data.get('project_code', ''),
+            'project_rev_number': request.data.get('project_rev_number', ''),
+            # Add more fields as needed
+        }
+
+        # Create a new Project instance
+        project = Project.objects.create(**project_data)
+
+        # Serialize the project data
+        project_serializer = ProjectSerializer(project)
+
+        # Return a success message with the created project data
+        return Response({'project': project_serializer.data}, status=status.HTTP_201_CREATED)
+
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-@api_view(['GET', 'POST'])
-def create_project(request, project_id=None):
+@api_view(['GET', 'PUT'])
+def edit_project(request, project_id=None):
     try:
         if request.method == 'GET':
-            # Handle GET request to retrieve all projects or a specific project by ID
             if project_id:
+                # Handle GET request to retrieve a specific project by ID
                 project = Project.objects.get(id=project_id)
                 project_serializer = ProjectSerializer(project)
-
                 return Response({'project': project_serializer.data}, status=status.HTTP_200_OK)
             else:
+                # Handle GET request without an ID to retrieve a list of all projects
                 projects = Project.objects.all()
                 project_serializer = ProjectSerializer(projects, many=True)
-                return Response({'projects': project_serializer.data},  status=status.HTTP_200_OK)
+                return Response({'projects': project_serializer.data}, status=status.HTTP_200_OK)
 
-        elif request.method == 'POST':
-            # Handle POST request to create a new project
-            new_project_data = {
-                'name': request.data.get('name', ''),
-                'project_code': request.data.get('project_code', ''),
-                'project_rev_number': request.data.get('project_rev_number', ''),
-                # Add more fields as needed
-            }
+        elif request.method == 'PUT':
+            # Handle PUT request to update an existing project
+            # Extract and update the project data from request.data
+            # Example: project.name = request.data.get('name', project.name)
+            # ...
+            # Save the updated
+            project = Project.objects.get(id=project_id)
 
-            try:
-                # Create a new Project instance
-                Project.objects.create(**new_project_data)
+            # Update project fields based on request data
+            project.name = request.data.get('name', project.name)
+            project.project_code = request.data.get(
+                'project_code', project.project_code)
+            project.project_rev_number = request.data.get(
+                'project_rev_number', project.project_rev_number)
 
-                # Return a success message
-                return Response({'message': 'Project created successfully'}, status=status.HTTP_201_CREATED)
+            project.save()
 
-            except Exception as e:
-                return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
+            project_serializer = ProjectSerializer(project)
+            return Response({'project': project_serializer.data}, status=status.HTTP_200_OK)
     except Project.DoesNotExist:
         return Response({'error': 'Project not found'}, status=status.HTTP_404_NOT_FOUND)
 
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+@api_view(['GET', 'PUT'])
+def edit_product(request, product_id):
+    try:
+        product = Product.objects.get(id=product_id)
+    except Product.DoesNotExist:
+        return Response({'error': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    if request.method == 'GET':
+        product_serializer = ProductSerializer(product)
+        return Response({'product': product_serializer.data}, status=status.HTTP_200_OK)
+
+    elif request.method == 'PUT':
+        # Handle updating the product
+        updated_product_data = {
+            'name': request.data.get('name', product.name),
+            'product_code': request.data.get('product_code', product.product_code),
+            'product_rev_number': request.data.get('product_rev_number', product.product_rev_number),
+            'project': product.project,
+        }
+
+        try:
+            product.name = updated_product_data['name']
+            product.product_code = updated_product_data['product_code']
+            product.product_rev_number = updated_product_data['product_rev_number']
+            product.save()
+            product_serializer = ProductSerializer(product)
+            return Response({'product': product_serializer.data}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['DELETE'])
+def delete_project(request, project_id):
+    try:
+        project = Project.objects.get(id=project_id)
+        project.delete()
+        return Response({'message': 'Project deleted successfully'}, status=status.HTTP_200_OK)
+    except Project.DoesNotExist:
+        return Response({'error': 'Project not found'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # @api_view(['GET', 'POST'])
 # def create_product(request, project_id=None):
@@ -934,55 +998,106 @@ def create_project(request, project_id=None):
 #     except Exception as e:
 #         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-@api_view(['GET', 'POST'])
-def create_product(request, project_id=None):
+
+@api_view(['POST'])
+def create_product(request, project_id):
     try:
-        if request.method == 'GET':
-            # Handle GET request to retrieve all products or a specific product by ID
-            if project_id:
-                try:
-                    product = Product.objects.get(
-                        id=project_id)
-                    product_serializer = ProductSerializer(product)
-                    return Response({'product': product_serializer.data}, status=status.HTTP_200_OK)
-                except Product.DoesNotExist:
-                    return Response({'error': 'Products not found for the specified project'}, status=status.HTTP_404_NOT_FOUND)
+        # Handle POST request to create a new product
+        new_product_data = {
+            'name': request.data.get('name', ''),
+            'product_code': request.data.get('product_code', ''),
+            'product_rev_number': request.data.get('product_rev_number', ''),
+        }
 
-            else:
-                products = Product.objects.all()
-                product_serializer = ProductSerializer(products, many=True)
-                return Response({'products': product_serializer.data},  status=status.HTTP_200_OK)
+        # Get the Project instance based on project_id
+        try:
+            project = Project.objects.get(id=project_id)
+        except Project.DoesNotExist:
+            return Response({'error': 'Project not found for the specified project_id'}, status=status.HTTP_404_NOT_FOUND)
 
-        elif request.method == 'POST':
-            # Handle POST request to create a new product
-            new_product_data = {
-                'name': request.data.get('name', ''),
-                'product_code': request.data.get('product_code', ''),
-                'product_rev_number': request.data.get('product_rev_number', ''),
-            }
+        # Assign the project instance to the new product
+        new_product_data['project'] = project
 
-            # Get the Project instance based on project_id
-            try:
-                project = Project.objects.get(id=project_id)
-            except Project.DoesNotExist:
-                return Response({'error': 'Project not found for the specified project_id'}, status=status.HTTP_404_NOT_FOUND)
+        try:
+            # Create a new Product instance
+            product = Product.objects.create(**new_product_data)
 
-            # Assign the project instance to the new product
-            new_product_data['project'] = project
+            product_serializer = ProductSerializer(product)
 
-            try:
-                # Create a new Product instance
-                Product.objects.create(**new_product_data)
-
-                # Return a success message
-                return Response({'message': 'Product created successfully'}, status=status.HTTP_201_CREATED)
-            except Exception as e:
-                return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
+            # Return a success message
+            return Response({'product': product_serializer.data}, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     except Product.DoesNotExist:
         return Response({'error': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['DELETE'])
+def delete_product(request, product_id):
+    try:
+        product = Product.objects.get(id=product_id)
+    except Product.DoesNotExist:
+        return Response({'error': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    # Handle deleting the product
+    product.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+# @api_view(['GET', 'POST'])
+# def create_product(request, product_id=None):
+#     try:
+#         if request.method == 'GET':
+#             # Handle GET request to retrieve a specific product by ID
+#             if product_id:
+#                 try:
+#                     product = Product.objects.get(id=product_id)
+#                     product_serializer = ProductSerializer(product)
+#                     return Response({'product': product_serializer.data}, status=status.HTTP_200_OK)
+#                 except Product.DoesNotExist:
+#                     return Response({'error': 'Product not found for the specified ID'}, status=status.HTTP_404_NOT_FOUND)
+#             else:
+#                 return Response({'error': 'Product ID is required for GET request'}, status=status.HTTP_400_BAD_REQUEST)
+
+#         elif request.method == 'POST':
+#             # Handle POST request to create a new product
+#             new_product_data = {
+#                 'name': request.data.get('name', ''),
+#                 'product_code': request.data.get('product_code', ''),
+#                 'product_rev_number': request.data.get('product_rev_number', ''),
+#             }
+
+#             # Check if product_id is provided in the request
+#             if product_id:
+#                 try:
+#                     # Get the existing Product instance based on product_id
+#                     existing_product = Product.objects.get(id=product_id)
+#                     # Assign the project instance from the existing product to the new product
+#                     new_product_data['project'] = existing_product.project
+#                 except Product.DoesNotExist:
+#                     return Response({'error': 'Product not found for the specified product_id'}, status=status.HTTP_404_NOT_FOUND)
+
+#             try:
+#                 # Create a new Product instance
+#                 product = Product.objects.create(**new_product_data)
+
+#                 product_serializer = ProductSerializer(product)
+
+#                 # Return a success message
+#                 return Response({'product': product_serializer.data}, status=status.HTTP_201_CREATED)
+#             except Exception as e:
+#                 return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+#     except Product.DoesNotExist:
+#         return Response({'error': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
+#     except Exception as e:
+#         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+#     except Product.DoesNotExist:
+#         return Response({'error': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
+#     except Exception as e:
+#         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['GET'])
