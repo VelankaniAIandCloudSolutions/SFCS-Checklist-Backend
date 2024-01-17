@@ -57,6 +57,21 @@ class ProductSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class ProjectListSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Project
+        fields = '__all__'
+
+
+class ProductDetailSerializer(serializers.ModelSerializer):
+    project = ProjectListSerializer()
+
+    class Meta:
+        model = Product
+        fields = '__all__'
+
+
 class ProjectSerializer(serializers.ModelSerializer):
     products = ProductSerializer(many=True, read_only=True)
 
@@ -106,7 +121,7 @@ class BillOfMaterialsSerializer(serializers.ModelSerializer):
 class BillOfMaterialsDetailedSerializer(serializers.ModelSerializer):
     bom_type = BillOfMaterialsTypeSerializer()
     bom_line_items = BillOfMaterialsLineItemSerializer(many=True)
-    product = ProductSerializer()
+    product = ProductDetailSerializer()
     issue_date = serializers.DateField(format="%d/%m/%Y")
     bom_file_url = serializers.SerializerMethodField()
 
@@ -120,9 +135,10 @@ class BillOfMaterialsDetailedSerializer(serializers.ModelSerializer):
 
 class BillOfMaterialsListSerializer(serializers.ModelSerializer):
     bom_type = BillOfMaterialsTypeSerializer()
-    product = ProductSerializer()
+    product = ProductDetailSerializer()
     issue_date = serializers.DateField(format="%d/%m/%Y")
     bom_file_url = serializers.SerializerMethodField()
+    # project = serializers.SerializerMethodField()
 
     class Meta:
         model = BillOfMaterials
@@ -130,6 +146,15 @@ class BillOfMaterialsListSerializer(serializers.ModelSerializer):
 
     def get_bom_file_url(self, obj):
         return f"{settings.WEBSITE_URL}{obj.bom_file.url}" if obj.bom_file else None
+
+    # def get_project(self, obj):
+    #     return {
+    #         'id': obj.product.project.id,
+    #         'name': obj.product.project.name,
+    #         'project_code': obj.product.project.project_code,
+    #         'project_rev_number': obj.product.project.project_rev_number,
+    #         # Include other fields you want from the Project model
+    #     }
 
 
 class ChecklistItemTypeSerializer(serializers.ModelSerializer):

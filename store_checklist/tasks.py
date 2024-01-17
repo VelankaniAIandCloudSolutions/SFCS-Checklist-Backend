@@ -20,15 +20,17 @@ def process_bom_file(bom_file, bom_file_name, data, user_id):
         # file_path  = 'media/PRYSM-Gen4_SERVER_BOM_20231120.xlsx'
         bom_file_data = pd.read_excel(bom_file, header=5, sheet_name=1)
 
-        product, _ = Product.objects.get_or_create(
-            name=data.get('product_name'),
-            product_code=data.get('product_code'),
-            defaults={
-                'product_rev_number': data.get('product_rev_no'),
-                'updated_by': user,
-                'created_by': user,
-            }
-        )
+        # product, _ = Product.objects.get_or_create(
+        #     name=data.get('product_name'),
+        #     product_code=data.get('product_code'),
+        #     defaults={
+        #         'product_rev_number': data.get('product_rev_no'),
+        #         'updated_by': user,
+        #         'created_by': user,
+        #     }
+        # )
+
+        product = Product.objects.get(id=data.get('product_id'))
 
         bom_type, _ = BillOfMaterialsType.objects.get_or_create(
             name=data.get('bom_type'),
@@ -249,12 +251,22 @@ def process_bom_file(bom_file, bom_file_name, data, user_id):
                     for ref in vepl_to_references_mapping[vepl_part_no]:
                         reference = BillOfMaterialsLineItemReference.objects.filter(
                             name=ref).first()
-                        reference.bom_line_item = bom_line_item
-                        reference.save()
+                    if reference:
+                        if reference.bom_line_item:
+                            reference.bom_line_item = bom_line_item
+                            reference.save()
+                        else:
+                            current_task.logger.warning(
+                                f"Warning: Bom line item not found for reference {ref_name}")
+                    else:
+                        current_task.logger.warning(
+                            f"Warning: Reference {ref} not found in the database.")
+
             print(bom_line_items.first().id)
+
             # bom_items_serializer = BillOfMaterialsLineItemSerializer(bom.bom_line_items, many=True)
 
-        return 'BOM Uploaded  and Order Created Successfully'
+        return 'BOM Uploaded Successfully'
 
     except Exception as e:
         print(e)

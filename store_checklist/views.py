@@ -16,7 +16,7 @@ import pandas as pd
 import json
 from django.db.models import Q
 import re
-from .tasks import test_func, process_bom_file_and_create_order
+from .tasks import process_bom_file, test_func, process_bom_file_and_create_order
 import os
 from django.conf import settings
 from celery.result import AsyncResult
@@ -43,13 +43,16 @@ def upload_bom_task(request):
     path = str(bom_file_path)
 
     bom_data = {
-        'product_name': request.data.get('product_name'),
-        'product_code': request.data.get('product_code'),
+        'project_id': request.data.get('project_id'),
+        'product_id': request.data.get('product_id'),
         'product_rev_no': request.data.get('product_rev_no'),
         'bom_type': request.data.get('bom_type'),
         'bom_rev_no': request.data.get('bom_rev_no'),
         'issue_date': request.data.get('issue_date'),
+        'batch_quantity': request.data.get('batch_quantity'),
     }
+    print('project_id=', bom_data.get('project_id'))
+    print('batch quantity=', bom_data.get('batch_quantity'))
     res = process_bom_file.delay(
         path, bom_file_name, bom_data, request.user.id)
     task_result = AsyncResult(res.id)
@@ -222,16 +225,20 @@ def scan_code(request):
 
 
 @api_view(['POST'])
-def generate_new_checklist(request, bom_id):
+def generate_new_checklist(request, order_id):
     try:
-        active_bom = BillOfMaterials.objects.get(id=bom_id)
-        batch_quantity = request.data.get('batch_quantity') or 1
+
+        order = Order.objects.get(id=order_id)
+        active_bom = order.bom
+        batch_quantity = order.batch_quantity
+        # active_bom = BillOfMaterials.objects.get(id=bom_id)
+        # batch_quantity = request.data.get('batch_quantity') or 1
         if ChecklistSetting.objects.exists():
             setting = ChecklistSetting.objects.first()
             print('exists')
         else:
             setting = ChecklistSetting.objects.create(
-                active_bom=BillOfMaterials.objects.get(id=bom_id), created_by=request.user, updated_by=request.user)
+                active_bom=active_bom, created_by=request.user, updated_by=request.user)
             print('doesnt exist')
         setting.active_bom = active_bom
         setting.active_checklist = Checklist.objects.create(
@@ -287,6 +294,7 @@ def generate_new_checklist(request, bom_id):
 @api_view(['POST'])
 def check_existing_checklist(request, bom_id):
     try:
+
         active_bom = BillOfMaterials.objects.get(id=bom_id)
         is_existing = False
         is_active = False
@@ -388,10 +396,14 @@ def get_checklist_details(request, checklist_id):
 @permission_classes([])
 def get_boms(request):
     try:
-        boms = BillOfMaterials.objects.all()
-        serializer = BillOfMaterialsSerializer(boms, many=True)
+        # boms = BillOfMaterials.objects.all()
+        # serializer = BillOfMaterialsSerializer(boms, many=True)
 
-        return Response({'boms': serializer.data}, status=status.HTTP_200_OK)
+        boms_without_line_items = BillOfMaterials.objects.all()
+        bom_serializer = BillOfMaterialsListSerializer(
+            boms_without_line_items, many=True)
+
+        return Response({'boms': bom_serializer.data}, status=status.HTTP_200_OK)
 
     except Exception as e:
         # Handle exceptions
@@ -1213,7 +1225,7 @@ def create_order_task(request):
 
     }
     print('project_id=', bom_data.get('project_id'))
-    print('batch quanitty=', bom_data.get('batch_quantity'))
+    print('batch quantity=', bom_data.get('batch_quantity'))
     res = process_bom_file_and_create_order.delay(
         path, bom_file_name, bom_data, request.user.id)
     task_result = AsyncResult(res.id)

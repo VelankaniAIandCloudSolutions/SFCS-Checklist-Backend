@@ -7,7 +7,7 @@ urlpatterns = [
     path('get-boms/', views.get_boms),
     path('get-checklist-report/', views.get_checklist_report),
     path('get-boms/<int:bom_id>/', views.get_bom_by_id),
-    path('generate-new-checklist/<int:bom_id>/', views.generate_new_checklist),
+    path('generate-new-checklist/<int:order_id>/', views.generate_new_checklist),
     path('get-active-checklist/<int:bom_id>/', views.get_active_checklist),
     path('check-existing-checklist/<int:bom_id>/',
          views.check_existing_checklist),
