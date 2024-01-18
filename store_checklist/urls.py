@@ -2,6 +2,7 @@ from django.urls import path
 from store_checklist import views
 
 urlpatterns = [
+
     path('upload-bom/', views.upload_bom_task),
     path('scan-code/', views.scan_code),
     path('get-boms/', views.get_boms),

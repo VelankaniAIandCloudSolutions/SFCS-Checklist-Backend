@@ -186,7 +186,7 @@ class ChecklistItemSerializer(serializers.ModelSerializer):
 
 class ChecklistSerializer(serializers.ModelSerializer):
     checklist_items = serializers.SerializerMethodField()
-    bom = BillOfMaterialsSerializer()
+    bom = BillOfMaterialsListSerializer()
     created_at = serializers.DateTimeField(format='%d/%m/%Y %H:%M:%S')
     updated_at = serializers.DateTimeField(format='%d/%m/%Y %H:%M:%S')
     created_by = UserAccountSerializer()
