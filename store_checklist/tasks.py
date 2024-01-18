@@ -5,7 +5,9 @@ from .models import *
 from accounts.models import UserAccount
 from .serializers import BillOfMaterialsLineItemSerializer
 from django.utils import timezone
+import logging
 
+logger = logging.getLogger(__name__)
 
 @shared_task
 def test_func(x, y):
@@ -255,12 +257,12 @@ def process_bom_file(bom_file, bom_file_name, data, user_id):
                         if reference.bom_line_item:
                             reference.bom_line_item = bom_line_item
                             reference.save()
-                        else:
-                            current_task.logger.warning(
-                                f"Warning: Bom line item not found for reference {ref_name}")
-                    else:
-                        current_task.logger.warning(
-                            f"Warning: Reference {ref} not found in the database.")
+                        # else:
+                        #     current_task.logger.warning(
+                        #         f"Warning: Bom line item not found for reference {ref_name}")
+                    # else:
+                    #     current_task.logger.warning(
+                    #         f"Warning: Reference {ref} not found in the database.")
 
             print(bom_line_items.first().id)
 
@@ -269,8 +271,8 @@ def process_bom_file(bom_file, bom_file_name, data, user_id):
         return 'BOM Uploaded Successfully'
 
     except Exception as e:
-        print(e)
-        return 'BOM Upload Failed'
+        logger.info(f"Exception in process_bom_file task: {str(e)}")
+        return ('BOM Upload Failed', 'FAILURE', str(e))
 
 
 @shared_task
@@ -507,12 +509,12 @@ def process_bom_file_and_create_order(bom_file, bom_file_name, data, user_id):
                             if reference.bom_line_item:
                                 reference.bom_line_item = bom_line_item
                                 reference.save()
-                            else:
-                                current_task.logger.warning(
-                                    f"Warning: Bom line item not found for reference {ref_name}")
-                        else:
-                            current_task.logger.warning(
-                                f"Warning: Reference {ref} not found in the database.")
+                            # else:
+                            #     current_task.logger.warning(
+                            #         f"Warning: Bom line item not found for reference {ref_name}")
+                        # else:
+                        #     current_task.logger.warning(
+                        #         f"Warning: Reference {ref} not found in the database.")
             # bom_items_serializer = BillOfMaterialsLineItemSerializer(bom.bom_line_items, many=True)
 
         order = Order.objects.create(
@@ -521,5 +523,5 @@ def process_bom_file_and_create_order(bom_file, bom_file_name, data, user_id):
         return ('BOM Uploaded and Order Created Successfully', 'SUCCESS', None)
 
     except Exception as e:
-        print(e)
+        logger.info(f"Exception in process_bom_file task: {str(e)}")
         return ('BOM Upload Failed', 'FAILURE', str(e))
