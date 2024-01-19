@@ -15,7 +15,7 @@ __pycache__/
 *.backup
 
 # Media and static files
-# /media/
+/media/
 # /static/
 
 # Virtual environment
