@@ -33,6 +33,7 @@ urlpatterns = [
     path('create-order/', views.create_order),
     path('create-order/<int:project_id>/', views.create_order),
     path('create-order-task/', views.create_order_task),
+    path('delete-order/<int:order_id>/', views.delete_order),
 
 
     path('create-project/', views.create_project),
