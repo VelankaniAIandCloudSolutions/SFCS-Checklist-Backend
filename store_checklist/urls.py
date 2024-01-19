@@ -19,30 +19,20 @@ urlpatterns = [
     path('generated-checklists/<int:bom_id>/', views.get_checklists_for_bom),
     path('get-checklist-count/', views.get_checklist_count),
     path('check-task-status/<str:task_id>/', views.check_task_status),
-
     path('edit-bom-line-item/<int:bom_line_item_id>/', views.edit_bom_line_item),
     path('delete-bom-line-item/<int:bom_line_item_id>/',
          views.delete_bom_line_item),
     path('update-checklist-item/<int:checklist_item_id>/',
          views.update_checklist_item),
-
-
-
     path('get-orders/', views.get_orders),
-
     path('create-order/', views.create_order),
     path('create-order/<int:project_id>/', views.create_order),
+    path('delete-order/<int:order_id>/', views.delete_order),
     path('create-order-task/', views.create_order_task),
-
-
     path('create-project/', views.create_project),
     path('edit-project/', views.edit_project),
     path('edit-project/<int:project_id>/', views.edit_project),
     path('delete-project/<int:project_id>/', views.delete_project),
-
-
-
-
     path('create-product/', views.create_product),
     path('create-product/<int:project_id>/', views.create_product),
     path('edit-product/<int:product_id>/', views.edit_product),

@@ -1190,6 +1190,18 @@ def create_order(request, *args, **kwargs):
 
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+@api_view(['DELETE'])
+def delete_order(request, order_id):
+    try:
+        order = Order.objects.get(id=order_id)
+    except Order.DoesNotExist:
+        return Response({'error': 'Order not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    # Handle deleting the order
+    order.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 
 @api_view(['POST'])
