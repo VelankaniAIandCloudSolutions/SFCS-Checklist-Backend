@@ -8,6 +8,7 @@ from django.shortcuts import get_object_or_404
 from .serializers import UserAccountSerializer, UserCreateSerializer
 from .models import UserAccount
 
+
 @api_view(['GET'])
 @permission_classes([])
 def get_all_users(request):
@@ -15,12 +16,23 @@ def get_all_users(request):
     serializer = UserAccountSerializer(users, many=True)
     return Response(serializer.data)
 
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])  # Add authentication check
+def get_authenticated_user(request):
+    user = request.user  # Access the authenticated user
+    # Use your serializer to serialize the user
+    serializer = UserAccountSerializer(user)
+    return Response(serializer.data)
+
+
 @api_view(['GET'])
 @permission_classes([])
 def get_user_by_id(request, user_id):
     user = get_object_or_404(UserAccount, id=user_id)
     serializer = UserAccountSerializer(user)
     return Response(serializer.data)
+
 
 @api_view(['POST'])
 @permission_classes([])
@@ -31,17 +43,19 @@ def create_user(request):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
 @api_view(['PUT'])
 @permission_classes([])
 def update_user(request, user_id):
     user = get_object_or_404(UserAccount, id=user_id)
     serializer = UserAccountSerializer(user, data=request.data, partial=True)
-    
+
     if serializer.is_valid():
         serializer.save()
         return Response(serializer.data)
-    
+
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 @api_view(['DELETE'])
 @permission_classes([])
@@ -49,4 +63,3 @@ def delete_user(request, user_id):
     user = get_object_or_404(UserAccount, id=user_id)
     user.delete()
     return Response(status=status.HTTP_204_NO_CONTENT)
-

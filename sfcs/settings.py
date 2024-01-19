@@ -24,7 +24,7 @@ SECRET_KEY = 'django-insecure-sae26)(slkk%77$mk#w5ffioy-%v)#h*k$3(+msaisbcudc89z
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['sfcsdev.xtractautomation.com','127.0.0.1','localhost']
+ALLOWED_HOSTS = ['sfcsdev.xtractautomation.com', '127.0.0.1', 'localhost']
 
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:8080',
@@ -35,7 +35,8 @@ CORS_ALLOWED_ORIGINS = [
     'http://sfcs-checklist.s3-website.ap-south-1.amazonaws.com',
 ]
 # Application definition
-CSRF_TRUSTED_ORIGINS = ['https://sfcsdev.xtractautomation.com','http://sfcsdev.xtractautomation.com']
+CSRF_TRUSTED_ORIGINS = [
+    'https://sfcsdev.xtractautomation.com', 'http://sfcsdev.xtractautomation.com']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -138,20 +139,20 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 DJOSER = {
-   'LOGIN_FIELD': 'email',
-   'USER_CREATE_PASSWORD_RETYPE': True,
-   'PASSWORD_CHANGED_EMAIL_CONFIRMATION': True,
-   'SEND_CONFIRMATION_EMAIL': True,
-   'SET_PASSWORD_RETYPE': True,
-   'PASSWORD_RESET_CONFIRM_URL': 'password/reset/confirm/{uid}/{token}',
-#    'ACTIVATION_URL': 'activate/{uid}/{token}',
-#    'SEND_ACTIVATION_EMAIL': True,
-   'SERIALIZERS': {
-       'user_create': ACCOUNT_SERIALIZER,
-       'user': ACCOUNT_SERIALIZER,
-       'current_user': ACCOUNT_SERIALIZER,
-       'user_delete': 'djoser.serializers.UserDeleteSerializer',
-   }
+    'LOGIN_FIELD': 'email',
+    'USER_CREATE_PASSWORD_RETYPE': True,
+    'PASSWORD_CHANGED_EMAIL_CONFIRMATION': True,
+    'SEND_CONFIRMATION_EMAIL': True,
+    'SET_PASSWORD_RETYPE': True,
+    'PASSWORD_RESET_CONFIRM_URL': 'password/reset/confirm/{uid}/{token}',
+    #    'ACTIVATION_URL': 'activate/{uid}/{token}',
+    #    'SEND_ACTIVATION_EMAIL': True,
+    'SERIALIZERS': {
+        'user_create': ACCOUNT_SERIALIZER,
+        'user': ACCOUNT_SERIALIZER,
+        'current_user': ACCOUNT_SERIALIZER,
+        'user_delete': 'djoser.serializers.UserDeleteSerializer',
+    }
 }
 
 # Internationalization
@@ -184,3 +185,5 @@ MEDIA_URL = '/media/'
 
 CELERY_BROKER_URL = 'redis://localhost:6379/0'
 CELERY_RESULT_BACKEND = 'django-db'
+
+WEBSITE_URL = 'http://localhost:8000'
