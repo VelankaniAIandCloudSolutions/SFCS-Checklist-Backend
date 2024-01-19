@@ -8,7 +8,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'sfcs.settings')
 # Create a Celery instance
 app = Celery('sfcs')
 app.conf.enable_utc = False
-app.conf.update(timezone = 'Asia/Kolkata')
+app.conf.update(timezone='Asia/Kolkata')
 # Load task modules from all registered Django app configs.
 app.config_from_object('django.conf:settings', namespace='CELERY')
 
