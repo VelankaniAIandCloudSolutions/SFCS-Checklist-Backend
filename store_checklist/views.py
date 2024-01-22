@@ -371,6 +371,22 @@ def get_active_checklist(request, bom_id):
 
 
 @api_view(['GET'])
+def get_passed_checklists(request):
+    try:
+        # Retrieve all checklists where is_passed is True
+        passed_checklists = Checklist.objects.filter(is_passed=True)
+
+        # Serialize the passed checklists using the ChecklistSerializer
+        serializer = ChecklistWithoutItemsSerializer(
+            passed_checklists, many=True)
+
+        # Return the serialized data as JSON
+        return Response({'passed_checklists': serializer.data}, status=200)
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
+
+
+@api_view(['GET'])
 def get_checklist_details(request, checklist_id):
     try:
         checklist = Checklist.objects.get(pk=checklist_id)
@@ -382,6 +398,31 @@ def get_checklist_details(request, checklist_id):
         )
     except Checklist.DoesNotExist:
         return Response({'error': 'Checklist not found'}, status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['GET'])
+def get_iqc_data(request, checklist_id):
+    try:
+        # Get the Checklist object
+        checklist = get_object_or_404(Checklist, id=checklist_id)
+
+        # Get all ChecklistItem objects related to the specified Checklist
+        checklist_items = ChecklistItem.objects.filter(checklist=checklist)
+
+        # Get all ChecklistItemUID objects related to the ChecklistItem objects
+        checklist_uids = ChecklistItemUID.objects.filter(
+            checklist_item__in=checklist_items)
+
+        # Serialize the ChecklistItemUID objects
+        checklist_uids_serializer = ChecklistItemUIDDetailedSerializer(
+            checklist_uids, many=True)
+
+        return Response({"checklist_items": checklist_uids_serializer.data})
+
+    except Checklist.DoesNotExist:
+        return Response({"error": "Checklist not found"}, status=404)
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)
 
 # @api_view(['GET'])
 # def get_old_checklists(request,bom_id):

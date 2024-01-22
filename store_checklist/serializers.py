@@ -184,6 +184,18 @@ class ChecklistItemSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class ChecklistItemUIDDetailedSerializer(serializers.ModelSerializer):
+    checklist_item = ChecklistItemSerializer()
+    updated_at = serializers.DateTimeField(format='%d/%m/%Y %H:%M:%S')
+    updated_by = UserAccountSerializer()
+    created_by = UserAccountSerializer()
+    created_at = serializers.DateTimeField(format='%d/%m/%Y %H:%M:%S')
+
+    class Meta:
+        model = ChecklistItemUID
+        fields = '__all__'
+
+
 class ChecklistSerializer(serializers.ModelSerializer):
     checklist_items = serializers.SerializerMethodField()
     bom = BillOfMaterialsListSerializer()
@@ -202,6 +214,18 @@ class ChecklistSerializer(serializers.ModelSerializer):
         return serializer.data
 
 
+class ChecklistWithoutItemsSerializer(serializers.ModelSerializer):
+    bom = BillOfMaterialsListSerializer()
+    created_at = serializers.DateTimeField(format='%d/%m/%Y %H:%M:%S')
+    updated_at = serializers.DateTimeField(format='%d/%m/%Y %H:%M:%S')
+    created_by = UserAccountSerializer()
+    updated_by = UserAccountSerializer()
+
+    class Meta:
+        model = Checklist
+        fields = '__all__'
+
+
 class ChecklistSettingSerializer(serializers.ModelSerializer):
     active_bom = BillOfMaterialsSerializer()
 
@@ -217,6 +241,7 @@ class OrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = '__all__'
+
 
 class OrderListSerializer(serializers.ModelSerializer):
 

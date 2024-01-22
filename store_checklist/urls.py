@@ -12,6 +12,8 @@ urlpatterns = [
     path('get-active-checklist/<int:bom_id>/', views.get_active_checklist),
     path('check-existing-checklist/<int:bom_id>/',
          views.check_existing_checklist),
+
+    path('get-passed-checklists/', views.get_passed_checklists),
     path('end-checklist/<int:checklist_id>/', views.end_checklist),
     path('get-checklist-details/<int:checklist_id>/',
          views.get_checklist_details),
