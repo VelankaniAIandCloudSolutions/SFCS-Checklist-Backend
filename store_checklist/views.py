@@ -403,21 +403,22 @@ def get_checklist_details(request, checklist_id):
 @api_view(['GET'])
 def get_iqc_data(request, checklist_id):
     try:
-        # Get the Checklist object
+
         checklist = get_object_or_404(Checklist, id=checklist_id)
 
-        # Get all ChecklistItem objects related to the specified Checklist
-        checklist_items = ChecklistItem.objects.filter(checklist=checklist)
+        # Serialize the Checklist object
+        checklist_serializer = ChecklistWithoutItemsSerializer(checklist)
 
-        # Get all ChecklistItemUID objects related to the ChecklistItem objects
         checklist_uids = ChecklistItemUID.objects.filter(
-            checklist_item__in=checklist_items)
-
+            checklist_item__checklist_id=checklist_id)
         # Serialize the ChecklistItemUID objects
         checklist_uids_serializer = ChecklistItemUIDDetailedSerializer(
             checklist_uids, many=True)
 
-        return Response({"checklist_items": checklist_uids_serializer.data})
+        return Response({
+            "checklist": checklist_serializer.data,
+            "checklist_uids": checklist_uids_serializer.data
+        })
 
     except Checklist.DoesNotExist:
         return Response({"error": "Checklist not found"}, status=404)

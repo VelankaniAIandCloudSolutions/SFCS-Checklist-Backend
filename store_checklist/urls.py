@@ -17,6 +17,7 @@ urlpatterns = [
     path('end-checklist/<int:checklist_id>/', views.end_checklist),
     path('get-checklist-details/<int:checklist_id>/',
          views.get_checklist_details),
+    path('get-iqc-data/<int:checklist_id>/', views.get_iqc_data),
     path('save-qr-code/<int:checklist_id>/', views.save_qr_code),
     path('generated-checklists/<int:bom_id>/', views.get_checklists_for_bom),
     path('get-checklist-count/', views.get_checklist_count),
