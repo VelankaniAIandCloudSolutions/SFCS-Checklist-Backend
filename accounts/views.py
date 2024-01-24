@@ -44,6 +44,43 @@ def create_user(request):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+# @api_view(['POST'])
+# @permission_classes([])
+# def create_user(request):
+#     # Extract data from the request
+#     email = request.data.get('email')
+#     password = request.data.get('password')
+#     first_name = request.data.get('first_name')
+#     last_name = request.data.get('last_name')
+#     phone_number = request.data.get('phone_number')
+#     is_superuser = request.data.get('is_superuser', False)
+#     is_staff = request.data.get('is_staff', False)
+#     is_store_team = request.data.get('is_store_team', False)
+#     is_design_team = request.data.get('is_design_team', False)
+#     # Add more fields as needed
+
+#     # Perform your own validation as needed
+#     if not (email and password and first_name):
+#         return Response({'error': 'Incomplete data'}, status=status.HTTP_400_BAD_REQUEST)
+
+#     # Create a user using Django ORM
+#     user = UserAccount.objects.create(
+#         email=email,
+#         password=password,  # Note: You should handle password hashing
+#         first_name=first_name,
+#         last_name=last_name,
+#         phone_number=phone_number,
+#         is_superuser=is_superuser,
+#         is_staff=is_staff,
+#         is_store_team=is_store_team,
+#         is_design_team=is_design_team,
+#         # Add more fields as needed
+#     )
+
+#     # Return a success response
+#     return Response({'success': 'User created successfully'}, status=status.HTTP_201_CREATED)
+
+
 @api_view(['PUT'])
 @permission_classes([])
 def update_user(request, user_id):

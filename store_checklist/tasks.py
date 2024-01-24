@@ -9,6 +9,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 @shared_task
 def test_func(x, y):
     return x + y
