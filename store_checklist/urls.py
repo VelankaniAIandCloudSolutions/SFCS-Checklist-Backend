@@ -52,6 +52,8 @@ urlpatterns = [
     path('edit-product/<int:product_id>/', views.edit_product),
     path('delete-product/<int:product_id>/', views.delete_product),
 
+    path('upload-iqc-file/', views.upload_iqc_file),
+
     #     path('get-products/<int:project_id>/', views.get_products_by_project),
     #     path('get-projects/', views.get_projects),
     #     path('get-orders/', views.get_orders),

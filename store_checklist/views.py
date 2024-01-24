@@ -911,7 +911,7 @@ def create_project(request):
         project_data = {
             'name': request.data.get('name', ''),
             'project_code': request.data.get('project_code', ''),
-            'project_rev_number': request.data.get('project_rev_number', ''),
+            # 'project_rev_number': request.data.get('project_rev_number', ''),
             # Add more fields as needed
         }
 
@@ -1287,3 +1287,26 @@ def create_order_task(request):
     print(task_status)
     print(task_result)
     return Response({'message': 'BOM upload task is queued for processing', 'task_id': res.id, 'task_status': str(task_status)}, status=status.HTTP_202_ACCEPTED)
+
+
+@api_view(['POST'])
+def upload_iqc_file(request):
+    try:
+        # Assuming 'iqc_file' is the key for the file in the FormData
+        uploaded_file = request.FILES['iqc_file']
+
+        # Assuming you have a ChecklistItemUID instance to associate the file with
+        checklist_item_uid_id = request.data.get('checklist_item_uid_id')
+        checklist_item_uid = ChecklistItemUID.objects.get(
+            id=checklist_item_uid_id)
+
+        # Assign the file to the 'iqc_file' field in your model
+        checklist_item_uid.iqc_file = uploaded_file
+        checklist_item_uid.save()
+
+        return Response({'message': 'File uploaded successfully'}, status=status.HTTP_200_OK)
+
+    except ChecklistItemUID.DoesNotExist:
+        return Response({'error': 'ChecklistItemUID not found'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
