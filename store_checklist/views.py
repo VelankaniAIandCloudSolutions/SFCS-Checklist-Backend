@@ -49,7 +49,7 @@ def upload_bom_task(request):
         'bom_type': request.data.get('bom_type'),
         'bom_rev_no': request.data.get('bom_rev_no'),
         'issue_date': request.data.get('issue_date'),
-        'batch_quantity': request.data.get('batch_quantity'),
+        # 'batch_quantity': request.data.get('batch_quantity'),
     }
     print('project_id=', bom_data.get('project_id'))
     print('batch quantity=', bom_data.get('batch_quantity'))
