@@ -86,11 +86,37 @@ class BillOfMaterialsLineItemReferenceSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class BillOfMaterialsListSerializer(serializers.ModelSerializer):
+    bom_type = BillOfMaterialsTypeSerializer()
+    product = ProductDetailSerializer()
+    issue_date = serializers.DateField(format="%d/%m/%Y")
+    bom_file_url = serializers.SerializerMethodField()
+    # project = serializers.SerializerMethodField()
+
+    class Meta:
+        model = BillOfMaterials
+        fields = '__all__'
+
+    def get_bom_file_url(self, obj):
+        return f"{settings.WEBSITE_URL}{obj.bom_file.url}" if obj.bom_file else None
+
+    # def get_project(self, obj):
+    #     return {
+    #         'id': obj.product.project.id,
+    #         'name': obj.product.project.name,
+    #         'project_code': obj.product.project.project_code,
+    #         'project_rev_number': obj.product.project.project_rev_number,
+    #         # Include other fields you want from the Project model
+    #     }
+
+
 class BillOfMaterialsLineItemSerializer(serializers.ModelSerializer):
+
     manufacturer_parts = ManufacturerPartSerializer(many=True)
     assembly_stage = AssemblyStageSerializer()
     line_item_type = BillOfMaterialsLineItemTypeSerializer()
     references = BillOfMaterialsLineItemReferenceSerializer(many=True)
+    bom = BillOfMaterialsListSerializer()
 
     class Meta:
         model = BillOfMaterialsLineItem
@@ -133,30 +159,6 @@ class BillOfMaterialsDetailedSerializer(serializers.ModelSerializer):
         return f"{settings.WEBSITE_URL}{obj.bom_file.url}" if obj.bom_file else None
 
 
-class BillOfMaterialsListSerializer(serializers.ModelSerializer):
-    bom_type = BillOfMaterialsTypeSerializer()
-    product = ProductDetailSerializer()
-    issue_date = serializers.DateField(format="%d/%m/%Y")
-    bom_file_url = serializers.SerializerMethodField()
-    # project = serializers.SerializerMethodField()
-
-    class Meta:
-        model = BillOfMaterials
-        fields = '__all__'
-
-    def get_bom_file_url(self, obj):
-        return f"{settings.WEBSITE_URL}{obj.bom_file.url}" if obj.bom_file else None
-
-    # def get_project(self, obj):
-    #     return {
-    #         'id': obj.product.project.id,
-    #         'name': obj.product.project.name,
-    #         'project_code': obj.product.project.project_code,
-    #         'project_rev_number': obj.product.project.project_rev_number,
-    #         # Include other fields you want from the Project model
-    #     }
-
-
 class ChecklistItemTypeSerializer(serializers.ModelSerializer):
     updated_at = serializers.DateTimeField(format='%d/%m/%Y %H:%M:%S')
 
@@ -172,12 +174,13 @@ class ChecklistItemUIDSerializer(serializers.ModelSerializer):
 
 
 class ChecklistItemSerializer(serializers.ModelSerializer):
+
     bom_line_item = BillOfMaterialsLineItemSerializer()
     checklist_item_type = ChecklistItemTypeSerializer()
     updated_at = serializers.DateTimeField(format='%d/%m/%Y %H:%M:%S')
 
     # Include ChecklistItemUID as a nested serializer
-    checklist_item_uids = ChecklistItemUIDSerializer(many=True, read_only=True)
+    # checklist_item_uids = ChecklistItemUIDSerializer(many=True, read_only=True)
 
     class Meta:
         model = ChecklistItem
@@ -202,6 +205,52 @@ class ChecklistSerializer(serializers.ModelSerializer):
         return serializer.data
 
 
+class ChecklistWithoutItemsSerializer(serializers.ModelSerializer):
+    bom = BillOfMaterialsListSerializer()
+    created_at = serializers.DateTimeField(format='%d/%m/%Y %H:%M:%S')
+    updated_at = serializers.DateTimeField(format='%d/%m/%Y %H:%M:%S')
+    created_by = UserAccountSerializer()
+    updated_by = UserAccountSerializer()
+
+    class Meta:
+        model = Checklist
+        fields = '__all__'
+
+
+class ChecklistItemDetailedSerializer(serializers.ModelSerializer):
+
+    checklist = ChecklistSerializer()
+    bom_line_item = BillOfMaterialsLineItemSerializer()
+    checklist_item_type = ChecklistItemTypeSerializer()
+    updated_at = serializers.DateTimeField(format='%d/%m/%Y %H:%M:%S')
+
+    # Include ChecklistItemUID as a nested serializer
+    # checklist_item_uids = ChecklistItemUIDSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = ChecklistItem
+        fields = '__all__'
+
+
+class ChecklistItemUIDDetailedSerializer(serializers.ModelSerializer):
+
+    checklist_item = ChecklistItemSerializer()
+    updated_at = serializers.DateTimeField(format='%d/%m/%Y %H:%M:%S')
+    updated_by = UserAccountSerializer()
+    created_by = UserAccountSerializer()
+    created_at = serializers.DateTimeField(format='%d/%m/%Y %H:%M:%S')
+    iqc_file_url = serializers.SerializerMethodField()
+    # bom = BillOfMaterialsSerializer(
+    #     source='checklist_item.bom_line_item.bom')
+
+    class Meta:
+        model = ChecklistItemUID
+        fields = '__all__'
+
+    def get_iqc_file_url(self, obj):
+        return f"{settings.WEBSITE_URL}{obj.iqc_file.url}" if obj.iqc_file else None
+
+
 class ChecklistSettingSerializer(serializers.ModelSerializer):
     active_bom = BillOfMaterialsSerializer()
 
@@ -217,6 +266,7 @@ class OrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = '__all__'
+
 
 class OrderListSerializer(serializers.ModelSerializer):
 

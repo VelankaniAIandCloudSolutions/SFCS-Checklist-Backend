@@ -129,6 +129,7 @@ class Checklist(BaseModel):
     bom = models.ForeignKey(
         BillOfMaterials, on_delete=models.CASCADE, related_name='checklists')
     is_passed = models.BooleanField(default=False)
+    is_iqc_passed = models.BooleanField(default=False)
     status = models.CharField(choices=STATUS_CHOICES,
                               max_length=255, null=True, blank=True)
     qr_code_link = models.TextField(null=True, blank=True)
@@ -176,6 +177,7 @@ class ChecklistItemUID(BaseModel):
     checklist_item = models.ForeignKey(
         ChecklistItem, on_delete=models.CASCADE, related_name='checklist_item_uids')
     uid = models.CharField(max_length=30, unique=True)
+    iqc_file = models.FileField(upload_to='iqc_files/', null=True, blank=True)
 
     def __str__(self):
         return str(self.uid)
