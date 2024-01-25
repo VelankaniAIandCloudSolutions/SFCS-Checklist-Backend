@@ -64,21 +64,22 @@ def process_bom_file(bom_file, bom_file_name, data, user_id):
             vepl_to_manufacturer_mapping = {}
             vepl_to_references_mapping = {}
             for _, row in bom_file_data.iterrows():
+                print(row)
                 if str(row['VEPL Part No']) != 'nan' and str(row['VEPL Part No']).strip().startswith('VEPL'):
                     vepl_part_no = row['VEPL Part No']
 
                     if pd.notnull(row['Mfr']):
                         parts = [str(part).strip()
-                                 for part in row['Mfr'].split('\n') if str(part).strip()]
-                        manufacturers = parts if not row['Mfr'].startswith(
+                                 for part in str(row['Mfr']).split('\n') if str(part).strip()]
+                        manufacturers = parts if not str(row['Mfr']).startswith(
                             '\n') else parts[1:]
                     else:
                         manufacturers = []
 
                     if pd.notnull(row['Mfr. Part No']):
                         parts = [str(part).strip()
-                                 for part in row['Mfr. Part No'].split('\n') if str(part).strip()]
-                        manufacturer_part_nos = parts if not row['Mfr. Part No'].startswith(
+                                 for part in str(row['Mfr. Part No']).split('\n') if str(part).strip()]
+                        manufacturer_part_nos = parts if not str(row['Mfr. Part No']).startswith(
                             '\n') else parts[1:]
                     else:
                         manufacturer_part_nos = []
@@ -108,7 +109,7 @@ def process_bom_file(bom_file, bom_file_name, data, user_id):
                                 manufacturer_part)
 
                     if 'Reference' in row and pd.notnull(row['Reference']):
-                        for reference in row['Reference'].split(','):
+                        for reference in str(row['Reference']).split(','):
                             ref, _ = BillOfMaterialsLineItemReference.objects.get_or_create(
                                 name=str(reference).strip(),
                                 defaults={
@@ -320,16 +321,16 @@ def process_bom_file_and_create_order(bom_file, bom_file_name, data, user_id):
 
                     if pd.notnull(row['Mfr']):
                         parts = [str(part).strip()
-                                 for part in row['Mfr'].split('\n') if str(part).strip()]
-                        manufacturers = parts if not row['Mfr'].startswith(
+                                 for part in str(row['Mfr']).split('\n') if str(part).strip()]
+                        manufacturers = parts if not str(row['Mfr']).startswith(
                             '\n') else parts[1:]
                     else:
                         manufacturers = []
 
                     if pd.notnull(row['Mfr. Part No']):
                         parts = [str(part).strip()
-                                 for part in row['Mfr. Part No'].split('\n') if str(part).strip()]
-                        manufacturer_part_nos = parts if not row['Mfr. Part No'].startswith(
+                                 for part in str(row['Mfr. Part No']).split('\n') if str(part).strip()]
+                        manufacturer_part_nos = parts if not str(row['Mfr. Part No']).startswith(
                             '\n') else parts[1:]
                     else:
                         manufacturer_part_nos = []
@@ -359,7 +360,7 @@ def process_bom_file_and_create_order(bom_file, bom_file_name, data, user_id):
                                 manufacturer_part)
 
                     if 'Reference' in row and pd.notnull(row['Reference']):
-                        for reference in row['Reference'].split(','):
+                        for reference in str(row['Reference']).split(','):
                             ref, _ = BillOfMaterialsLineItemReference.objects.get_or_create(
                                 name=str(reference).strip(),
                                 defaults={

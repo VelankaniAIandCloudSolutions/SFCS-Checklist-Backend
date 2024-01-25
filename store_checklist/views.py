@@ -23,6 +23,28 @@ from celery.result import AsyncResult
 
 
 @api_view(['POST'])
+def handle_bom_cases(request):
+    try:
+        # Check if the BOM already exists
+        product_id = request.data.get('product_id')
+        bom_rev_number = request.data.get('bom_rev_number')
+
+        existing_bom = BillOfMaterials.objects.get(
+            product_id=product_id, bom_rev_number=bom_rev_number)
+
+        # Case 1: BOM already exists
+        return JsonResponse({'message': f'BOM already exists with REV No: {existing_bom.bom_rev_number}'}, status=200)
+    except ObjectDoesNotExist:
+        # Check if it's a new BOM revision number
+        if BillOfMaterials.objects.filter(product_id=product_id).exists():
+            # Case 2: New BOM revision number, return JSON response
+            return JsonResponse({'message': 'New BOM revision number for an existing product.'}, status=201)
+        else:
+            # Case 3: New BOM revision number, no BOM uploaded yet, return JSON response
+            return JsonResponse({'message': 'New BOM revision number, no BOM uploaded yet.'}, status=404)
+
+
+@api_view(['POST'])
 def upload_bom_task(request):
     # try:
     bom_file = request.FILES.get('bom_file')
