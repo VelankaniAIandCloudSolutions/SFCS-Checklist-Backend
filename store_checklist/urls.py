@@ -3,7 +3,7 @@ from store_checklist import views
 
 urlpatterns = [
 
-    path('handle-bom-cases/', views.upload_bom_task),
+
     path('upload-bom/', views.upload_bom_task),
     path('scan-code/', views.scan_code),
     path('get-boms/', views.get_boms),
@@ -54,6 +54,7 @@ urlpatterns = [
     path('delete-product/<int:product_id>/', views.delete_product),
 
     path('upload-iqc-file/', views.upload_iqc_file),
+    path('handle-bom-cases/', views.handle_bom_cases)
 
     #     path('get-products/<int:project_id>/', views.get_products_by_project),
     #     path('get-projects/', views.get_projects),

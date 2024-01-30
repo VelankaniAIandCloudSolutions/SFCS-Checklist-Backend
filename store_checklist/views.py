@@ -16,32 +16,57 @@ import pandas as pd
 import json
 from django.db.models import Q
 import re
-from .tasks import process_bom_file, send_notification_email, test_func, process_bom_file_and_create_order
+from .tasks import process_bom_file,  test_func, process_bom_file_and_create_order
 import os
 from django.conf import settings
 from celery.result import AsyncResult
 
 
+# @api_view(['POST'])
+# def handle_bom_cases(request):
+#     print(request.data)
+#     try:
+#         # Check if the BOM already exists
+#         print(request.data)
+#         product_id = request.data.get('product_id')
+#         bom_rev_number = request.data.get('bom_rev_number')
+#         print(product_id)
+
+#         existing_bom = BillOfMaterials.objects.get(
+#             product_id=product_id, bom_rev_number=bom_rev_number)
+
+#         # Case 1: BOM already exists
+#         return Response({'message': f'BOM already exists with REV No: {existing_bom.bom_rev_number}'}, status=200)
+#     except ObjectDoesNotExist:
+#         # Check if it's a new BOM revision number
+#         if BillOfMaterials.objects.filter(product_id=product_id).exists():
+#             # Case 2: New BOM revision number, return JSON response
+#             return Response({'message': 'New BOM revision number for an existing product.'}, status=201)
+#         else:
+#             # Case 3: New BOM revision number, no BOM uploaded yet, return JSON response
+#             return Response({'message': 'New BOM revision number, no BOM uploaded yet.'}, status=404)
 @api_view(['POST'])
 def handle_bom_cases(request):
-    try:
-        # Check if the BOM already exists
-        product_id = request.data.get('product_id')
-        bom_rev_number = request.data.get('bom_rev_number')
+    print(request.data)
+    
+    # Check if the BOM already exists
+    print(request.data)
+    product_id = request.data.get('product_id')
+    bom_rev_number = request.data.get('bom_rev_number')
+    print(product_id)
 
-        existing_bom = BillOfMaterials.objects.get(
-            product_id=product_id, bom_rev_number=bom_rev_number)
-
+    if BillOfMaterials.objects.filter(product_id=product_id, bom_rev_number=bom_rev_number).exists():
         # Case 1: BOM already exists
-        return JsonResponse({'message': f'BOM already exists with REV No: {existing_bom.bom_rev_number}'}, status=200)
-    except ObjectDoesNotExist:
-        # Check if it's a new BOM revision number
-        if BillOfMaterials.objects.filter(product_id=product_id).exists():
-            # Case 2: New BOM revision number, return JSON response
-            return JsonResponse({'message': 'New BOM revision number for an existing product.'}, status=201)
-        else:
-            # Case 3: New BOM revision number, no BOM uploaded yet, return JSON response
-            return JsonResponse({'message': 'New BOM revision number, no BOM uploaded yet.'}, status=404)
+        return Response({'message': f'BOM already exists with REV No: {bom_rev_number}'}, status=200)
+    
+    # Check if it's a new BOM revision number for an existing product
+    elif BillOfMaterials.objects.filter(product_id=product_id).exists():
+        # Case 2: New BOM revision number, return JSON response
+        return Response({'message': 'New BOM revision number for an existing product.'}, status=201)
+    
+    # Case 3: New BOM revision number, no BOM uploaded yet, return JSON response
+    else:
+        return Response({'message': 'New BOM revision number, no BOM uploaded yet.'}, status=404)
 
 
 @api_view(['POST'])

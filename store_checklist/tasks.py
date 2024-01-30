@@ -15,9 +15,9 @@ def test_func(x, y):
     return x + y
 
 
-@shared_task
-def send_notification_email(subject, message, recipient_list):
-    send_mail(subject, message, 'your@example.com', recipient_list)
+# @shared_task
+# def send_notification_email(subject, message, recipient_list):
+#     send_mail(subject, message, 'your@example.com', recipient_list)
 
 
 @shared_task
@@ -69,7 +69,7 @@ def process_bom_file(bom_file, bom_file_name, data, user_id):
             vepl_to_manufacturer_mapping = {}
             vepl_to_references_mapping = {}
             for _, row in bom_file_data.iterrows():
-                print(row)
+                # print(row)
                 if str(row['VEPL Part No']) != 'nan' and str(row['VEPL Part No']).strip().startswith('VEPL'):
                     vepl_part_no = row['VEPL Part No']
 
