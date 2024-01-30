@@ -1197,6 +1197,12 @@ def get_projects(request):
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+# Define the email sending function
+
+
+def send_notification_email(subject, message, recipient_list):
+    send_mail(subject, message, 'your@example.com', recipient_list)
+
 
 @api_view(['GET', 'POST'])
 def create_order(request, *args, **kwargs):
@@ -1243,11 +1249,17 @@ def create_order(request, *args, **kwargs):
 
             bom = BillOfMaterials.objects.get(id=selected_bom_id)
 
-        # Create a new Order instance with the retrieved BillOfMaterials
+            # Create a new Order instance with the retrieved BillOfMaterials
             order = Order.objects.create(
                 bom=bom, batch_quantity=batch_quantity)
+            # Send email notification to team members using the defined function
+            subject = 'New Order Created'
+            message = f'A new order has been created.\n\nOrder Details:\nBOM: {bom}\nBatch Quantity: {batch_quantity}, kindly start the checklist'
+            recipient_list = ['team_member1@example.com',
+                              'team_member2@example.com']
 
-            # You can perform additional actions if needed
+            send_notification_email(subject, message, recipient_list)
+# You can perform additional actions if needed
 
             # Return a success response
             return Response({'message': 'Order created successfully'}, status=status.HTTP_201_CREATED)
