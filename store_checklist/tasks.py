@@ -16,6 +16,11 @@ def test_func(x, y):
 
 
 @shared_task
+def send_notification_email(subject, message, recipient_list):
+    send_mail(subject, message, 'your@example.com', recipient_list)
+
+
+@shared_task
 def process_bom_file(bom_file, bom_file_name, data, user_id):
     try:
         user = UserAccount.objects.get(pk=user_id)

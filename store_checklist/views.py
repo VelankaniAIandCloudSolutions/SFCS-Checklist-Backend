@@ -16,7 +16,7 @@ import pandas as pd
 import json
 from django.db.models import Q
 import re
-from .tasks import process_bom_file, test_func, process_bom_file_and_create_order
+from .tasks import process_bom_file, send_notification_email, test_func, process_bom_file_and_create_order
 import os
 from django.conf import settings
 from celery.result import AsyncResult
@@ -1200,10 +1200,6 @@ def get_projects(request):
 # Define the email sending function
 
 
-def send_notification_email(subject, message, recipient_list):
-    send_mail(subject, message, 'your@example.com', recipient_list)
-
-
 @api_view(['GET', 'POST'])
 def create_order(request, *args, **kwargs):
     try:
@@ -1252,13 +1248,14 @@ def create_order(request, *args, **kwargs):
             # Create a new Order instance with the retrieved BillOfMaterials
             order = Order.objects.create(
                 bom=bom, batch_quantity=batch_quantity)
-            # Send email notification to team members using the defined function
-            subject = 'New Order Created'
-            message = f'A new order has been created.\n\nOrder Details:\nBOM: {bom}\nBatch Quantity: {batch_quantity}, kindly start the checklist'
+
+            subject = 'New Order Notification'
+            message = f'A new order has been created.\n\nOrder Details:\nBOM: {bom}\nBatch Quantity: {batch_quantity}'
             recipient_list = ['team_member1@example.com',
                               'team_member2@example.com']
 
-            send_notification_email(subject, message, recipient_list)
+            send_notification_email.delay(subject, message, recipient_list)
+
 # You can perform additional actions if needed
 
             # Return a success response
