@@ -55,9 +55,12 @@ def process_bom_file(bom_file, bom_file_name, data, user_id):
             product=product,
             issue_date=issue_date,
             bom_file_name=bom_file_name,
+
+
             defaults={
                 'bom_type': bom_type,
                 'bom_rev_number': data.get('bom_rev_no'),
+                'change_note': data.get('bom_rev_change_note'),
                 'bom_file': 'bom_files/' + bom_file_name,
                 'updated_by': user,
                 'created_by': user,
