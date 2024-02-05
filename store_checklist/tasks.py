@@ -344,10 +344,12 @@ def process_bom_file_new(bom_file, bom_file_name, data, user_id):
             processed_part_numbers = set()
 
             # Iterate through rows in the DataFrame
-            for _, row in bom_file_data.head(6).iterrows():
+            for _, row in bom_file_data.head(10).iterrows():
                 print('index', _)
+
                 if str(row['VEPL Part No']) != 'nan' and str(row['VEPL Part No']).strip().startswith('VEPL'):
                     vepl_part_no = row['VEPL Part No']
+                    print('Processing VEPL Part No:', vepl_part_no)
                     # Handling 'Mfr' field
                     if pd.notnull(row['Mfr']):
                         mfr_name = str(
@@ -359,6 +361,7 @@ def process_bom_file_new(bom_file, bom_file_name, data, user_id):
                                 'created_by': user,
                                 # Add other fields if needed
                             })
+                        print('mfr created in db')
                     else:
                         manufacturer = None
 
@@ -373,6 +376,7 @@ def process_bom_file_new(bom_file, bom_file_name, data, user_id):
                                 'created_by': user,
 
                             })
+                        print('mfr  aprt created in db')
                     else:
                         manufacturer_part = None
 
@@ -384,20 +388,23 @@ def process_bom_file_new(bom_file, bom_file_name, data, user_id):
 
                     # Handling 'Reference' field
                     if 'Reference' in row and pd.notnull(row['Reference']):
+                        print('Entering Reference block for row:', row)
                         for reference in str(row['Reference']).split(','):
-                            ref, _ = BillOfMaterialsLineItemReference.objects.get_or_create(
-                                name=str(reference).strip(),
-                                defaults={
-                                    'updated_by': user,
-                                    'created_by': user,
-                                }
-                            )
+                            # ref, _ = BillOfMaterialsLineItemReference.objects.create(
+                            #     name=str(reference).strip(),
+                            #     defaults={
+                            #         'updated_by': user,
+                            #         'created_by': user,
+                            #     }
+                            # )
+
+                            print('ref entry done in db')
 
                             if vepl_part_no not in vepl_to_references_mapping:
                                 vepl_to_references_mapping[vepl_part_no] = []
 
                             vepl_to_references_mapping[vepl_part_no].append(
-                                ref.name)
+                                str(reference.strip()))
                             print('vepl_to_references_mapping in loop',
                                   vepl_to_references_mapping)
 
@@ -488,10 +495,14 @@ def process_bom_file_new(bom_file, bom_file_name, data, user_id):
                         existing_item.created_by = user
 
                         if existing_item.part_number in vepl_to_references_mapping:
-                            reference = BillOfMaterialsLineItemReference.objects.filter(
-                                name=vepl_to_references_mapping[vepl_part_no]).first()
-                            reference.bom_line_item = existing_item
-                            reference.save()
+                            existing_references = BillOfMaterialsLineItemReference.objects.filter(
+                                name=vepl_to_references_mapping[vepl_part_no], bom_line_item=existing_item)
+                            if existing_references:
+                                pass
+                            else:
+                                BillOfMaterialsLineItemReference.objects.create(
+                                    name=vepl_to_references_mapping[vepl_part_no], bom_line_item=existing_item, updated_by=user, created_by=user)
+
                         if existing_item.part_number in vepl_to_manufacturer_mapping:
                             existing_item.manufacturer_parts.set(
                                 vepl_to_manufacturer_mapping[vepl_part_no])
@@ -501,6 +512,7 @@ def process_bom_file_new(bom_file, bom_file_name, data, user_id):
 
                         # Other fields handling...
                         # Create BillOfMaterialsLineItem instance
+                        print('if not an existing item')
                         bom_line_item = BillOfMaterialsLineItem(
                             part_number=row['VEPL Part No'],
                             bom=bom,
@@ -544,20 +556,10 @@ def process_bom_file_new(bom_file, bom_file_name, data, user_id):
                 if vepl_part_no in vepl_to_references_mapping:
                     for ref in set(vepl_to_references_mapping[vepl_part_no]):
                         print('current ref in loop ', ref)
+                        BillOfMaterialsLineItemReference.objects.create(
+                            name=ref, bom_line_item=bom_line_item, updated_by=user, created_by=user)
                         # reference = BillOfMaterialsLineItemReference.objects.filter(
                         #     name=ref).first()
-                        references = BillOfMaterialsLineItemReference.objects.filter(
-                            name=ref)
-
-                        for reference in references:
-                            print(' got ref ', reference)
-                            if reference.bom_line_item:
-                                reference.bom_line_item = bom_line_item
-                                reference.save()
-                                print('saved ref ', reference)
-                            else:
-                                print(
-                                    'bom_line_item is None for reference ', reference)
 
                         # if reference:
                         #     print('got ref ', reference)
@@ -616,6 +618,7 @@ def process_bom_file_and_create_order(bom_file, bom_file_name, data, user_id):
             vepl_to_manufacturer_mapping = {}
             vepl_to_references_mapping = {}
             for _, row in bom_file_data.iterrows():
+                print('index', _)
                 if str(row['VEPL Part No']) != 'nan' and str(row['VEPL Part No']).strip().startswith('VEPL'):
                     vepl_part_no = row['VEPL Part No']
 
@@ -928,20 +931,21 @@ def process_bom_file_and_create_order_new(bom_file, bom_file_name, data, user_id
 
                     # Handling 'Reference' field
                     if 'Reference' in row and pd.notnull(row['Reference']):
+                        print('Entering Reference block for row:', row)
                         for reference in str(row['Reference']).split(','):
-                            ref, _ = BillOfMaterialsLineItemReference.objects.get_or_create(
-                                name=str(reference).strip(),
-                                defaults={
-                                    'updated_by': user,
-                                    'created_by': user,
-                                }
-                            )
+                            # ref, _ = BillOfMaterialsLineItemReference.objects.get_or_create(
+                            #     name=str(reference).strip(),
+                            #     defaults={
+                            #         'updated_by': user,
+                            #         'created_by': user,
+                            #     }
+                            # )
 
                             if vepl_part_no not in vepl_to_references_mapping:
                                 vepl_to_references_mapping[vepl_part_no] = []
 
                             vepl_to_references_mapping[vepl_part_no].append(
-                                ref.name)
+                                str(reference.strip()))
                             print('vepl_to_references_mapping in loop',
                                   vepl_to_references_mapping)
 
@@ -1032,10 +1036,14 @@ def process_bom_file_and_create_order_new(bom_file, bom_file_name, data, user_id
                         existing_item.created_by = user
 
                         if existing_item.part_number in vepl_to_references_mapping:
-                            reference = BillOfMaterialsLineItemReference.objects.filter(
-                                name=vepl_to_references_mapping[vepl_part_no]).first()
-                            reference.bom_line_item = existing_item
-                            reference.save()
+                            existing_references = BillOfMaterialsLineItemReference.objects.filter(
+                                name=vepl_to_references_mapping[vepl_part_no], bom_line_item=existing_item)
+                            if existing_references:
+                                pass
+                            else:
+                                BillOfMaterialsLineItemReference.objects.create(
+                                    name=vepl_to_references_mapping[vepl_part_no], bom_line_item=existing_item, updated_by=user, created_by=user)
+
                         if existing_item.part_number in vepl_to_manufacturer_mapping:
                             existing_item.manufacturer_parts.set(
                                 vepl_to_manufacturer_mapping[vepl_part_no])
@@ -1045,6 +1053,7 @@ def process_bom_file_and_create_order_new(bom_file, bom_file_name, data, user_id
 
                         # Other fields handling...
                         # Create BillOfMaterialsLineItem instance
+                        print('if not an existing item')
                         bom_line_item = BillOfMaterialsLineItem(
                             part_number=row['VEPL Part No'],
                             bom=bom,
@@ -1088,14 +1097,16 @@ def process_bom_file_and_create_order_new(bom_file, bom_file_name, data, user_id
                 if vepl_part_no in vepl_to_references_mapping:
                     for ref in set(vepl_to_references_mapping[vepl_part_no]):
                         print('current ref in loop ', ref)
-                        reference = BillOfMaterialsLineItemReference.objects.filter(
-                            name=ref).first()
-                        if reference:
-                            print('got ref ', reference)
-                            if reference:
-                                reference.bom_line_item = bom_line_item
-                                reference.save()
-                                print('saved ref ', reference)
+                        BillOfMaterialsLineItemReference.objects.create(
+                            name=ref, bom_line_item=bom_line_item, updated_by=user, created_by=user)
+                        # reference = BillOfMaterialsLineItemReference.objects.filter(
+                        #     name=ref).first()
+                        # if reference:
+                        #     print('got ref ', reference)
+                        #     if reference:
+                        #         reference.bom_line_item = bom_line_item
+                        #         reference.save()
+                        #         print('saved ref ', reference)
 
         order = Order.objects.create(
             bom=bom, batch_quantity=data.get('batch_quantity'), updated_by=user, created_by=user)
