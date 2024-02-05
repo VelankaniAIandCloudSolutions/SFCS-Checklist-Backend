@@ -6,7 +6,10 @@ from accounts.models import UserAccount
 from .serializers import BillOfMaterialsLineItemSerializer
 from django.utils import timezone
 import logging
-
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
+from django.conf import settings
 logger = logging.getLogger(__name__)
 
 
@@ -390,13 +393,6 @@ def process_bom_file_new(bom_file, bom_file_name, data, user_id):
                     if 'Reference' in row and pd.notnull(row['Reference']):
                         print('Entering Reference block for row:', row)
                         for reference in str(row['Reference']).split(','):
-                            # ref, _ = BillOfMaterialsLineItemReference.objects.create(
-                            #     name=str(reference).strip(),
-                            #     defaults={
-                            #         'updated_by': user,
-                            #         'created_by': user,
-                            #     }
-                            # )
 
                             print('ref entry done in db')
 
@@ -1115,3 +1111,33 @@ def process_bom_file_and_create_order_new(bom_file, bom_file_name, data, user_id
 
     except Exception as e:
         return ('BOM Upload Failed', 'FAILURE', str(e))
+
+
+@shared_task
+def send_order_creation_mail(order, store_team_profiles):
+
+    for profile in store_team_profiles:
+        subject = 'Order Creation Notification'
+        sender_email = order.created_by.email
+        sender_name = str(order.created_by.first_name) + \
+            str(order.created_by.last_name)
+
+        context = {
+            'project': order.bom.product.project.name,
+            'product': order.bom.product.name,
+            'batch_quantity': order.batch_quantity,
+            'website_link': 'https://sfcs.xtractautomation.com/checklist',
+            'created_by': sender_name,
+            'profile': profile,
+        }
+        html_message = render_to_string('order_creation_mail.html', context)
+        plain_message = strip_tags(html_message)
+
+        email_from = f'{sender_name} <{sender_email}>'
+
+        # recipient_list = [
+        #     satvikkatoch@velankanigroup.com
+        # ]
+
+        send_mail(subject, plain_message, email_from,
+                  [profile.email], html_message=html_message)
