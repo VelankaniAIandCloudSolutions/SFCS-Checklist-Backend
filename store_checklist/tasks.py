@@ -15,9 +15,9 @@ def test_func(x, y):
     return x + y
 
 
-# @shared_task
-# def send_notification_email(subject, message, recipient_list):
-#     send_mail(subject, message, 'your@example.com', recipient_list)
+@shared_task
+def send_notification_email(subject, message, recipient_list):
+    send_mail(subject, message, 'your@example.com', recipient_list)
 
 
 @shared_task
