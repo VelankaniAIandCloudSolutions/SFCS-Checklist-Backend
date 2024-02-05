@@ -1294,7 +1294,7 @@ def create_order(request, *args, **kwargs):
             #                   'team_member2@example.com']
             store_team_profiles = UserAccount.objects.filter(
                 is_store_team=True)
-            send_order_creation_mail.delay(order, store_team_profiles)
+            # send_order_creation_mail.delay(order, store_team_profiles)
 
 
 # You can perform additional actions if needed
@@ -1347,6 +1347,7 @@ def create_order_task(request):
         'bom_type': request.data.get('bom_type'),
         'bom_rev_no': request.data.get('bom_rev_no'),
         'issue_date': request.data.get('issue_date'),
+        'bom_rev_change_note': request.data.get('bom_rev_change_note'),
         'batch_quantity': request.data.get('batch_quantity'),
 
     }
