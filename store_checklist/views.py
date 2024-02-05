@@ -16,7 +16,7 @@ import pandas as pd
 import json
 from django.db.models import Q
 import re
-from .tasks import process_bom_file, process_bom_file_new,  test_func, process_bom_file_and_create_order
+from .tasks import process_bom_file, process_bom_file_new,  test_func, process_bom_file_and_create_order, process_bom_file_and_create_order_new
 import os
 from django.conf import settings
 from celery.result import AsyncResult
@@ -1344,7 +1344,7 @@ def create_order_task(request):
     }
     print('project_id=', bom_data.get('project_id'))
     print('batch quantity=', bom_data.get('batch_quantity'))
-    res = process_bom_file_and_create_order.delay(
+    res = process_bom_file_and_create_order_new.delay(
         path, bom_file_name, bom_data, request.user.id)
     task_result = AsyncResult(res.id)
     task_status = task_result.status
