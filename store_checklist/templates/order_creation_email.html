@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Order Creation Notification</title>
+  </head>
+  <body>
+    <p>
+      Hello {{ profile.first_name }} {{profile.last_name }},
+    </p>
+    <p>
+      An order has been created for the project {{ project}} - {{product}} with a batch quantity of {{ batch_quantity }} by {{created_by}}.
+    </p>
+    <p>
+      Please start the checklist for the same.
+    </p>
+  
+    <p>
+      To view the order details, please follow the link below:
+    </p>
+    <p><a href="{{website_link}}">Click here to view the order</a></p>
+    <p>
+      Note: This email is auto-generated, and the contents might be subject to updates.
+    </p>
+  </body>
+</html>
+</html>

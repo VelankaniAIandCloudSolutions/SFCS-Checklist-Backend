@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'store_checklist',
     'accounts',
+    'pricing',
     'django_celery_results'
 ]
 
@@ -188,3 +189,42 @@ CELERY_RESULT_BACKEND = 'django-db'
 
 # WEBSITE_URL = 'http://localhost:8000'
 WEBSITE_URL = 'https://sfcs.xtractautomation.com'
+
+ZOHO_APIS_CLIENT_ID = '1000.KX15FQIOLVX0WOYAW1MD7EYQVJH12S'
+ZOHO_APIS_CLIENT_SECRET = 'c0d9e4c91b89004aa5d161a6113bcade3ab9b5217b'
+ZOHO_APIS_REDIRECT_URI = 'http://www.zoho.com/books'
+ZOHO_APIS_REFRESH_TOKEN = '1000.68ce4af244943327bb7c9940e49f6fec.6c52c46dafbdc3c40df223bf10fa401c'
+ZOHO_BOOKS_VEPL_ORGANIZATION_ID = '60006125627'
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
+        },
+    },
+    'handlers': {
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR / 'error.log',
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'celery': {
+            'handlers': ['file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtpout.secureserver.net'
+EMAIL_PORT = 465
+EMAIL_HOST_USER = 'info@trainotel.com'
+EMAIL_HOST_PASSWORD = 'Aic@34062173'
+EMAIL_USE_SSL = True
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER

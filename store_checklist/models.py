@@ -10,7 +10,8 @@ from django.dispatch import receiver
 class Project(BaseModel):
     name = models.CharField(max_length=255)
     project_code = models.CharField(max_length=255)
-    project_rev_number = models.CharField(max_length=255)
+    project_rev_number = models.CharField(
+        max_length=255, blank=True, null=True)
 
     def __str__(self):
         return self.name
@@ -69,6 +70,7 @@ class BillOfMaterials(BaseModel):
     issue_date = models.DateField(default=timezone.now)
     bom_file = models.FileField(upload_to='bom_files/', null=True, blank=True)
     bom_file_name = models.CharField(max_length=255, null=True, blank=True)
+    change_note = models.TextField(null=True, blank=True)
 
     def __str__(self):
         return "BOM for: " + self.product.name
