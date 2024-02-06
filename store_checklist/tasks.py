@@ -1,3 +1,4 @@
+from .models import Order
 from celery import current_task, shared_task
 import pandas as pd
 from django.db import transaction
@@ -1113,31 +1114,111 @@ def process_bom_file_and_create_order_new(bom_file, bom_file_name, data, user_id
         return ('BOM Upload Failed', 'FAILURE', str(e))
 
 
+# @shared_task
+# def send_order_creation_mail(order, store_team_profiles):
+
+#     for profile in store_team_profiles:
+#         subject = 'Order Creation Notification'
+#         sender_email = order.created_by.email
+#         sender_name = str(order.created_by.first_name) + \
+#             str(order.created_by.last_name)
+
+#         context = {
+#             'project': order.bom.product.project.name,
+#             'product': order.bom.product.name,
+#             'batch_quantity': order.batch_quantity,
+#             'website_link': 'https://sfcs.xtractautomation.com/checklist',
+#             'created_by': sender_name,
+#             'profile': profile,
+#         }
+#         html_message = render_to_string('order_creation_mail.html', context)
+#         plain_message = strip_tags(html_message)
+
+#         email_from = f'{sender_name} <{sender_email}>'
+
+#         # recipient_list = [
+#         #     satvikkatoch@velankanigroup.com
+#         # ]
+
+#         send_mail(subject, plain_message, email_from,
+#                   [profile.email], html_message=html_message)
+
+
+# @shared_task
+# def send_order_creation_mail(order_id, store_team_profiles):
+#     try:
+#         # Fetch the Order object based on the provided order_id
+#         order = Order.objects.get(id=order_id)
+
+#         for profile in store_team_profiles:
+#             subject = 'Order Creation Notification'
+#             sender_email = order.created_by.email
+#             sender_name = str(order.created_by.first_name) + \
+#                 str(order.created_by.last_name)
+
+#             context = {
+#                 'project': order.bom.product.project.name,
+#                 'product': order.bom.product.name,
+#                 'batch_quantity': order.batch_quantity,
+#                 'website_link': 'https://sfcs.xtractautomation.com/checklist',
+#                 'created_by': sender_name,
+#                 'profile': profile,
+#             }
+#             html_message = render_to_string(
+#                 'order_creation_email.html', context)
+#             plain_message = strip_tags(html_message)
+
+#             email_from = f'{sender_name} <{sender_email}>'
+
+#             # recipient_list = [
+#             #     satvikkatoch@velankanigroup.com
+#             # ]
+
+#             send_mail(subject, plain_message, email_from,
+#                       [profile], html_message=html_message)
+
+#     except Order.DoesNotExist:
+#         # Handle the case where the Order with the provided order_id does not exist
+#         pass
+
 @shared_task
-def send_order_creation_mail(order, store_team_profiles):
+def send_order_creation_mail(order_id, store_team_profiles):
+    try:
+        # Fetch the Order object based on the provided order_id
+        order = Order.objects.get(id=order_id)
 
-    for profile in store_team_profiles:
-        subject = 'Order Creation Notification'
-        sender_email = order.created_by.email
-        sender_name = str(order.created_by.first_name) + \
-            str(order.created_by.last_name)
+        for profile_data in store_team_profiles:
+            subject = 'Order Creation Notification'
+            # sender_email = order.created_by.email
+            # sender_name = str(order.created_by.first_name) + \
+            #     str(order.created_by.last_name)
+            created_by = f"{order.created_by.first_name} {order.created_by.last_name}"
 
-        context = {
-            'project': order.bom.product.project.name,
-            'product': order.bom.product.name,
-            'batch_quantity': order.batch_quantity,
-            'website_link': 'https://sfcs.xtractautomation.com/checklist',
-            'created_by': sender_name,
-            'profile': profile,
-        }
-        html_message = render_to_string('order_creation_mail.html', context)
-        plain_message = strip_tags(html_message)
+            context = {
+                'project': order.bom.product.project.name,
+                'product': order.bom.product.name,
+                'batch_quantity': order.batch_quantity,
+                'website_link': 'https://sfcs.xtractautomation.com/checklist',
+                'created_by': created_by,
+                'profile': profile_data,
+            }
+            html_message = render_to_string(
+                'order_creation_email.html', context)
+            plain_message = strip_tags(html_message)
 
-        email_from = f'{sender_name} <{sender_email}>'
+            sender_email = settings.EMAIL_HOST_USER
+            sender_name = 'Velankani SFCS'
+            email_from = f'{sender_name} <{sender_email}>'
 
-        # recipient_list = [
-        #     satvikkatoch@velankanigroup.com
-        # ]
+            # recipient_list = [
+            #     satvikkatoch@velankanigroup.com
+            # ]
 
-        send_mail(subject, plain_message, email_from,
-                  [profile.email], html_message=html_message)
+            send_mail(subject, plain_message, email_from,
+                      [profile_data['email']], html_message=html_message)
+
+            print(f"Order creation email sent to {profile_data['email']}")
+
+    except Order.DoesNotExist:
+        # Handle the case where the Order with the provided order_id does not exist
+        pass

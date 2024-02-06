@@ -1294,7 +1294,13 @@ def create_order(request, *args, **kwargs):
             #                   'team_member2@example.com']
             store_team_profiles = UserAccount.objects.filter(
                 is_store_team=True)
-            # send_order_creation_mail.delay(order, store_team_profiles)
+
+            # Serialize the queryset using a serializer
+            store_team_profiles_serializer = UserAccountSerializer(
+                store_team_profiles, many=True).data
+            print(store_team_profiles_serializer)
+            send_order_creation_mail.delay(
+                order.id, store_team_profiles_serializer)
 
 
 # You can perform additional actions if needed
