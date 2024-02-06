@@ -20,6 +20,12 @@ from .tasks import process_bom_file, process_bom_file_new,  test_func, process_b
 import os
 from django.conf import settings
 from celery.result import AsyncResult
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
+from django.conf import settings
+from accounts.models import *
+from .tasks import *
 
 
 @api_view(['POST'])
@@ -1280,14 +1286,16 @@ def create_order(request, *args, **kwargs):
 
             # Create a new Order instance with the retrieved BillOfMaterials
             order = Order.objects.create(
-                bom=bom, batch_quantity=batch_quantity)
+                bom=bom, batch_quantity=batch_quantity, created_by=request.user)
 
-            subject = 'New Order Notification'
-            message = f'A new order has been created.\n\nOrder Details:\nBOM: {bom}\nBatch Quantity: {batch_quantity}'
-            recipient_list = ['team_member1@example.com',
-                              'team_member2@example.com']
+            # subject = 'New Order Notification'
+            # message = f'A new order has been created.\n\nOrder Details:\nBOM: {bom}\nBatch Quantity: {batch_quantity}'
+            # recipient_list = ['team_member1@example.com',
+            #                   'team_member2@example.com']
+            store_team_profiles = UserAccount.objects.filter(
+                is_store_team=True)
+            # send_order_creation_mail.delay(order, store_team_profiles)
 
-            send_notification_email.delay(subject, message, recipient_list)
 
 # You can perform additional actions if needed
 
@@ -1339,6 +1347,7 @@ def create_order_task(request):
         'bom_type': request.data.get('bom_type'),
         'bom_rev_no': request.data.get('bom_rev_no'),
         'issue_date': request.data.get('issue_date'),
+        'bom_rev_change_note': request.data.get('bom_rev_change_note'),
         'batch_quantity': request.data.get('batch_quantity'),
 
     }
@@ -1660,3 +1669,24 @@ def upload_iqc_file(request):
 
 #     except Exception as e:
 #         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# def send_order_creation_mail():
+
+#     subject = 'Course Enrollment Notification'
+#     context = {
+#         # 'user_f_name': profile.first_name,
+#         # 'user_l_name': profile.last_name,
+#         # 'user_email': profile.user,
+#         # 'course_title': course.title,
+#     }
+#     html_message = render_to_string('order_creation_mail.html', context)
+#     plain_message = strip_tags(html_message)
+#     sender_email = settings.EMAIL_HOST_USER
+#     sender_name = 'Trainotel'
+#     email_from = f'{sender_name} <{sender_email}>'
+#     # test_email = 'sharmaps112000@gmail.com'
+#     # recipient_list = [test_email]
+#     recipient_list = [profile.user]
+#     send_mail(subject, plain_message, email_from,
+#               recipient_list, html_message=html_message)
