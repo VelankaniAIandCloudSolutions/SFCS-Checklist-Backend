@@ -1,3 +1,4 @@
+from accounts.serializers import *
 from .models import Order
 from celery import current_task, shared_task
 import pandas as pd
@@ -316,17 +317,18 @@ def process_bom_file_new(bom_file, bom_file_name, data, user_id):
 
         bom, _ = BillOfMaterials.objects.get_or_create(
             product=product,
-            issue_date=issue_date,
             bom_file_name=bom_file_name,
-
+            bom_rev_number=data.get('bom_rev_no'),
             defaults={
                 'bom_type': bom_type,
-                'bom_rev_number': data.get('bom_rev_no'),
                 'change_note': data.get('bom_rev_change_note'),
+                'issue_date': issue_date,
                 'bom_file': 'bom_files/' + bom_file_name,
                 'updated_by': user,
                 'created_by': user,
             })
+
+        print('bom created')
 
         # Drop rows where 'vepl part' is NaN
         bom_file_data = bom_file_data.dropna(subset=['VEPL Part No'])
@@ -349,11 +351,11 @@ def process_bom_file_new(bom_file, bom_file_name, data, user_id):
 
             # Iterate through rows in the DataFrame
             for _, row in bom_file_data.head(10).iterrows():
-                print('index', _)
+                # print('index', _)
 
                 if str(row['VEPL Part No']) != 'nan' and str(row['VEPL Part No']).strip().startswith('VEPL'):
                     vepl_part_no = row['VEPL Part No']
-                    print('Processing VEPL Part No:', vepl_part_no)
+                    # print('Processing VEPL Part No:', vepl_part_no)
                     # Handling 'Mfr' field
                     if pd.notnull(row['Mfr']):
                         mfr_name = str(
@@ -542,6 +544,8 @@ def process_bom_file_new(bom_file, bom_file_name, data, user_id):
             BillOfMaterialsLineItem.objects.bulk_create(
                 bom_line_items_to_create)
 
+            print('line items created')
+
             bom_line_items = BillOfMaterialsLineItem.objects.filter(bom=bom)
             for bom_line_item in bom_line_items:
                 vepl_part_no = bom_line_item.part_number
@@ -599,16 +603,16 @@ def process_bom_file_and_create_order(bom_file, bom_file_name, data, user_id):
 
         bom, _ = BillOfMaterials.objects.get_or_create(
             product=product,
-            issue_date=issue_date,
             bom_file_name=bom_file_name,
+            bom_rev_number=data.get('bom_rev_no'),
             defaults={
                 'bom_type': bom_type,
-                'bom_rev_number': data.get('bom_rev_no'),
+                'change_note': data.get('bom_rev_change_note'),
+                'issue_date': issue_date,
                 'bom_file': 'bom_files/' + bom_file_name,
                 'updated_by': user,
                 'created_by': user,
-            }
-        )
+            })
 
         with transaction.atomic():
             bom_line_items_to_create = []
@@ -856,13 +860,12 @@ def process_bom_file_and_create_order_new(bom_file, bom_file_name, data, user_id
 
         bom, _ = BillOfMaterials.objects.get_or_create(
             product=product,
-            issue_date=issue_date,
             bom_file_name=bom_file_name,
-
+            bom_rev_number=data.get('bom_rev_no'),
             defaults={
                 'bom_type': bom_type,
-                'bom_rev_number': data.get('bom_rev_no'),
                 'change_note': data.get('bom_rev_change_note'),
+                'issue_date': issue_date,
                 'bom_file': 'bom_files/' + bom_file_name,
                 'updated_by': user,
                 'created_by': user,
@@ -889,7 +892,7 @@ def process_bom_file_and_create_order_new(bom_file, bom_file_name, data, user_id
 
             # Iterate through rows in the DataFrame
             for _, row in bom_file_data.head(10).iterrows():
-                print('index', _)
+                # print('index', _)
                 if str(row['VEPL Part No']) != 'nan' and str(row['VEPL Part No']).strip().startswith('VEPL'):
                     vepl_part_no = row['VEPL Part No']
                     # Handling 'Mfr' field
@@ -928,7 +931,7 @@ def process_bom_file_and_create_order_new(bom_file, bom_file_name, data, user_id
 
                     # Handling 'Reference' field
                     if 'Reference' in row and pd.notnull(row['Reference']):
-                        print('Entering Reference block for row:', row)
+                        # print('Entering Reference block for row:', row)
                         for reference in str(row['Reference']).split(','):
                             # ref, _ = BillOfMaterialsLineItemReference.objects.get_or_create(
                             #     name=str(reference).strip(),
@@ -1108,6 +1111,17 @@ def process_bom_file_and_create_order_new(bom_file, bom_file_name, data, user_id
         order = Order.objects.create(
             bom=bom, batch_quantity=data.get('batch_quantity'), updated_by=user, created_by=user)
 
+        store_team_profiles = UserAccount.objects.filter(
+            is_store_team=True)
+
+        # Serialize the queryset using a serializer
+        store_team_profiles_serializer = UserAccountSerializer(
+            store_team_profiles, many=True).data
+        print(store_team_profiles_serializer)
+        print('sending mail task started')
+        send_order_creation_mail.delay(
+            order.id, store_team_profiles_serializer)
+
         return ('BOM Uploaded and Order Created Successfully', 'SUCCESS', None)
 
     except Exception as e:
@@ -1185,6 +1199,7 @@ def process_bom_file_and_create_order_new(bom_file, bom_file_name, data, user_id
 def send_order_creation_mail(order_id, store_team_profiles):
     try:
         # Fetch the Order object based on the provided order_id
+        print('inside mail task')
         order = Order.objects.get(id=order_id)
 
         for profile_data in store_team_profiles:
