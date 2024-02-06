@@ -25,6 +25,6 @@ urlpatterns = [
     path('api/v1/store/', include('store_checklist.urls')),
     path('api/v1/accounts/', include('accounts.urls')),
     path('api/v1/pricing/', include('pricing.urls')),
+    path('machine_maintenance/', include('machine_maintenance.urls')),
 
-]  + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
