@@ -18,7 +18,7 @@ app.autodiscover_tasks()
 app.conf.beat_schedule = {
     'update-part-pricing-task': {
         'task': 'pricing.tasks.update_pricing_for_all_products',
-        'schedule': timedelta(seconds=3000),
+        'schedule': timedelta(hours=12),
     },
 }
 

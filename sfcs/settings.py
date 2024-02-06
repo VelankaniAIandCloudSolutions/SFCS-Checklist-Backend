@@ -194,3 +194,28 @@ ZOHO_APIS_CLIENT_SECRET = 'c0d9e4c91b89004aa5d161a6113bcade3ab9b5217b'
 ZOHO_APIS_REDIRECT_URI = 'http://www.zoho.com/books'
 ZOHO_APIS_REFRESH_TOKEN = '1000.68ce4af244943327bb7c9940e49f6fec.6c52c46dafbdc3c40df223bf10fa401c'
 ZOHO_BOOKS_VEPL_ORGANIZATION_ID = '60006125627'
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
+        },
+    },
+    'handlers': {
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR / 'error.log',
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'celery': {
+            'handlers': ['file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}

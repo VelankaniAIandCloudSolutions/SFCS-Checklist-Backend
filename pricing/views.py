@@ -16,6 +16,7 @@ from django.utils import timezone
 import pytz
 from .tasks import *
 from celery.result import AsyncResult
+from django.http import Http404
 
 # @api_view(['GET'])
 # def get_product_pricing(request,product_id):
@@ -70,38 +71,81 @@ from celery.result import AsyncResult
 
 @api_view(['GET'])
 def get_project_pricing_page(request):
-    projects  = Project.objects.all()
-    products = Product.objects.all()
-    projects_serializer  = ProjectSerializer(projects, many=True)
-    products_serializer = ProductSerializer(products, many=True)
-    last_task_result = TaskResult.objects.filter(result ='1').order_by('-date_done').first()
-    last_updated_at = ''
-    if last_task_result:
-        utc_time = last_task_result.date_done.replace(tzinfo=pytz.UTC)
-        ist_time = utc_time.astimezone(pytz.timezone('Asia/Kolkata'))
+    try:
+        projects = Project.objects.all()
+        products = Product.objects.all()
+        projects_serializer = ProjectSerializer(projects, many=True)
+        products_serializer = ProductSerializer(products, many=True)
 
-        last_updated_at = ist_time.strftime('%d/%m/%Y %I:%M %p')
-    
-    data = {
-        'projects': projects_serializer.data,
-        'products': products_serializer.data,
-        'last_updated_at': last_updated_at,
-    }
-    return Response(data,status=status.HTTP_200_OK)
+        last_task_result = TaskResult.objects.filter(result='1').order_by('-date_done').first()
+        last_updated_at = ''
+
+        if last_task_result:
+            utc_time = last_task_result.date_done.replace(tzinfo=pytz.UTC)
+            ist_time = utc_time.astimezone(pytz.timezone('Asia/Kolkata'))
+            last_updated_at = ist_time.strftime('%d/%m/%Y %I:%M %p')
+
+        data = {
+            'projects': projects_serializer.data,
+            'products': products_serializer.data,
+            'last_updated_at': last_updated_at,
+        }
+
+        return Response(data, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 @api_view(['GET'])
-def get_product_pricing(request,product_id):
-    part_prices = PartPricing.objects.filter(product_id=product_id)
-    part_prices_serializer = PartPricingSerializer(part_prices, many=True)
+def get_product_pricing(request, product_id):
+    try:
+        part_prices = PartPricing.objects.filter(product_id=product_id)
+        part_prices_serializer = PartPricingSerializer(part_prices, many=True)
 
-    data = {
-        'part_prices': part_prices_serializer.data,
-    }
-    return Response(data,status=status.HTTP_200_OK)
+        data = {
+            'part_prices': part_prices_serializer.data,
+        }
+
+        return Response(data, status=status.HTTP_200_OK)
+
+    except PartPricing.DoesNotExist:
+        raise Http404("Part pricing not found for the given product_id.")
+
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+def get_project_pricing(request, project_id):
+    try:
+        part_prices = PartPricing.objects.filter(project_id=project_id)
+        part_prices_serializer = PartPricingSerializer(part_prices, many=True)
+
+        data = {
+            'part_prices': part_prices_serializer.data,
+        }
+
+        return Response(data, status=status.HTTP_200_OK)
+
+    except PartPricing.DoesNotExist:
+        raise Http404("Part pricing not found for the given product_id.")
+
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 @api_view(['GET'])
 def refresh_product_pricing(request):
-    res = update_pricing_for_all_products.delay()
-    task_result = AsyncResult(res.id)
-    task_status = task_result.status
-    return Response({'message': 'Refreshing prices, this might take several miuntes.', 'task_id': res.id, 'task_status': str(task_status)}, status=status.HTTP_202_ACCEPTED)
+    try:
+        res = update_pricing_for_all_products.delay()
+        task_result = AsyncResult(res.id)
+        task_status = task_result.status
+
+        return Response({
+            'message': 'Refreshing prices, this might take several minutes.',
+            'task_id': res.id,
+            'task_status': str(task_status)
+        }, status=status.HTTP_202_ACCEPTED)
+
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

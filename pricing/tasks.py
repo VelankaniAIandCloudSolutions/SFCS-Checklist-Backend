@@ -9,6 +9,8 @@ from django.utils import timezone
 from store_checklist.models import BillOfMaterials, BillOfMaterialsLineItem, Product, Project
 from django.db.models import Max
 import re
+import logging
+logger = logging.getLogger(__name__)
 
 def refresh_access_token(refresh_token, client_id, client_secret, redirect_uri):
     url = "https://accounts.zoho.in/oauth/v2/token"
@@ -87,29 +89,24 @@ def find_vepl_number(text):
 
 @shared_task
 def update_pricing_for_all_products():
-    print('task started')
-    
-    # for product in Product.objects.all():
-    for product in Product.objects.filter(name ='Test Motherboard'):
-        purchase_orders = get_purchase_orders_list()
-        vepl_parts = get_latest_part_numbers(product.id)
-        print('vepl parts', vepl_parts)
-        # vepl_parts = ['1962','0383']
+    try:
+        logger.info('Update price task started')
         
-        for purchase_order in purchase_orders[:3]:
-            if len(vepl_parts)!=0:
-                po_details  = get_purchase_order_details(purchase_order.get('purchaseorder_id'))
-                po_line_items  = po_details.get('line_items')
-                print('po line items', po_line_items)
-                items_to_remove = []
-                for vepl_part in vepl_parts:
-                    print('vepl part befroe', vepl_part)
-                    for po_line_item in po_line_items:
-                        # if vepl_part == find_vepl_number(po_line_item.get('name')):
-                            print('vepl_part',vepl_part)
-                            print('po item',po_line_item.get('sku'))
+        for product in Product.objects.all():
+            purchase_orders = get_purchase_orders_list()
+            vepl_parts = get_latest_part_numbers(product.id)
+
+            for purchase_order in purchase_orders:
+                if len(vepl_parts) != 0:
+                    po_details = get_purchase_order_details(purchase_order.get('purchaseorder_id'))
+                    po_line_items = po_details.get('line_items')
+                    items_to_remove = []
+                    for vepl_part in vepl_parts:
+                        for po_line_item in po_line_items:
+                            logger.debug('vepl_part: %s', vepl_part)
+                            logger.debug('po item: %s', po_line_item.get('sku'))
                             if str(vepl_part).strip() == str(po_line_item.get('sku')).strip():
-                                part_pricing, created = PartPricing.objects.update_or_create(part_number = vepl_part,defaults={
+                                part_pricing, created = PartPricing.objects.update_or_create(part_number=vepl_part, defaults={
                                     'rate': po_line_item.get('rate'),
                                     'part_name': po_line_item.get('name'),
                                     'quantity': po_line_item.get('quantity'),
@@ -119,24 +116,27 @@ def update_pricing_for_all_products():
                                     'product': product,
                                     'project': product.project,
                                 }) 
-                                print('sku match')
+                                logger.info('SKU match found')
                                 items_to_remove.append(vepl_part)
-                                # if vepl_part in vepl_parts:
-                                #     print(vepl_part + 'removed')
-                                #     vepl_parts.remove(vepl_part)
-                for item in items_to_remove:
-                    vepl_parts.remove(item)
-            else:   
-                break
-        for vepl_part in vepl_parts:
-            part_pricing, created = PartPricing.objects.update_or_create(part_number = vepl_part,defaults={
-                                    'rate': 0,
-                                    'part_name': '',
-                                    'description': '',
-                                    'quantity': 0,
-                                    'total': 0,
-                                    'product': product,
-                                    'project': product.project,
-                                }) 
+                    
+                    for item in items_to_remove:
+                        vepl_parts.remove(item)
+                else:   
+                    break
+                
+            for vepl_part in vepl_parts:
+                part_pricing, created = PartPricing.objects.update_or_create(part_number=vepl_part, defaults={
+                    'rate': 0,
+                    'part_name': '',
+                    'description': '',
+                    'quantity': 0,
+                    'total': 0,
+                    'product': product,
+                    'project': product.project,
+                }) 
 
-    return 1
+        return 1
+
+    except Exception as e:
+        logger.error('An error occurred in update_pricing_for_all_products: %s', e)
+        raise
