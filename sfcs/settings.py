@@ -24,7 +24,7 @@ SECRET_KEY = 'django-insecure-sae26)(slkk%77$mk#w5ffioy-%v)#h*k$3(+msaisbcudc89z
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['sfcsdev.xtractautomation.com', '127.0.0.1', 'localhost']
+ALLOWED_HOSTS = ['*']
 
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:8080',
@@ -35,8 +35,6 @@ CORS_ALLOWED_ORIGINS = [
     'http://sfcs-checklist.s3-website.ap-south-1.amazonaws.com',
 ]
 # Application definition
-CSRF_TRUSTED_ORIGINS = [
-    'https://sfcsdev.xtractautomation.com', 'http://sfcsdev.xtractautomation.com']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
