@@ -106,16 +106,15 @@ def update_pricing_for_all_products():
                             logger.debug('vepl_part: %s', vepl_part)
                             logger.debug('po item: %s', po_line_item.get('sku'))
                             if str(vepl_part).strip() == str(po_line_item.get('sku')).strip():
-                                part_pricing, created = PartPricing.objects.update_or_create(part_number=vepl_part, defaults={
-                                    'rate': po_line_item.get('rate'),
-                                    'part_name': po_line_item.get('name'),
-                                    'quantity': po_line_item.get('quantity'),
-                                    'total': po_line_item.get('item_total'),
-                                    'description': po_line_item.get('description'),
-                                    'po_json': po_details,
-                                    'product': product,
-                                    'project': product.project,
-                                }) 
+                                part_pricing, created = PartPricing.objects.update_or_create(part_number=vepl_part,product=product,project = product.project,
+                                    defaults={
+                                        'rate': po_line_item.get('rate'),
+                                        'part_name': po_line_item.get('name'),
+                                        'quantity': po_line_item.get('quantity'),
+                                        'total': po_line_item.get('item_total'),
+                                        'description': po_line_item.get('description'),
+                                        'po_json': po_details,
+                                    }) 
                                 logger.info('SKU match found')
                                 items_to_remove.append(vepl_part)
                     
@@ -125,15 +124,14 @@ def update_pricing_for_all_products():
                     break
                 
             for vepl_part in vepl_parts:
-                part_pricing, created = PartPricing.objects.update_or_create(part_number=vepl_part, defaults={
-                    'rate': 0,
-                    'part_name': '',
-                    'description': '',
-                    'quantity': 0,
-                    'total': 0,
-                    'product': product,
-                    'project': product.project,
-                }) 
+                part_pricing, created = PartPricing.objects.update_or_create(part_number=vepl_part,product = product,project = product.project,
+                    defaults={
+                        'rate': 0,
+                        'part_name': '',
+                        'description': '',
+                        'quantity': 0,
+                        'total': 0,
+                    }) 
 
         return 1
 
