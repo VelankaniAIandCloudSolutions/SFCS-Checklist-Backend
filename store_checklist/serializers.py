@@ -182,7 +182,7 @@ class ChecklistItemSerializer(serializers.ModelSerializer):
     # Include ChecklistItemUID as a nested serializer
     checklist_item_uids = ChecklistItemUIDSerializer(many=True, read_only=True)
 
-    class Meta:
+    class Meta: 
         model = ChecklistItem
         fields = '__all__'
 
