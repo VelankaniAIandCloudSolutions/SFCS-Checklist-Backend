@@ -188,7 +188,7 @@ CELERY_BROKER_URL = 'redis://localhost:6379/0'
 CELERY_RESULT_BACKEND = 'django-db'
 
 # WEBSITE_URL = 'http://localhost:8000'
-WEBSITE_URL = 'https://sfcs.xtractautomation.com'
+WEBSITE_URL = 'https://sfcsdev.xtractautomation.com'
 
 ZOHO_APIS_CLIENT_ID = '1000.KX15FQIOLVX0WOYAW1MD7EYQVJH12S'
 ZOHO_APIS_CLIENT_SECRET = 'c0d9e4c91b89004aa5d161a6113bcade3ab9b5217b'
