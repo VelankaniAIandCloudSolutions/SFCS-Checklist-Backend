@@ -180,7 +180,7 @@ class ChecklistItemSerializer(serializers.ModelSerializer):
     updated_at = serializers.DateTimeField(format='%d/%m/%Y %H:%M:%S')
 
     # Include ChecklistItemUID as a nested serializer
-    # checklist_item_uids = ChecklistItemUIDSerializer(many=True, read_only=True)
+    checklist_item_uids = ChecklistItemUIDSerializer(many=True, read_only=True)
 
     class Meta:
         model = ChecklistItem
@@ -225,7 +225,7 @@ class ChecklistItemDetailedSerializer(serializers.ModelSerializer):
     updated_at = serializers.DateTimeField(format='%d/%m/%Y %H:%M:%S')
 
     # Include ChecklistItemUID as a nested serializer
-    # checklist_item_uids = ChecklistItemUIDSerializer(many=True, read_only=True)
+    checklist_item_uids = ChecklistItemUIDSerializer(many=True, read_only=True)
 
     class Meta:
         model = ChecklistItem
