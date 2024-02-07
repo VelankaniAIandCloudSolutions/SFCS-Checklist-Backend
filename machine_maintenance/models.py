@@ -29,6 +29,34 @@ class Model(BaseModel):
         return self.name
 
 
+class MaintenanceActivityType(BaseModel):
+    # Choices for code field
+    CODE_CHOICES = [
+        ('D', 'Daily'),
+        ('W', 'Weekly'),
+        ('M', 'Monthly'),
+        # Add more choices as needed
+    ]
+
+    name = models.CharField(max_length=255)
+    code = models.CharField(max_length=1, choices=CODE_CHOICES)
+
+    def __str__(self):
+        return self.name
+
+
 class MaintenancePlan(BaseModel):
 
     maintenance_date = models.DateField(default=timezone.now)
+    description = models.TextField()
+    machine = models.ForeignKey(Machine, on_delete=models.CASCADE)
+    maintenance_activity_type = models.ForeignKey(
+        MaintenanceActivityType, on_delete=models.SET_NULL,)
+
+    def __str__(self):
+        return "Maintenance plan for  MACHINE ID: " + str(self.machine.id)
+
+
+class MaintenanceActivity(BaseModel):
+    maintenance_plan = models.ForeignKey(
+        MaintenancePlan, on_delete=models.CASCADE)
