@@ -143,6 +143,7 @@ def check_task_status(request, task_id):
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+@api_view(['POST'])
 @authentication_classes([])
 @permission_classes([])
 def scan_code(request):
