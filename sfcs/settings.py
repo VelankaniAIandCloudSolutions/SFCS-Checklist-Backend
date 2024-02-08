@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'store_checklist',
     'accounts',
+    'machine_maintenance',
     'pricing',
     'django_celery_results'
 ]

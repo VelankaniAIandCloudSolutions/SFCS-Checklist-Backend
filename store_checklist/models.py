@@ -9,7 +9,7 @@ from django.dispatch import receiver
 
 class Project(BaseModel):
     name = models.CharField(max_length=255)
-    project_code = models.CharField(max_length=255)
+    project_code = models.CharField(max_length=255, blank=True, null=True)
     project_rev_number = models.CharField(
         max_length=255, blank=True, null=True)
 
