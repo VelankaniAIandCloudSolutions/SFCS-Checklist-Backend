@@ -146,6 +146,7 @@ def check_task_status(request, task_id):
 @api_view(['POST'])
 @authentication_classes([])
 @permission_classes([])
+@api_view(['POST'])
 def scan_code(request):
 
     print(request.data)

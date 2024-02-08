@@ -25,6 +25,7 @@ SECRET_KEY = 'django-insecure-sae26)(slkk%77$mk#w5ffioy-%v)#h*k$3(+msaisbcudc89z
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['*']
 
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:8080',
@@ -34,6 +35,7 @@ CORS_ALLOWED_ORIGINS = [
     'http://sfcs.xtractautomation.com',
     'http://sfcs-checklist.s3-website.ap-south-1.amazonaws.com',
 ]
+# Application definition
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -48,6 +50,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'store_checklist',
     'accounts',
+    'machine_maintenance',
     'pricing',
     'django_celery_results'
 ]
