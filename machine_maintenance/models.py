@@ -14,8 +14,8 @@ class Line(BaseModel):
 
 class Machine(BaseModel):
     name = models.CharField(max_length=255)
-
-    line = models.ForeignKey(Line, on_delete=models.CASCADE)
+    line = models.ForeignKey(
+        Line, on_delete=models.CASCADE, related_name='machines')
 
     def __str__(self):
         return self.name
@@ -23,34 +23,38 @@ class Machine(BaseModel):
 
 class Model(BaseModel):
     name = models.CharField(max_length=255)
-    machine = models.ForeignKey(Machine, on_delete=models.CASCADE)
+    machine = models.ForeignKey(
+        Machine, on_delete=models.CASCADE, related_name='models')
 
     def __str__(self):
         return self.name
 
 
 class MaintenanceActivityType(BaseModel):
-
     name = models.CharField(max_length=255)
     code = models.CharField(max_length=5)
-    time = models.TimeField(null=True, blank=True)
+    time = models.IntegerField(
+        null=True, blank=True, verbose_name="Duration (minutes)")
 
     def __str__(self):
         return self.name
 
 
 class MaintenancePlan(BaseModel):
-
     maintenance_date = models.DateField(default=timezone.now)
     description = models.TextField(null=True, blank=True)
-    machine = models.ForeignKey(Machine, on_delete=models.CASCADE)
+    machine = models.ForeignKey(
+        Machine, on_delete=models.CASCADE, related_name='maintenance_plans')
     maintenance_activity_type = models.ForeignKey(
-        MaintenanceActivityType, on_delete=models.SET_NULL, null=True)
+        MaintenanceActivityType, on_delete=models.SET_NULL, null=True, related_name='maintenance_plans')
 
     def __str__(self):
-        return "Maintenance plan for  MACHINE ID: " + str(self.machine.id)
+        return f"Maintenance plan for Machine ID: {self.machine.id}"
 
 
 class MaintenanceActivity(BaseModel):
     maintenance_plan = models.ForeignKey(
-        MaintenancePlan, on_delete=models.CASCADE)
+        MaintenancePlan, on_delete=models.CASCADE, related_name='maintenance_activities')
+
+    def __str__(self):
+        return f"Maintenance activity for Maintenance Plan ID: {self.maintenance_plan.id}"
