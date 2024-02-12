@@ -120,6 +120,11 @@ def create_maintenance_activity(request):
                         # if starting week is 0 that menas monday we set starting_weekday to monday otherwise 1
                         starting_week = 0 if starting_weekday == 0 else 1
 
+                        selected_day_indices = [
+                            list(calendar.day_name).index(day) for day in selected_days]
+
+                        print('selected_day_indices', selected_day_indices)
+
                         # Loop through the weeks of the month
                         for week_num in selected_weeks:
                             print('selected_weeks', selected_weeks)
@@ -131,24 +136,55 @@ def create_maintenance_activity(request):
 
                             print('selected_days', selected_days)
 
-                            for day in selected_days:
-                                # Convert the day name to its corresponding integer representation
-                                selected_day_index_int = list(
-                                    calendar.day_name).index(day)
+                            # for day in selected_days:
+                            #     # Convert the day name to its corresponding integer representation
+                            #     selected_day_index_int = list(
+                            #         calendar.day_name).index(day)
 
-                                day_int = week_start + \
-                                    (selected_day_index_int - starting_weekday)
+                            #     day_int = week_start + \
+                            #         (selected_day_index_int - starting_weekday)
 
-                                print('day-in integer of that month', day_int)
+                            #     print('day-in integer of that month', day_int)
 
-                                # Check if the selected day is within the range of the current week
-                                if week_start <= day_int <= week_end:
+                            #     # Check if the selected day is within the range of the current week
+                            #     if week_start <= day_int <= week_end:
+                            #         print('Month title case:',
+                            #               month_title_case.capitalize())
+                            #         print('Month abbreviations:',
+                            #               list(calendar.month_abbr))
+
+                            #         # Create the maintenance date using selected_year, month_index, and the selected day
+                            #         maintenance_date = datetime(
+                            #             selected_year, month_index, day_int)
+
+                            #         print('Maintenance date:',
+                            #               maintenance_date)
+
+                            #         # Create MaintenanceActivity object
+                            #         maintenance_plan = MaintenancePlan.objects.create(
+                            #             maintenance_date=maintenance_date,
+                            #             machine=selected_machine,
+                            #             maintenance_activity_type=selected_type,
+                            #             description=None,
+                            #         )
+
+                            #         maintenance_plan.save()
+                            #         print(
+                            #             'Maintenance activity created successfully')
+
+                            for day_int in range(week_start, week_end + 1):
+                                # Get the day of the week index (0 for Monday, 1 for Tuesday, ..., 6 for Sunday)
+                                day_of_week_index = (
+                                    day_int - 1 + starting_weekday) % 7
+
+                                # Check if the day of the week index is among the selected day indices
+                                if day_of_week_index in selected_day_indices:
                                     print('Month title case:',
                                           month_title_case.capitalize())
                                     print('Month abbreviations:',
                                           list(calendar.month_abbr))
 
-                                    # Create the maintenance date using selected_year, month_index, and the selected day
+                                    # Create the maintenance date using selected_year, month_index, and the current day integer
                                     maintenance_date = datetime(
                                         selected_year, month_index, day_int)
 
@@ -164,6 +200,8 @@ def create_maintenance_activity(request):
                                     )
 
                                     maintenance_plan.save()
+                                    print(
+                                        'Maintenance activity created successfully')
 
             return JsonResponse({'message': 'Maintenance activities created successfully'}, status=201)
 
