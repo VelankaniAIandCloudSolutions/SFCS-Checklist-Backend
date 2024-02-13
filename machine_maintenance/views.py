@@ -153,42 +153,6 @@ def create_maintenance_activity(request):
 
                             print('selected_days', selected_days)
 
-                            # for day in selected_days:
-                            #     # Convert the day name to its corresponding integer representation
-                            #     selected_day_index_int = list(
-                            #         calendar.day_name).index(day)
-
-                            #     day_int = week_start + \
-                            #         (selected_day_index_int - starting_weekday)
-
-                            #     print('day-in integer of that month', day_int)
-
-                            #     # Check if the selected day is within the range of the current week
-                            #     if week_start <= day_int <= week_end:
-                            #         print('Month title case:',
-                            #               month_title_case.capitalize())
-                            #         print('Month abbreviations:',
-                            #               list(calendar.month_abbr))
-
-                            #         # Create the maintenance date using selected_year, month_index, and the selected day
-                            #         maintenance_date = datetime(
-                            #             selected_year, month_index, day_int)
-
-                            #         print('Maintenance date:',
-                            #               maintenance_date)
-
-                            #         # Create MaintenanceActivity object
-                            #         maintenance_plan = MaintenancePlan.objects.create(
-                            #             maintenance_date=maintenance_date,
-                            #             machine=selected_machine,
-                            #             maintenance_activity_type=selected_type,
-                            #             description=None,
-                            #         )
-
-                            #         maintenance_plan.save()
-                            #         print(
-                            #             'Maintenance activity created successfully')
-
                             for day_int in range(week_start, week_end + 1):
                                 # Get the day of the week index (0 for Monday, 1 for Tuesday, ..., 6 for Sunday)
                                 day_of_week_index = (
