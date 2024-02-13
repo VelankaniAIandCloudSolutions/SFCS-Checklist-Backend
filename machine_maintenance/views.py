@@ -128,10 +128,27 @@ def create_maintenance_activity(request):
                         # Loop through the weeks of the month
                         for week_num in selected_weeks:
                             print('selected_weeks', selected_weeks)
-                            week_start = (
-                                int(week_num.split()[1]) - starting_week) * 7 + 1
+
+                            # Calculate the week number
+                            week_number = int(week_num.split()[1])
+                            # week_start = (
+                            #     int(week_num.split()[1]) - starting_week) * 7 + 1
+                            print('week number', week_number)
+
+                            week_start = ((week_number - 1) * 7) - \
+                                starting_weekday + 1
+
+                            week_start = max(1, week_start)
+
                             print('week_start', week_start)
+
                             week_end = min(week_start + 6, num_days_in_month)
+
+                            # Calculate the start date of the week
+                            # week_start = (week_num.split()[1] - 1) * 7 + 1
+                            # print('week_start', week_start)
+                            # week_end = min(week_num.split()[
+                            #                1] * 7, num_days_in_month)
                             print('week_end', week_end)
 
                             print('selected_days', selected_days)
