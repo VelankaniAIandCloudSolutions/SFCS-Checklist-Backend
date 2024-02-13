@@ -958,7 +958,7 @@ def process_bom_file_and_create_order_new(bom_file, bom_file_name, data, user_id
                 if str(row['VEPL Part No']) != 'nan' and str(row['VEPL Part No']).strip().startswith('VEPL'):
                     vepl_part_no = row['VEPL Part No']
                     # Handling 'Mfr' field
-                    if pd.notnull(row['Mfr']):
+                    if ('Mfr' in row and pd.notnull(row['Mfr'])) or ('Manufacturer' in row and pd.notnull(row['Manufacturer'])):
                         mfr_name = str(
                             row.get('Mfr')).strip().replace('\n', '')
                         manufacturer, _ = Manufacturer.objects.get_or_create(
@@ -1063,7 +1063,9 @@ def process_bom_file_and_create_order_new(bom_file, bom_file_name, data, user_id
                     pcb_footprint = row['PCB Footprint'] if 'PCB Footprint' in row and pd.notnull(
                         row['PCB Footprint']) else ''
                     description = row['Description'] if 'Description' in row and pd.notnull(
-                        row['Description']) else ''
+                        row['Description']) else \
+                        row.get('Description/part') if 'Description/part' in row and pd.notnull(
+                            row['Description/part']) else ''
                     customer_part_number = row['Customer Part No'] if 'Customer Part No' in row and pd.notnull(
                         row['Customer Part No']) else ''
                     quantity = row['Qty/ Product'] if 'Qty/ Product' in row and pd.notnull(
