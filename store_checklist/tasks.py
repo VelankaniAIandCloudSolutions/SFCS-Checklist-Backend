@@ -331,9 +331,36 @@ def process_bom_file_new(bom_file, bom_file_name, data, user_id):
         print('bom created')
 
         # Drop rows where 'vepl part' is NaN
+        print("NaN count before dropna:",
+              bom_file_data['VEPL Part No'].isnull().sum())
         bom_file_data = bom_file_data.dropna(subset=['VEPL Part No'])
-        bom_file_data = bom_file_data[bom_file_data['VEPL Part No'].str.startswith(
-            'VEPL')]
+        print("NaN count after dropna:",
+              bom_file_data['VEPL Part No'].isnull().sum())
+
+        # bom_file_data = bom_file_data[bom_file_data['VEPL Part No'].str.startswith(
+        #     'VEPL')]
+
+        if not bom_file_data.empty:
+
+            print("Before filtering - Row count:", len(bom_file_data))
+
+            print(bom_file_data['VEPL Part No'])
+
+            # bom_file_data = bom_file_data[bom_file_data['VEPL Part No'].str.startswith(
+            #     'VEPL')]
+            bom_file_data['VEPL Part No'] = bom_file_data['VEPL Part No'].astype(
+                str)
+
+            bom_file_data = bom_file_data[bom_file_data['VEPL Part No'].str.strip(
+            ).str.startswith('VEPL')]
+
+            print(bom_file_data['VEPL Part No'])
+
+            print("After filtering - Row count:", len(bom_file_data))
+            print("Filtered DataFrame:")
+            print(bom_file_data)
+        else:
+            print("No rows left in DataFrame after dropping NaN values.")
 
         # Reset index after dropping rows
         bom_file_data.reset_index(drop=True, inplace=True)
@@ -345,6 +372,7 @@ def process_bom_file_new(bom_file, bom_file_name, data, user_id):
 
         with transaction.atomic():
             bom_line_items_to_create = []
+            print('isnide tansaction.atomic', bom_line_items_to_create)
             vepl_to_references_mapping = {}
             vepl_to_manufacturer_mapping = {}
             processed_part_numbers = set()
@@ -357,7 +385,7 @@ def process_bom_file_new(bom_file, bom_file_name, data, user_id):
                     vepl_part_no = row['VEPL Part No']
                     # print('Processing VEPL Part No:', vepl_part_no)
                     # Handling 'Mfr' field
-                    if pd.notnull(row['Mfr']):
+                    if ('Mfr' in row and pd.notnull(row['Mfr'])) or ('Manufacturer' in row and pd.notnull(row['Manufacturer'])):
                         mfr_name = str(
                             row.get('Mfr')).strip().replace('\n', '')
                         manufacturer, _ = Manufacturer.objects.get_or_create(
@@ -459,7 +487,9 @@ def process_bom_file_new(bom_file, bom_file_name, data, user_id):
                     pcb_footprint = row['PCB Footprint'] if 'PCB Footprint' in row and pd.notnull(
                         row['PCB Footprint']) else ''
                     description = row['Description'] if 'Description' in row and pd.notnull(
-                        row['Description']) else ''
+                        row['Description']) else \
+                        row.get('Description/part') if 'Description/part' in row and pd.notnull(
+                            row['Description/part']) else ''
                     customer_part_number = row['Customer Part No'] if 'Customer Part No' in row and pd.notnull(
                         row['Customer Part No']) else ''
                     quantity = row['Qty/ Product'] if 'Qty/ Product' in row and pd.notnull(
@@ -613,6 +643,8 @@ def process_bom_file_and_create_order(bom_file, bom_file_name, data, user_id):
                 'updated_by': user,
                 'created_by': user,
             })
+
+        print('bom created')
 
         with transaction.atomic():
             bom_line_items_to_create = []
@@ -871,10 +903,40 @@ def process_bom_file_and_create_order_new(bom_file, bom_file_name, data, user_id
                 'created_by': user,
             })
 
-        # Drop rows where 'vepl part' is NaN
+        print('bom created')
+
+        print("NaN count before dropna:",
+              bom_file_data['VEPL Part No'].isnull().sum())
         bom_file_data = bom_file_data.dropna(subset=['VEPL Part No'])
-        bom_file_data = bom_file_data[bom_file_data['VEPL Part No'].str.startswith(
-            'VEPL')]
+        print("NaN count after dropna:",
+              bom_file_data['VEPL Part No'].isnull().sum())
+
+        if not bom_file_data.empty:
+
+            print("Before filtering - Row count:", len(bom_file_data))
+
+            print(bom_file_data['VEPL Part No'])
+
+            # bom_file_data = bom_file_data[bom_file_data['VEPL Part No'].str.startswith(
+            #     'VEPL')]
+            bom_file_data['VEPL Part No'] = bom_file_data['VEPL Part No'].astype(
+                str)
+
+            bom_file_data = bom_file_data[bom_file_data['VEPL Part No'].str.strip(
+            ).str.startswith('VEPL')]
+
+            print(bom_file_data['VEPL Part No'])
+
+            print("After filtering - Row count:", len(bom_file_data))
+            print("Filtered DataFrame:")
+            print(bom_file_data)
+        else:
+            print("No rows left in DataFrame after dropping NaN values.")
+
+        # Drop rows where 'vepl part' is NaN
+        # bom_file_data = bom_file_data.dropna(subset=['VEPL Part No'])
+        # bom_file_data = bom_file_data[bom_file_data['VEPL Part No'].str.startswith(
+        #     'VEPL')]
 
         # Reset index after dropping rows
         bom_file_data.reset_index(drop=True, inplace=True)
