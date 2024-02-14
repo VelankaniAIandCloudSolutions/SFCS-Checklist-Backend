@@ -206,7 +206,9 @@ def create_maintenance_activity(request):
 def get_maintenance_plan(request):
     if request.method == 'POST':
         # Step 1: Extract machine ID from the request
+
         machine_id = request.data.get('machine_id')
+        print(machine_id)
 
         # Step 2: Retrieve maintenance plans filtered by machine ID and sorted by maintenance date
         maintenance_plans = MaintenancePlan.objects.filter(
