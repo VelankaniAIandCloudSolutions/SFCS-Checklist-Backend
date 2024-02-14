@@ -200,3 +200,20 @@ def create_maintenance_activity(request):
         return JsonResponse({'error': 'Maintenance activity type not found'}, status=404)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+
+@api_view(['POST'])
+def get_maintenance_plan(request):
+    if request.method == 'POST':
+        # Step 1: Extract machine ID from the request
+        machine_id = request.data.get('machine_id')
+
+        # Step 2: Retrieve maintenance plans filtered by machine ID and sorted by maintenance date
+        maintenance_plans = MaintenancePlan.objects.filter(
+            machine_id=machine_id).order_by('maintenance_date')
+
+        # Step 3: Serialize the maintenance plans
+        serializer = MaintenancePlanSerializer(maintenance_plans, many=True)
+
+        # Step 4: Return serialized maintenance plans in the response
+        return Response({"maintenance_plans": serializer.data})

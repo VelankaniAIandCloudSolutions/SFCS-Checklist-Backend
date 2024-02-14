@@ -30,3 +30,21 @@ class MaintenanceActivityTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = MaintenanceActivityType
         fields = '__all__'
+
+
+class MaintenanceActivitySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MaintenanceActivity
+        fields = '__all__'
+
+
+class MaintenancePlanSerializer(serializers.ModelSerializer):
+    maintenance_activities = MaintenanceActivitySerializer(
+        many=True, read_only=True)
+
+    maintenance_activity_type = MaintenanceActivityTypeSerializer(
+        read_only=True)
+
+    class Meta:
+        model = MaintenancePlan
+        fields = '__all__'
