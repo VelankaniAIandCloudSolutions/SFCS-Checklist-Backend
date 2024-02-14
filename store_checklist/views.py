@@ -830,6 +830,8 @@ def edit_bom_line_item(request, bom_line_item_id):
                 manufacturer_part = ManufacturerPart.objects.create(
                     part_number=part_number,
                     manufacturer=manufacturer,
+                    created_by=request.user,
+                    updated_by=request.user,
                     # bom_line_item=bom_line_item
                 )
 
@@ -846,7 +848,7 @@ def edit_bom_line_item(request, bom_line_item_id):
             else:
                 reference_name = reference_data['name']
                 reference = BillOfMaterialsLineItemReference.objects.create(
-                    name=reference_name, bom_line_item=bom_line_item
+                    name=reference_name, bom_line_item=bom_line_item, created_by=request.user, updated_by=request.user,
                 )
 
         bom_line_item.save()
@@ -979,7 +981,8 @@ def create_project(request):
         }
 
         # Create a new Project instance
-        project = Project.objects.create(**project_data)
+        project = Project.objects.create(
+            **project_data, created_by=request.user, updated_by=request.user)
 
         # Serialize the project data
         project_serializer = ProjectSerializer(project)
@@ -1020,6 +1023,7 @@ def edit_project(request, project_id=None):
                 'project_code', project.project_code)
             project.project_rev_number = request.data.get(
                 'project_rev_number', project.project_rev_number)
+            project.updated_by = request.user
 
             project.save()
 
@@ -1056,6 +1060,7 @@ def edit_product(request, product_id):
             product.name = updated_product_data['name']
             product.product_code = updated_product_data['product_code']
             product.product_rev_number = updated_product_data['product_rev_number']
+            product.updated_by = request.user
             product.save()
             product_serializer = ProductSerializer(product)
             return Response({'product': product_serializer.data}, status=status.HTTP_200_OK)
@@ -1137,7 +1142,8 @@ def create_product(request, project_id):
 
         try:
             # Create a new Product instance
-            product = Product.objects.create(**new_product_data)
+            product = Product.objects.create(
+                **new_product_data, created_by=request.user, updated_by=request.user)
 
             product_serializer = ProductSerializer(product)
 
@@ -1288,7 +1294,7 @@ def create_order(request, *args, **kwargs):
 
             # Create a new Order instance with the retrieved BillOfMaterials
             order = Order.objects.create(
-                bom=bom, batch_quantity=batch_quantity, created_by=request.user)
+                bom=bom, batch_quantity=batch_quantity, created_by=request.user, updated_by=request.user)
 
             # subject = 'New Order Notification'
             # message = f'A new order has been created.\n\nOrder Details:\nBOM: {bom}\nBatch Quantity: {batch_quantity}'

@@ -20,7 +20,9 @@ app.conf.beat_schedule = {
         'task': 'pricing.tasks.update_pricing_for_all_products',
         'schedule': timedelta(hours=12),
     },
+
 }
+
 
 @app.task(bind=True, ignore_result=True)
 def debug_task(self):
