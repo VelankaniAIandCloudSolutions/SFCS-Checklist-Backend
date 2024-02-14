@@ -25,8 +25,7 @@ SECRET_KEY = 'django-insecure-sae26)(slkk%77$mk#w5ffioy-%v)#h*k$3(+msaisbcudc89z
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
-ALLOWED_HOSTS = ['*']
-
+CSRF_TRUSTED_ORIGINS=['https://sfcsdev.xtractautomation.com']
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:8080',
     'https://sfcs.xtractautomation.com',
