@@ -1,3 +1,5 @@
+import json
+from .models import MaintenancePlan, MaintenanceActivity
 from django.http import JsonResponse
 from django.shortcuts import render
 from .models import *
@@ -12,18 +14,18 @@ import calendar
 @api_view(['GET'])
 def get_machine_data(request):
     try:
-
+        lines = Line.objects.all()
         machines = Machine.objects.all()
         models = Model.objects.all()
         maintenance_activity_type = MaintenanceActivityType.objects.all()
 
-        machine_serializer = MachineSerializer(machines, many=True)
+        line_serializer = LineSerializer(lines, many=True)
         model_serializer = ModelSerializer(models, many=True)
         maintenance_activity_type_serializer = MaintenanceActivityTypeSerializer(
             maintenance_activity_type, many=True)
 
         return Response({
-            'machines': machine_serializer.data,
+            'lines': line_serializer.data,
             'models': model_serializer.data,
             'maintenance_activity_types': maintenance_activity_type_serializer.data,
         }, status=status.HTTP_200_OK)
@@ -32,11 +34,12 @@ def get_machine_data(request):
 
 
 @api_view(['POST'])
-def create_maintenance_activity(request):
+def create_maintenance_plan(request):
     try:
         if request.method == 'POST':
             # Extract form data from the request
             data = request.data
+            current_user = request.user
 
             # Get selected machine ID from the form data
             selected_machine_ids = data.get('selectedMachines', [])
@@ -186,6 +189,9 @@ def create_maintenance_activity(request):
                                                 machine=selected_machine,
                                                 maintenance_activity_type=selected_type,
                                                 description=None,
+                                                created_by=current_user,
+                                                updated_by=current_user
+
                                             )
 
                                             maintenance_plan.save()
@@ -219,3 +225,44 @@ def get_maintenance_plan(request):
 
         # Step 4: Return serialized maintenance plans in the response
         return Response({"maintenance_plans": serializer.data})
+
+
+@api_view(['POST', 'DELETE'])
+def create_or_delete_maintenance_activity(request):
+    if request.method == 'POST':
+        maintenance_plan_id = request.data.get('maintenancePlanId')
+        note = request.data.get('note', '')
+        created_by = request.user  # Assuming you have authentication set up
+        updated_by = request.user
+
+        try:
+            maintenance_plan = MaintenancePlan.objects.get(
+                id=maintenance_plan_id)
+            maintenance_activity, created = MaintenanceActivity.objects.get_or_create(
+                maintenance_plan=maintenance_plan,
+                defaults={'note': note, 'created_by': created_by,
+                          'updated_by': updated_by}
+            )
+            if not created:
+                maintenance_activity.note = note
+                maintenance_activity.updated_by = updated_by
+                maintenance_activity.save()
+        except MaintenancePlan.DoesNotExist:
+            return JsonResponse({'error': f'Maintenance plan with id {maintenance_plan_id} does not exist'}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+        return JsonResponse({'message': 'Maintenance activity created/updated successfully'}, status=201)
+
+    elif request.method == 'DELETE':
+        try:
+            maintenance_plan_id = request.data.get('maintenancePlanId')
+            maintenance_activity = MaintenanceActivity.objects.get(
+                maintenance_plan_id=maintenance_plan_id)
+            maintenance_activity.delete()
+        except MaintenanceActivity.DoesNotExist:
+            return JsonResponse({'error': f'Maintenance activity for maintenance plan with id {maintenance_plan_id} does not exist'}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+        return JsonResponse({'message': 'Maintenance activity deleted successfully'}, status=204)

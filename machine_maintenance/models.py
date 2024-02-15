@@ -49,7 +49,7 @@ class MaintenancePlan(BaseModel):
         MaintenanceActivityType, on_delete=models.SET_NULL, null=True, related_name='maintenance_plans')
 
     def __str__(self):
-        return f"Maintenance plan for Machine ID: {self.machine.id}"
+        return f"Maintenance plan for Machine ID: {self.machine.id}={self.machine.name}"
 
 
 class MaintenanceActivity(BaseModel):
@@ -58,4 +58,4 @@ class MaintenanceActivity(BaseModel):
     note = models.TextField(null=True, blank=True)
 
     def __str__(self):
-        return f"Maintenance activity for Maintenance Plan ID: {self.maintenance_plan.id}"
+        return f"Maintenance activity for Maintenance Plan ID: {self.maintenance_plan.id} "
