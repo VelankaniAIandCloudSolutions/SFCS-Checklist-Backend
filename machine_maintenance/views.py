@@ -230,8 +230,10 @@ def get_maintenance_plan(request):
 @api_view(['POST', 'DELETE'])
 def create_or_delete_maintenance_activity(request):
     if request.method == 'POST':
-        maintenance_plan_id = request.data.get('maintenancePlanId')
+        maintenance_plan_id = request.data.get('id')
+        print('maintenance plan id', maintenance_plan_id)
         note = request.data.get('note', '')
+        print('note', note)
         created_by = request.user  # Assuming you have authentication set up
         updated_by = request.user
 
@@ -266,3 +268,41 @@ def create_or_delete_maintenance_activity(request):
             return JsonResponse({'error': str(e)}, status=500)
 
         return JsonResponse({'message': 'Maintenance activity deleted successfully'}, status=204)
+
+
+@api_view(['POST', 'DELETE'])
+def update_or_delete_maintenance_activity_note(request, maintenance_plan_id):
+    if request.method == 'PUT':
+        # Extract new note from request data
+
+        new_note = request.data.get('note')
+
+        # Retrieve maintenance activity object
+        try:
+            maintenance_activity = MaintenanceActivity.objects.get(
+                pk=maintenance_plan_id)
+        except MaintenanceActivity.DoesNotExist:
+            return JsonResponse({'error': 'Maintenance activity not found'}, status=404)
+
+        # Update the note
+        maintenance_activity.note = new_note
+        maintenance_activity.save()
+
+        return JsonResponse({'message': 'Note updated successfully'}, status=200)
+
+    elif request.method == 'DELETE':
+        # Retrieve maintenance activity object
+
+        print('maintenance plan id in dleete ', maintenance_plan_id)
+
+        try:
+            maintenance_activity = MaintenanceActivity.objects.get(
+                maintenance_plan_id=maintenance_plan_id)
+        except MaintenanceActivity.DoesNotExist:
+            return JsonResponse({'error': 'Maintenance activity not found'}, status=404)
+
+        # Clear the note
+        maintenance_activity.note = ''
+        maintenance_activity.save()
+
+        return JsonResponse({'message': 'Note deleted successfully'}, status=200)

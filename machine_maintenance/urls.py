@@ -8,6 +8,9 @@ urlpatterns = [
     path('get-maintenance-plan/', views.get_maintenance_plan),
     path('create-or-delete-maintenance-activity',
          views.create_or_delete_maintenance_activity),
+    path('update-or-delete-maintenance-activity-note/<int:maintenance_plan_id>/',
+         views.update_or_delete_maintenance_activity_note),
+
 
 
 ]

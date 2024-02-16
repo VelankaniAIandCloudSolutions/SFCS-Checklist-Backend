@@ -46,16 +46,19 @@ class MaintenanceActivitySerializer(serializers.ModelSerializer):
 
 
 class MaintenancePlanSerializer(serializers.ModelSerializer):
-    maintenance_activities = MaintenanceActivitySerializer(
-        many=True, read_only=True)
 
     maintenance_activity_type = MaintenanceActivityTypeSerializer(
         read_only=True)
-
     created_at = serializers.DateTimeField(format='%d/%m/%Y %H:%M:%S')
     updated_at = serializers.DateTimeField(format='%d/%m/%Y %H:%M:%S')
     created_by = UserAccountSerializer()
     updated_by = UserAccountSerializer()
+    maintenance_activities = serializers.SerializerMethodField()
+
+    def get_maintenance_activities(self, instance):
+        activities = instance.maintenance_activities.all().order_by('-created_at')
+        serializer = MaintenanceActivitySerializer(activities, many=True)
+        return serializer.data
 
     class Meta:
         model = MaintenancePlan
