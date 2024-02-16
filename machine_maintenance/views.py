@@ -1,3 +1,5 @@
+
+# from rest_framework.response import JsonResponse
 import json
 from .models import MaintenancePlan, MaintenanceActivity
 from django.http import JsonResponse
@@ -227,13 +229,54 @@ def get_maintenance_plan(request):
         return Response({"maintenance_plans": serializer.data})
 
 
+# @api_view(['POST', 'DELETE'])
+# def create_or_delete_maintenance_activity(request):
+#     if request.method == 'POST':
+#         maintenance_plan_id = request.data.get('id')
+#         print('maintenance plan id', maintenance_plan_id)
+#         note = request.data.get('note', '')
+#         print('note', note)
+#         created_by = request.user  # Assuming you have authentication set up
+#         updated_by = request.user
+
+#         try:
+#             maintenance_plan = MaintenancePlan.objects.get(
+#                 id=maintenance_plan_id)
+#             maintenance_activity, created = MaintenanceActivity.objects.get_or_create(
+#                 maintenance_plan=maintenance_plan,
+#                 defaults={'note': note, 'created_by': created_by,
+#                           'updated_by': updated_by}
+#             )
+#             if not created:
+#                 maintenance_activity.note = note
+#                 maintenance_activity.updated_by = updated_by
+#                 maintenance_activity.save()
+#         except MaintenancePlan.DoesNotExist:
+#             return JsonResponse({'error': f'Maintenance plan with id {maintenance_plan_id} does not exist'}, status=400)
+#         except Exception as e:
+#             return JsonResponse({'error': str(e)}, status=500)
+
+#         return JsonResponse({'message': 'Maintenance activity created/updated successfully'}, status=201)
+
+#     elif request.method == 'DELETE':
+#         try:
+#             maintenance_plan_id = request.data.get('maintenancePlanId')
+#             maintenance_activity = MaintenanceActivity.objects.get(
+#                 maintenance_plan_id=maintenance_plan_id)
+#             maintenance_activity.delete()
+#         except MaintenanceActivity.DoesNotExist:
+#             return JsonResponse({'error': f'Maintenance activity for maintenance plan with id {maintenance_plan_id} does not exist'}, status=400)
+#         except Exception as e:
+#             return JsonResponse({'error': str(e)}, status=500)
+
+#         return JsonResponse({'message': 'Maintenance activity deleted successfully'}, status=204)
+
+
 @api_view(['POST', 'DELETE'])
 def create_or_delete_maintenance_activity(request):
     if request.method == 'POST':
         maintenance_plan_id = request.data.get('id')
-        print('maintenance plan id', maintenance_plan_id)
         note = request.data.get('note', '')
-        print('note', note)
         created_by = request.user  # Assuming you have authentication set up
         updated_by = request.user
 
@@ -254,7 +297,10 @@ def create_or_delete_maintenance_activity(request):
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
 
-        return JsonResponse({'message': 'Maintenance activity created/updated successfully'}, status=201)
+        # Serialize all maintenance plans with their related activities
+        maintenance_plans = MaintenancePlan.objects.all()
+        serializer = MaintenancePlanSerializer(maintenance_plans, many=True)
+        return JsonResponse({'message': 'Maintenance activity created/updated successfully', 'maintenance_plans': serializer.data}, status=201)
 
     elif request.method == 'DELETE':
         try:
@@ -267,7 +313,10 @@ def create_or_delete_maintenance_activity(request):
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
 
-        return JsonResponse({'message': 'Maintenance activity deleted successfully'}, status=204)
+        # Serialize all maintenance plans with their related activities after deletion
+        maintenance_plans = MaintenancePlan.objects.all()
+        serializer = MaintenancePlanSerializer(maintenance_plans, many=True)
+        return JsonResponse({'message': 'Maintenance activity deleted successfully', 'maintenance_plans': serializer.data}, status=204)
 
 
 @api_view(['POST', 'DELETE'])
