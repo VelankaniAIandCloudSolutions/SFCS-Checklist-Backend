@@ -1,5 +1,7 @@
 
 # from rest_framework.response import JsonResponse
+from .serializers import MaintenanceActivitySerializer
+from .models import MaintenanceActivity
 import json
 from .models import MaintenancePlan, MaintenanceActivity
 from django.http import JsonResponse
@@ -272,8 +274,8 @@ def get_maintenance_plan(request):
 #         return JsonResponse({'message': 'Maintenance activity deleted successfully'}, status=204)
 
 
-@api_view(['POST', 'DELETE'])
-def create_or_delete_maintenance_activity(request):
+@api_view(['POST'])
+def create_maintenance_activity(request):
     if request.method == 'POST':
         maintenance_plan_id = request.data.get('id')
         note = request.data.get('note', '')
@@ -302,56 +304,97 @@ def create_or_delete_maintenance_activity(request):
         serializer = MaintenancePlanSerializer(maintenance_plans, many=True)
         return JsonResponse({'message': 'Maintenance activity created/updated successfully', 'maintenance_plans': serializer.data}, status=201)
 
-    elif request.method == 'DELETE':
-        try:
-            maintenance_plan_id = request.data.get('maintenancePlanId')
-            maintenance_activity = MaintenanceActivity.objects.get(
-                maintenance_plan_id=maintenance_plan_id)
-            maintenance_activity.delete()
-        except MaintenanceActivity.DoesNotExist:
-            return JsonResponse({'error': f'Maintenance activity for maintenance plan with id {maintenance_plan_id} does not exist'}, status=400)
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
+    # elif request.method == 'DELETE':
+    #     try:
+    #         maintenance_plan_id = request.data.get('maintenancePlanId')
+    #         maintenance_activity = MaintenanceActivity.objects.get(
+    #             maintenance_plan_id=maintenance_plan_id)
+    #         maintenance_activity.delete()
+    #     except MaintenanceActivity.DoesNotExist:
+    #         return JsonResponse({'error': f'Maintenance activity for maintenance plan with id {maintenance_plan_id} does not exist'}, status=400)
+    #     except Exception as e:
+    #         return JsonResponse({'error': str(e)}, status=500)
 
-        # Serialize all maintenance plans with their related activities after deletion
-        maintenance_plans = MaintenancePlan.objects.all()
-        serializer = MaintenancePlanSerializer(maintenance_plans, many=True)
-        return JsonResponse({'message': 'Maintenance activity deleted successfully', 'maintenance_plans': serializer.data}, status=204)
+    #     # Serialize all maintenance plans with their related activities after deletion
+    #     maintenance_plans = MaintenancePlan.objects.all()
+    #     serializer = MaintenancePlanSerializer(maintenance_plans, many=True)
+    #     return JsonResponse({'message': 'Maintenance activity deleted successfully', 'maintenance_plans': serializer.data}, status=204)
 
 
-@api_view(['POST', 'DELETE'])
-def update_or_delete_maintenance_activity_note(request, maintenance_plan_id):
+# @api_view(['POST', 'DELETE'])
+# def update_or_delete_maintenance_activity_note(request, maintenance_plan_id):
+#     if request.method == 'PUT':
+#         # Extract new note from request data
+
+#         new_note = request.data.get('note')
+
+#         # Retrieve maintenance activity object
+#         try:
+#             maintenance_activity = MaintenanceActivity.objects.get(
+#                 pk=maintenance_plan_id)
+#         except MaintenanceActivity.DoesNotExist:
+#             return JsonResponse({'error': 'Maintenance activity not found'}, status=404)
+
+#         # Update the note
+#         maintenance_activity.note = new_note
+#         maintenance_activity.save()
+
+#         return JsonResponse({'message': 'Note updated successfully'}, status=200)
+
+#     elif request.method == 'DELETE':
+#         # Retrieve maintenance activity object
+
+#         print('maintenance plan id in dleete ', maintenance_plan_id)
+
+#         try:
+#             maintenance_activity = MaintenanceActivity.objects.get(
+#                 maintenance_plan_id=maintenance_plan_id)
+#         except MaintenanceActivity.DoesNotExist:
+#             return JsonResponse({'error': 'Maintenance activity not found'}, status=404)
+
+#         # Clear the note
+#         maintenance_activity.note = ''
+#         maintenance_activity.save()
+
+#         return JsonResponse({'message': 'Note deleted successfully'}, status=200)
+
+
+@api_view(['PUT', 'DELETE'])
+def update_or_delete_maintenance_activity(request, maintenance_plan_id):
     if request.method == 'PUT':
         # Extract new note from request data
-
         new_note = request.data.get('note')
 
         # Retrieve maintenance activity object
         try:
             maintenance_activity = MaintenanceActivity.objects.get(
-                pk=maintenance_plan_id)
+                maintenance_plan_id=maintenance_plan_id)
         except MaintenanceActivity.DoesNotExist:
-            return JsonResponse({'error': 'Maintenance activity not found'}, status=404)
+            return Response({'error': 'Maintenance activity not found'}, status=404)
 
         # Update the note
         maintenance_activity.note = new_note
         maintenance_activity.save()
 
-        return JsonResponse({'message': 'Note updated successfully'}, status=200)
+        # Retrieve all maintenance plans and serialize them
+        maintenance_plans = MaintenancePlan.objects.all()
+        serializer = MaintenancePlanSerializer(maintenance_plans, many=True)
+
+        return Response({'message': 'Note updated successfully', 'maintenance_plans': serializer.data}, status=200)
 
     elif request.method == 'DELETE':
         # Retrieve maintenance activity object
-
-        print('maintenance plan id in dleete ', maintenance_plan_id)
-
         try:
             maintenance_activity = MaintenanceActivity.objects.get(
                 maintenance_plan_id=maintenance_plan_id)
         except MaintenanceActivity.DoesNotExist:
-            return JsonResponse({'error': 'Maintenance activity not found'}, status=404)
+            return Response({'error': 'Maintenance activity not found'}, status=404)
 
-        # Clear the note
-        maintenance_activity.note = ''
-        maintenance_activity.save()
+        # Delete the maintenance activity
+        maintenance_activity.delete()
 
-        return JsonResponse({'message': 'Note deleted successfully'}, status=200)
+        # Retrieve all maintenance plans and serialize them
+        maintenance_plans = MaintenancePlan.objects.all()
+        serializer = MaintenancePlanSerializer(maintenance_plans, many=True)
+
+        return Response({'message': 'Maintenance activity deleted successfully', 'maintenance_plans': serializer.data}, status=200)
