@@ -10,6 +10,8 @@ urlpatterns = [
          views.create_maintenance_activity),
     path('update-or-delete-maintenance-activity/<int:maintenance_plan_id>/',
          views.update_or_delete_maintenance_activity),
+    path('delete-maintenance-plan/<int:maintenance_plan_id>/',
+         views.delete_maintenance_plan),
 
 
 

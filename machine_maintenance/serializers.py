@@ -4,8 +4,21 @@ from .models import *
 from accounts.serializers import UserAccountSerializer
 
 
-class MachineSerializer(serializers.ModelSerializer):
+class LineSerializerNew(serializers.ModelSerializer):
+    class Meta:
+        model = Line
+        fields = '__all__'
 
+
+class MachineSerializerNew(serializers.ModelSerializer):
+    line = LineSerializerNew()  # Include the LineSerializer for the line field
+
+    class Meta:
+        model = Machine
+        fields = '__all__'
+
+
+class MachineSerializer(serializers.ModelSerializer):
     class Meta:
         model = Machine
         fields = '__all__'
@@ -17,6 +30,11 @@ class LineSerializer(serializers.ModelSerializer):
     class Meta:
         model = Line
         fields = '__all__'
+
+    def get_machines(self, obj):
+        machines = obj.machines.all()
+        machine_serializer = MachineSerializer(machines, many=True)
+        return machine_serializer.data
 
 
 class ModelSerializer(serializers.ModelSerializer):
@@ -54,6 +72,7 @@ class MaintenancePlanSerializer(serializers.ModelSerializer):
     created_by = UserAccountSerializer()
     updated_by = UserAccountSerializer()
     maintenance_activities = serializers.SerializerMethodField()
+    machine = MachineSerializerNew()
 
     def get_maintenance_activities(self, instance):
         activities = instance.maintenance_activities.all().order_by('-created_at')

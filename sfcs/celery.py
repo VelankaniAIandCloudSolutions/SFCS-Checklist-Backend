@@ -23,6 +23,17 @@ app.conf.beat_schedule = {
 
 }
 
+# app.conf.beat_schedule = {
+#     'update-part-pricing-task': {
+#         'task': 'pricing.tasks.update_pricing_for_all_products',
+#         'schedule': timedelta(hours=12),
+#     },
+#     'check-maintenance-activities': {
+#         'task': 'tasks.check_maintenance_activities',
+#         'schedule': crontab(minute=0, hour=0),
+#     },
+# }
+
 
 @app.task(bind=True, ignore_result=True)
 def debug_task(self):
