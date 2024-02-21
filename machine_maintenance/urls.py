@@ -12,7 +12,7 @@ urlpatterns = [
          views.update_or_delete_maintenance_activity),
     path('delete-maintenance-plan/<int:maintenance_plan_id>/',
          views.delete_maintenance_plan),
-
-
-
+    path('create-maintenance-plan-by-clicking/',
+         views.create_maintenance_plan_by_clicking),
+    path('test-mail/', views.test_maintenance_alert_email)
 ]

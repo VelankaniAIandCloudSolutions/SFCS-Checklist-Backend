@@ -1,12 +1,13 @@
+from requests import Response
 from .models import MaintenancePlan
 from accounts.serializers import *
-from .models import Order
+
 from celery import current_task, shared_task
 import pandas as pd
 from django.db import transaction
 from .models import *
 from accounts.models import UserAccount
-from .serializers import BillOfMaterialsLineItemSerializer
+
 from django.utils import timezone
 import logging
 from django.core.mail import send_mail
@@ -19,71 +20,82 @@ logger = logging.getLogger(__name__)
 
 
 @shared_task
-def check_maintenance_activities():
-    # Define a timedelta for two consecutive days
-    consecutive_days = timezone.now() - timezone.timedelta(days=2)
+def maintenance_alert_email():
+    # Get plans with no activities
+    plans_with_no_activities = get_plans_with_no_activities()
 
-    # Initialize an empty list to store maintenance plans with missing activities
-    missing_activity_plans = []
+    # Send maintenance activity missing email
+    send_maintenance_activity_missing_mail(plans_with_no_activities)
 
-    # Get all maintenance plans with missing activities for the last two consecutive days
-    maintenance_plans = MaintenancePlan.objects.filter(
-        maintenance_activities__created_at__lt=consecutive_days
-    ).distinct()
+    print("Maintenance activity missing email sent successfully")
 
-    # for now store team profiles rememeber to add created m is_machine_team
-    machine_team_profiles = UserAccount.objects.filter(is_store_team=True)
-    machine_team_profiles_serializer = UserAccountSerializer(
-        machine_team_profiles, many=True).data
-    recipient_emails = [profile['email']
-                        for profile in machine_team_profiles_serializer]
-    recipient_first_names = [profile['first_name']
-                             for profile in machine_team_profiles_serializer]
-
-    # Loop through each maintenance plan
-    for plan in maintenance_plans:
-        # Send the alert email to the boss (created_by)
-        boss_email = plan.created_by.email
-        boss_first_name = plan.created_by.first_name
-        send_maintenance_activity_missing_mail(
-            plan, boss_email, boss_first_name, recipient_emails, recipient_first_names)
-
-        # Append the maintenance plan to the list
-        missing_activity_plans.append(plan)
-
-    # Return the list of maintenance plans with missing activities
-    return missing_activity_plans
+    return {'success': True, 'message': 'Maintenance activity missing email sent successfully'}
 
 
-def send_maintenance_activity_missing_mail(maintenance_plan, boss_email, boss_first_name, recipient_emails, recipient_first_names):
+def get_plans_with_no_activities():
+    # Define the date range for the last two days excluding today
+    two_days_ago = timezone.now().date() - timezone.timedelta(days=2)
+    today = timezone.now().date()
+
+    # Filter maintenance plans scheduled in the last two days excluding today
+    recent_scheduled_plans = MaintenancePlan.objects.filter(
+        maintenance_date__gte=two_days_ago,
+        maintenance_date__lt=today
+    )
+
+    # Initialize an array to store plans with no maintenance activities created
+    plans_with_no_activities = []
+
+    # Filter out plans without maintenance activities
+    for plan in recent_scheduled_plans:
+        if not plan.maintenance_activities.exists():
+            plans_with_no_activities.append(plan)
+
+    # Do something with plans_with_no_activities, like sending alerts or logging
+    # For example, just printing their IDs along with maintenance dates
+    for plan in plans_with_no_activities:
+        print(
+            f"Plan ID {plan.id} scheduled on {plan.maintenance_date} has no activities.")
+
+    return plans_with_no_activities
+
+
+def send_maintenance_activity_missing_mail(plans_with_no_activities):
     try:
         print('inside machine maintenance miss alert task')
 
-        context = {
-            'machine_name': maintenance_plan.machine.name,
-            'machine_line': maintenance_plan.machine.line.name,
-            'created_by': boss_first_name,  # Use the boss's first name
-            'created_at': maintenance_plan.created_at,
-            'maintenance_date': maintenance_plan.maintenance_date,
-            # Concatenate recipient first names
-            'recipient_first_names': ', '.join(recipient_first_names),
-            'website_link': 'https://sfcs.xtractautomation.com/machine/mark-maintenance-plan'
+        print(plans_with_no_activities)
 
-            # Add other context variables as needed
-        }
-        html_message = render_to_string(
-            'maintenance_activity_missing_alert_email.html', context)
-        plain_message = strip_tags(html_message)
+        if plans_with_no_activities:  # Ensure there are plans with no activities
 
-        subject = 'Maintenance Activity Missing Alert'
-        sender_email = settings.EMAIL_HOST_USER
-        sender_name = 'Velankani SFCS'
-        email_from = f'{sender_name} <{sender_email}>'
+            recipient_emails = set(
+                plan.created_by.email for plan in plans_with_no_activities)
+            recipient_emails_list = list(recipient_emails)
+            recipient_emails_list.append('satvikkatoch@velankanigroup.com')
 
-        send_mail(subject, plain_message, email_from, [
-                  boss_email], html_message=html_message)
+            context = {
+                'created_by': plans_with_no_activities[0].created_by,
+                'maintenance_plans_with_no_activities': plans_with_no_activities,
+                'website_link': 'https://sfcs.xtractautomation.com/machine'
+                # Add other context variables as neededd
+            }
+            print(context)
 
-        print(f"Maintenance activity missing email sent to {boss_email}")
+            html_message = render_to_string(
+                'maintenance_activity_missing_alert_email.html', context)
+            plain_message = strip_tags(html_message)
+
+            subject = 'Maintenance Activity Missing Alert'
+            sender_email = settings.EMAIL_HOST_USER
+            sender_name = 'Velankani SFCS'
+            email_from = f'{sender_name} <{sender_email}>'
+
+            # Send email
+            send_mail(subject, plain_message, email_from,
+                      recipient_emails_list, html_message=html_message)
+
+            print(
+                f"Maintenance activity missing email sent to {plans_with_no_activities[0].created_by.email}")
 
     except Exception as e:
         # Handle any exceptions

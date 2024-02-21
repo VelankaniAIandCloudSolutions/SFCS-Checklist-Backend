@@ -8,11 +8,15 @@ from django.http import JsonResponse
 from django.shortcuts import render
 from .models import *
 from .serializers import *
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.response import Response
 from rest_framework import status
 from datetime import datetime, timedelta
 import calendar
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
+from django.core.mail import send_mail
+from django.conf import settings
 
 
 @api_view(['GET'])
@@ -473,3 +477,129 @@ def update_or_delete_maintenance_activity(request, maintenance_plan_id):
         serializer = MaintenancePlanSerializer(maintenance_plans, many=True)
 
         return Response({'message': 'Maintenance activity deleted successfully', 'maintenance_plans': serializer.data}, status=200)
+
+
+@api_view(['POST'])
+def create_maintenance_plan_by_clicking(request):
+    # Extract data from request
+    description = request.data.get('description')
+    machine_id = request.data.get('machineId')
+    selected_activity_type_id = request.data.get('selectedActivityType')
+    selected_date = request.data.get('selectedDate')
+
+    # Assuming you have access to the current user making the request
+    current_user = request.user
+
+    try:
+        # Fetch related objects by their IDs
+        machine = Machine.objects.get(id=machine_id)
+        activity_type = MaintenanceActivityType.objects.get(
+            id=selected_activity_type_id)
+
+        # Create MaintenancePlan instance
+        maintenance_plan = MaintenancePlan.objects.create(
+            description=description,
+            machine=machine,
+            maintenance_activity_type=activity_type,
+            maintenance_date=selected_date,
+            created_by=current_user,
+            updated_by=current_user
+        )
+
+        # Fetch all maintenance plans
+        all_maintenance_plans = MaintenancePlan.objects.all()
+
+        # Serialize all maintenance plans
+        maintenance_plans_serializer = MaintenancePlanSerializer(
+            all_maintenance_plans, many=True)
+        serialized_data = maintenance_plans_serializer.data
+
+        return Response(
+            {"maintenance_plans": serialized_data},
+            status=status.HTTP_201_CREATED
+        )
+    except Exception as e:
+        return Response(
+            {"error": str(e)},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+
+@api_view(['GET'])
+@authentication_classes([])  # Use appropriate authentication class here
+@permission_classes([])
+def test_maintenance_alert_email(request):
+    # Get plans with no activities
+    plans_with_no_activities = get_plans_with_no_activities()
+
+    # Send maintenance activity missing email
+    send_maintenance_activity_missing_mail(plans_with_no_activities)
+
+    return Response({'message': 'Test email sent successfully'})
+
+
+def get_plans_with_no_activities():
+    # Define the date range for the last two days excluding today
+    two_days_ago = timezone.now().date() - timezone.timedelta(days=2)
+    today = timezone.now().date()
+
+    # Filter maintenance plans scheduled in the last two days excluding today
+    recent_scheduled_plans = MaintenancePlan.objects.filter(
+        maintenance_date__gte=two_days_ago,
+        maintenance_date__lt=today
+    )
+
+    # Initialize an array to store plans with no maintenance activities created
+    plans_with_no_activities = []
+
+    # Filter out plans without maintenance activities
+    for plan in recent_scheduled_plans:
+        if not plan.maintenance_activities.exists():
+            plans_with_no_activities.append(plan)
+
+    # Do something with plans_with_no_activities, like sending alerts or logging
+    # For example, just printing their IDs along with maintenance dates
+    for plan in plans_with_no_activities:
+        print(
+            f"Plan ID {plan.id} scheduled on {plan.maintenance_date} has no activities.")
+
+    return plans_with_no_activities
+
+
+def send_maintenance_activity_missing_mail(plans_with_no_activities):
+    try:
+        print('inside machine maintenance miss alert task')
+
+        print(plans_with_no_activities)
+
+        if plans_with_no_activities:  # Ensure there are plans with no activities
+
+            # recipient_emails = [plan.created_by.email for plan in plans_with_no_activities]
+
+            context = {
+                'created_by': plans_with_no_activities[0].created_by,
+                'maintenance_plans_with_no_activities': plans_with_no_activities,
+                'website_link': 'https://sfcs.xtractautomation.com/machine'
+                # Add other context variables as neededd
+            }
+            print(context)
+
+            html_message = render_to_string(
+                'maintenance_activity_missing_alert_email.html', context)
+            plain_message = strip_tags(html_message)
+
+            subject = 'Maintenance Activity Missing Alert'
+            sender_email = settings.EMAIL_HOST_USER
+            sender_name = 'Velankani SFCS'
+            email_from = f'{sender_name} <{sender_email}>'
+
+            # Send email
+            send_mail(subject, plain_message, email_from, [
+                      'katochsatvik@gmail.com'], html_message=html_message)
+
+            print(
+                f"Maintenance activity missing email sent to {plans_with_no_activities[0].created_by.email}")
+
+    except Exception as e:
+        # Handle any exceptions
+        print(f"Error sending maintenance activity missing email: {e}")
