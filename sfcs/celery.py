@@ -28,10 +28,10 @@ app.autodiscover_tasks()
 
 
 app.conf.beat_schedule = {
-    # 'update-part-pricing-task': {
-    #     'task': 'pricing.tasks.update_pricing_for_all_products',
-    #     'schedule': timedelta(hours=12),
-    # },
+    'update-part-pricing-task': {
+        'task': 'pricing.tasks.update_pricing_for_all_products',
+        'schedule': timedelta(hours=12),
+    },
     'check-maintenance-activity-task': {
         'task': 'machine_maintenance.tasks.maintenance_alert_email',
         'schedule': crontab(minute=0, hour=7,),
