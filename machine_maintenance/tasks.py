@@ -72,6 +72,7 @@ def send_maintenance_activity_missing_mail(plans_with_no_activities):
                 plan.created_by.email for plan in plans_with_no_activities)
             recipient_emails_list = list(recipient_emails)
             recipient_emails_list.append('satvikkatoch@velankanigroup.com')
+            recipient_emails_list.append('katochsatvik@gmail.com')
 
             context = {
                 'created_by': plans_with_no_activities[0].created_by,
