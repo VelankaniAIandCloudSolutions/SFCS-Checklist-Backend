@@ -59,3 +59,7 @@ class MaintenanceActivity(BaseModel):
 
     def __str__(self):
         return f"Maintenance activity for Maintenance Plan ID: {self.maintenance_plan.id} "
+
+
+class MaintenancePlanSetting(BaseModel):
+    days_to_raise_alert = models.PositiveBigIntegerField(default=2)
