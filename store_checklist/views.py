@@ -300,7 +300,10 @@ def generate_new_checklist(request, order_id):
         else:
             setting = ChecklistSetting.objects.create(
                 active_bom=active_bom, created_by=request.user, updated_by=request.user)
-            print('doesnt exist')
+            print("doesn't exist")
+
+        if setting.active_checklist:
+            return Response({'error': 'Active checklist already exists,please end the previous checklist to start a new one'}, status=status.HTTP_400_BAD_REQUEST)
         setting.active_bom = active_bom
         setting.active_checklist = Checklist.objects.create(
             bom=active_bom, status='In Progress', created_by=request.user, updated_by=request.user, batch_quantity=batch_quantity)

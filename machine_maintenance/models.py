@@ -18,7 +18,7 @@ class Machine(BaseModel):
         Line, on_delete=models.CASCADE, related_name='machines')
 
     def __str__(self):
-        return self.name
+        return f'{self.name} (Line: {self.line.name})'
 
 
 class Model(BaseModel):
