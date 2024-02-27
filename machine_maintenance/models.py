@@ -18,7 +18,7 @@ class Machine(BaseModel):
         Line, on_delete=models.CASCADE, related_name='machines')
 
     def __str__(self):
-        return self.name
+        return f'{self.name} (Line: {self.line.name})'
 
 
 class Model(BaseModel):
@@ -59,3 +59,7 @@ class MaintenanceActivity(BaseModel):
 
     def __str__(self):
         return f"Maintenance activity for Maintenance Plan ID: {self.maintenance_plan.id} "
+
+
+class MaintenancePlanSetting(BaseModel):
+    days_to_raise_alert = models.PositiveBigIntegerField(default=2)

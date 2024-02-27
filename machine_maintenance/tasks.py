@@ -34,13 +34,22 @@ def maintenance_alert_email():
 
 def get_plans_with_no_activities():
     # Define the date range for the last two days excluding today
-    two_days_ago = timezone.now().date() - timezone.timedelta(days=2)
-    today = timezone.now().date()
 
-    # Filter maintenance plans scheduled in the last two days excluding today
+    setting = MaintenancePlanSetting.objects.first()
+
+    if setting is None:
+        return []
+
+    days_to_raise_alert = setting.days_to_raise_alert
+ # Calculate the date range based on the days_to_raise_alert
+    alert_start_date = timezone.now().date(
+    ) - timezone.timedelta(days=days_to_raise_alert)
+    alert_end_date = timezone.now().date()
+
+    # Filter maintenance plans scheduled within the calculated date range
     recent_scheduled_plans = MaintenancePlan.objects.filter(
-        maintenance_date__gte=two_days_ago,
-        maintenance_date__lt=today
+        maintenance_date__gte=alert_start_date,
+        maintenance_date__lt=alert_end_date
     )
 
     # Initialize an array to store plans with no maintenance activities created
