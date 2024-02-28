@@ -91,6 +91,8 @@ class BillOfMaterialsListSerializer(serializers.ModelSerializer):
     product = ProductDetailSerializer()
     issue_date = serializers.DateField(format="%d/%m/%Y")
     bom_file_url = serializers.SerializerMethodField()
+    pcb_file_url = serializers.SerializerMethodField()
+
     # project = serializers.SerializerMethodField()
 
     class Meta:
@@ -99,6 +101,9 @@ class BillOfMaterialsListSerializer(serializers.ModelSerializer):
 
     def get_bom_file_url(self, obj):
         return f"{settings.WEBSITE_URL}{obj.bom_file.url}" if obj.bom_file else None
+
+    def get_pcb_file_url(self, obj):  # Define get_pcb_file_url method
+        return f"{settings.WEBSITE_URL}{obj.pcb_bbt_test_report_file.url}" if obj.pcb_bbt_test_report_file else None
 
     # def get_project(self, obj):
     #     return {
@@ -150,6 +155,7 @@ class BillOfMaterialsDetailedSerializer(serializers.ModelSerializer):
     product = ProductDetailSerializer()
     issue_date = serializers.DateField(format="%d/%m/%Y")
     bom_file_url = serializers.SerializerMethodField()
+    pcb_file_url = serializers.SerializerMethodField()
 
     class Meta:
         model = BillOfMaterials
@@ -157,6 +163,9 @@ class BillOfMaterialsDetailedSerializer(serializers.ModelSerializer):
 
     def get_bom_file_url(self, obj):
         return f"{settings.WEBSITE_URL}{obj.bom_file.url}" if obj.bom_file else None
+
+    def get_pcb_file_url(self, obj):  # Define get_pcb_file_url method
+        return f"{settings.WEBSITE_URL}{obj.pcb_bbt_test_report_file.url}" if obj.pcb_bbt_test_report_file else None
 
 
 class ChecklistItemTypeSerializer(serializers.ModelSerializer):

@@ -319,10 +319,13 @@ def process_bom_file_new(bom_file, bom_file_name, data, user_id):
             product=product,
             bom_file_name=bom_file_name,
             bom_rev_number=data.get('bom_rev_no'),
+
             defaults={
                 'bom_type': bom_type,
                 'change_note': data.get('bom_rev_change_note'),
                 'issue_date': issue_date,
+                'pcb_file_name': data.get('pcb_file_name'),
+                'pcb_bbt_test_report_file': 'pcb_bbt_test_report_files/' + data.get('pcb_file_name'),
                 'bom_file': 'bom_files/' + bom_file_name,
                 'updated_by': user,
                 'created_by': user,
@@ -378,7 +381,7 @@ def process_bom_file_new(bom_file, bom_file_name, data, user_id):
             processed_part_numbers = set()
 
             # Iterate through rows in the DataFrame
-            for _, row in bom_file_data.iterrows():
+            for _, row in bom_file_data.head(6).iterrows():
                 print('index', _)
 
                 if str(row['VEPL Part No']) != 'nan' and str(row['VEPL Part No']).strip().startswith('VEPL'):
@@ -395,7 +398,7 @@ def process_bom_file_new(bom_file, bom_file_name, data, user_id):
                                 'created_by': user,
                                 # Add other fields if needed
                             })
-                        print('mfr created in db')
+                        # print('mfr created in db')
                     else:
                         manufacturer = None
 
@@ -410,7 +413,7 @@ def process_bom_file_new(bom_file, bom_file_name, data, user_id):
                                 'created_by': user,
 
                             })
-                        print('mfr  aprt created in db')
+                        # print('mfr  aprt created in db')
                     else:
                         manufacturer_part = None
 
@@ -422,18 +425,17 @@ def process_bom_file_new(bom_file, bom_file_name, data, user_id):
 
                     # Handling 'Reference' field
                     if 'Reference' in row and pd.notnull(row['Reference']):
-                        print('Entering Reference block for row:', row)
+                        # print('Entering Reference block for row:', row)
                         for reference in str(row['Reference']).split(','):
 
-                            print('ref entry done in db')
+                            # print('ref entry done in db')
 
                             if vepl_part_no not in vepl_to_references_mapping:
                                 vepl_to_references_mapping[vepl_part_no] = []
 
                             vepl_to_references_mapping[vepl_part_no].append(
                                 str(reference.strip()))
-                            print('vepl_to_references_mapping in loop',
-                                  vepl_to_references_mapping)
+                            # print('vepl_to_references_mapping in loop',vepl_to_references_mapping)
 
                     assembly_stage, _ = AssemblyStage.objects.get_or_create(
                         name=row.get('Assy Stage', None),
@@ -541,7 +543,7 @@ def process_bom_file_new(bom_file, bom_file_name, data, user_id):
 
                         # Other fields handling...
                         # Create BillOfMaterialsLineItem instance
-                        print('if not an existing item')
+                        # print('if not an existing item')
                         bom_line_item = BillOfMaterialsLineItem(
                             part_number=row['VEPL Part No'],
                             bom=bom,
@@ -566,15 +568,15 @@ def process_bom_file_new(bom_file, bom_file_name, data, user_id):
                         for bom_line_item in bom_line_items_to_create:
                             if bom_line_item.part_number == row['VEPL Part No']:
                                 dupli_count += 1
-                                print(str(bom_line_item.part_number) + 'exists')
+                                # print(str(bom_line_item.part_number) + 'exists')
                         if dupli_count > 1:
-                            print('dupli count exceeded')
+                            # print('dupli count exceeded')
                             bom_line_items_to_create.remove(bom_line_item)
 
             BillOfMaterialsLineItem.objects.bulk_create(
                 bom_line_items_to_create)
 
-            print('line items created')
+            # print('line items created')
 
             bom_line_items = BillOfMaterialsLineItem.objects.filter(bom=bom)
             for bom_line_item in bom_line_items:
@@ -583,10 +585,10 @@ def process_bom_file_new(bom_file, bom_file_name, data, user_id):
                     bom_line_item.manufacturer_parts.set(
                         vepl_to_manufacturer_mapping[vepl_part_no])
                     bom_line_item.save()
-                print('final', vepl_to_references_mapping)
+                # print('final', vepl_to_references_mapping)
                 if vepl_part_no in vepl_to_references_mapping:
                     for ref in set(vepl_to_references_mapping[vepl_part_no]):
-                        print('current ref in loop ', ref)
+                        # print('current ref in loop ', ref)
                         BillOfMaterialsLineItemReference.objects.create(
                             name=ref, bom_line_item=bom_line_item, updated_by=user, created_by=user)
                         # reference = BillOfMaterialsLineItemReference.objects.filter(
@@ -898,6 +900,8 @@ def process_bom_file_and_create_order_new(bom_file, bom_file_name, data, user_id
                 'bom_type': bom_type,
                 'change_note': data.get('bom_rev_change_note'),
                 'issue_date': issue_date,
+                'pcb_file_name': data.get('pcb_file_name'),
+                'pcb_bbt_test_report_file': 'pcb_bbt_test_report_files/' + data.get('pcb_file_name'),
                 'bom_file': 'bom_files/' + bom_file_name,
                 'updated_by': user,
                 'created_by': user,
@@ -953,7 +957,7 @@ def process_bom_file_and_create_order_new(bom_file, bom_file_name, data, user_id
             processed_part_numbers = set()
 
             # Iterate through rows in the DataFrame
-            for _, row in bom_file_data.iterrows():
+            for _, row in bom_file_data.head(6).iterrows():
                 print('index', _)
                 if str(row['VEPL Part No']) != 'nan' and str(row['VEPL Part No']).strip().startswith('VEPL'):
                     vepl_part_no = row['VEPL Part No']
@@ -1008,8 +1012,7 @@ def process_bom_file_and_create_order_new(bom_file, bom_file_name, data, user_id
 
                             vepl_to_references_mapping[vepl_part_no].append(
                                 str(reference.strip()))
-                            print('vepl_to_references_mapping in loop',
-                                  vepl_to_references_mapping)
+                    # print('vepl_to_references_mapping in loop',vepl_to_references_mapping)
 
                     assembly_stage, _ = AssemblyStage.objects.get_or_create(
                         name=row.get('Assy Stage', None),
@@ -1117,7 +1120,7 @@ def process_bom_file_and_create_order_new(bom_file, bom_file_name, data, user_id
 
                         # Other fields handling...
                         # Create BillOfMaterialsLineItem instance
-                        print('if not an existing item')
+                        # print('if not an existing item')
                         bom_line_item = BillOfMaterialsLineItem(
                             part_number=row['VEPL Part No'],
                             bom=bom,
@@ -1144,7 +1147,7 @@ def process_bom_file_and_create_order_new(bom_file, bom_file_name, data, user_id
                                 dupli_count += 1
                                 print(str(bom_line_item.part_number) + 'exists')
                         if dupli_count > 1:
-                            print('dupli count exceeded')
+                            # print('dupli count exceeded')
                             bom_line_items_to_create.remove(bom_line_item)
 
             BillOfMaterialsLineItem.objects.bulk_create(
@@ -1157,10 +1160,10 @@ def process_bom_file_and_create_order_new(bom_file, bom_file_name, data, user_id
                     bom_line_item.manufacturer_parts.set(
                         vepl_to_manufacturer_mapping[vepl_part_no])
                     bom_line_item.save()
-                print('final', vepl_to_references_mapping)
+                # print('final', vepl_to_references_mapping)
                 if vepl_part_no in vepl_to_references_mapping:
                     for ref in set(vepl_to_references_mapping[vepl_part_no]):
-                        print('current ref in loop ', ref)
+                        # print('current ref in loop ', ref)
                         BillOfMaterialsLineItemReference.objects.create(
                             name=ref, bom_line_item=bom_line_item, updated_by=user, created_by=user)
                         # reference = BillOfMaterialsLineItemReference.objects.filter(
@@ -1181,8 +1184,8 @@ def process_bom_file_and_create_order_new(bom_file, bom_file_name, data, user_id
         # Serialize the queryset using a serializer
         store_team_profiles_serializer = UserAccountSerializer(
             store_team_profiles, many=True).data
-        print(store_team_profiles_serializer)
-        print('sending mail task started')
+        # print(store_team_profiles_serializer)
+        # print('sending mail task started')
         send_order_creation_mail.delay(
             order.id, store_team_profiles_serializer)
 

@@ -83,6 +83,9 @@ def upload_bom_task(request):
     bom_file = request.FILES.get('bom_file')
     print('this is bom file', bom_file)
 
+    pcb_file = request.FILES.get('pcb_file')
+    print('this is pcb file', pcb_file)
+
     bom_file_name = str(request.FILES['bom_file'].name)
     if bom_file is None:
         return Response({'error': 'File is missing'}, status=status.HTTP_400_BAD_REQUEST)
@@ -97,7 +100,20 @@ def upload_bom_task(request):
         for chunk in bom_file.chunks():
             destination.write(chunk)
 
-    path = str(bom_file_path)
+    bom_path = str(bom_file_path)
+
+    pcb_file_name = None
+    pcb_path = None
+    if pcb_file:
+        pcb_file_name = str(request.FILES['pcb_file'].name)
+        pcb_media_directory = os.path.join(
+            'pcb_bbt_test_report_files', pcb_file_name)
+        pcb_file_path = os.path.join(settings.MEDIA_ROOT, pcb_media_directory)
+        os.makedirs(os.path.dirname(pcb_file_path), exist_ok=True)
+        with open(pcb_file_path, 'wb') as destination:
+            for chunk in pcb_file.chunks():
+                destination.write(chunk)
+        pcb_path = str(pcb_file_path)
 
     bom_data = {
         'project_id': request.data.get('project_id'),
@@ -107,6 +123,9 @@ def upload_bom_task(request):
         'bom_rev_no': request.data.get('bom_rev_no'),
         'issue_date': request.data.get('issue_date'),
         'bom_rev_change_note': request.data.get('bom_rev_change_note'),
+        'pcb_file_name': pcb_file_name,
+        'pcb_file_path': pcb_path,
+
 
         # 'batch_quantity': request.data.get('batch_quantity'),
     }
@@ -115,7 +134,7 @@ def upload_bom_task(request):
     # print('batch quantity=', bom_data.get('batch_quantity'))
 
     res = process_bom_file_new.delay(
-        path, bom_file_name, bom_data, request.user.id)
+        bom_path, bom_file_name, bom_data, request.user.id)
     task_result = AsyncResult(res.id)
     task_status = task_result.status
     print(task_status)
@@ -1337,6 +1356,10 @@ def delete_order(request, order_id):
 def create_order_task(request):
     # try:
     bom_file = request.FILES.get('bom_file')
+
+    pcb_file = request.FILES.get('pcb_file')
+    print('this is pcb file', pcb_file)
+
     bom_file_name = str(request.FILES['bom_file'].name)
     if bom_file is None:
         return Response({'error': 'File is missing'}, status=status.HTTP_400_BAD_REQUEST)
@@ -1351,8 +1374,22 @@ def create_order_task(request):
         for chunk in bom_file.chunks():
             destination.write(chunk)
 
-    path = str(bom_file_path)
-    print(path)
+    bom_path = str(bom_file_path)
+    print(bom_path)
+
+    pcb_file_name = None
+    pcb_path = None
+    if pcb_file:
+        pcb_file_name = str(request.FILES['pcb_file'].name)
+        pcb_media_directory = os.path.join(
+            'pcb_bbt_test_report_files', pcb_file_name)
+        pcb_file_path = os.path.join(settings.MEDIA_ROOT, pcb_media_directory)
+        os.makedirs(os.path.dirname(pcb_file_path), exist_ok=True)
+        with open(pcb_file_path, 'wb') as destination:
+            for chunk in pcb_file.chunks():
+                destination.write(chunk)
+        pcb_path = str(pcb_file_path)
+
     bom_data = {
         # 'product_name': request.data.get('product_name'),
         # 'product_code': request.data.get('product_code'),
@@ -1364,12 +1401,14 @@ def create_order_task(request):
         'issue_date': request.data.get('issue_date'),
         'bom_rev_change_note': request.data.get('bom_rev_change_note'),
         'batch_quantity': request.data.get('batch_quantity'),
+        'pcb_file_name': pcb_file_name,
+        'pcb_file_path': pcb_path,
 
     }
     print('project_id=', bom_data.get('project_id'))
     print('batch quantity=', bom_data.get('batch_quantity'))
     res = process_bom_file_and_create_order_new.delay(
-        path, bom_file_name, bom_data, request.user.id)
+        bom_path, bom_file_name, bom_data, request.user.id)
     task_result = AsyncResult(res.id)
     task_status = task_result.status
     print(task_status)
