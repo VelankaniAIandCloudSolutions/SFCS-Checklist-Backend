@@ -143,9 +143,9 @@ def check_task_status(request, task_id):
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+@api_view(['POST'])
 @authentication_classes([])
 @permission_classes([])
-@api_view(['POST'])
 def scan_code(request):
 
     print(request.data)
@@ -154,12 +154,17 @@ def scan_code(request):
     # match = re.search(pattern, request.data.get('value'))
 
     text = request.data.get('value')
-    uid_pattern = r'.*?1U(.*?)-'
+    print(text)
     vepl_pattern = r'(VEPL.*?)(?=1D<)'
     quantity_pattern = r'Q(\d+)'
-    uid_match = re.search(uid_pattern, text)
     vepl_match = re.search(vepl_pattern, text)
     quantity_match = re.search(quantity_pattern, text)
+    print(vepl_match)
+    print(quantity_match)
+    # uid_pattern = r'.*?1U(.*?)-'
+    uid_pattern = r'u(?:el)?UUID(\d+)' 
+    uid_match = re.search(uid_pattern, text)
+    print(uid_match)
 
     if quantity_match:
         quantity = int(quantity_match.group(1))
@@ -167,7 +172,10 @@ def scan_code(request):
         quantity = 0
 
     if vepl_match:
-        uuid = uid_match.group(1)
+        if uid_match:
+            uuid = uid_match.group(1)
+        else:
+            uuid = ''
         part_number = vepl_match.group(1)
 
         print("UUID:", uuid)
