@@ -322,7 +322,7 @@ def generate_new_checklist(request, order_id):
             print("doesn't exist")
 
         if setting.active_checklist:
-            return Response({'error': 'Active checklist already exists,please end the previous checklist to start a new one'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Active checklist already exists, please end that checklist to start a new one'}, status=status.HTTP_400_BAD_REQUEST)
         setting.active_bom = active_bom
         setting.active_checklist = Checklist.objects.create(
             bom=active_bom, status='In Progress', created_by=request.user, updated_by=request.user, batch_quantity=batch_quantity)
@@ -597,7 +597,7 @@ def get_checklists_for_bom(request, bom_id):
         checklists = Checklist.objects.filter(bom=bom)
 
         # Serialize the checklists using ChecklistSerializer
-        serializer = ChecklistSerializer(checklists, many=True)
+        serializer = ChecklistWithoutItemsSerializer(checklists, many=True)
 
         # Return the serialized data as JSON response
         return Response(serializer.data)
