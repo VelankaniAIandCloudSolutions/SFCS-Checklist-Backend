@@ -485,7 +485,8 @@ def create_maintenance_plan_by_clicking(request):
     description = request.data.get('description')
     machine_id = request.data.get('machineId')
     selected_activity_type_id = request.data.get('selectedActivityType')
-    selected_date = request.data.get('selectedDate')
+    selected_date_in_str = request.data.get('selectedDate')
+    selected_date = datetime.strptime(selected_date_in_str, '%Y-%m-%d').date()
 
     # Assuming you have access to the current user making the request
     current_user = request.user
@@ -498,6 +499,7 @@ def create_maintenance_plan_by_clicking(request):
 
         # Create MaintenancePlan instance
         maintenance_plan = MaintenancePlan.objects.create(
+
             description=description,
             machine=machine,
             maintenance_activity_type=activity_type,

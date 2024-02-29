@@ -69,6 +69,9 @@ class BillOfMaterials(BaseModel):
     bom_rev_number = models.CharField(max_length=255)
     issue_date = models.DateField(default=timezone.now)
     bom_file = models.FileField(upload_to='bom_files/', null=True, blank=True)
+    pcb_bbt_test_report_file = models.FileField(
+        upload_to='pcb_bbt_test_report_files/', null=True, blank=True)
+    pcb_file_name = models.CharField(max_length=255, null=True, blank=True)
     bom_file_name = models.CharField(max_length=255, null=True, blank=True)
     change_note = models.TextField(null=True, blank=True)
 
