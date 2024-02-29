@@ -386,7 +386,7 @@ def process_bom_file_new(bom_file, bom_file_name, data, user_id):
             processed_part_numbers = set()
 
             # Iterate through rows in the DataFrame
-            for _, row in bom_file_data.head(6).iterrows():
+            for _, row in bom_file_data.iterrows():
                 print('index', _)
 
                 if str(row['VEPL Part No']) != 'nan' and str(row['VEPL Part No']).strip().startswith('VEPL'):
@@ -967,7 +967,7 @@ def process_bom_file_and_create_order_new(bom_file, bom_file_name, data, user_id
             processed_part_numbers = set()
 
             # Iterate through rows in the DataFrame
-            for _, row in bom_file_data.head(6).iterrows():
+            for _, row in bom_file_data.iterrows():
                 print('index', _)
                 if str(row['VEPL Part No']) != 'nan' and str(row['VEPL Part No']).strip().startswith('VEPL'):
                     vepl_part_no = row['VEPL Part No']
