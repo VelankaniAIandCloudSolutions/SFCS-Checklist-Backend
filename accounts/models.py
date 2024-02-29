@@ -36,6 +36,8 @@ class UserAccount(AbstractBaseUser, PermissionsMixin):
     is_superuser = models.BooleanField(default=False)
     is_store_team = models.BooleanField(default=False)
     is_design_team = models.BooleanField(default=False)
+    # is_machine_maintenance_supervisor_team = models.BooleanField(default=False)
+    # is_machine_maintenance_staff_team = models.BooleanField(default=False)
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_by = models.ForeignKey(
