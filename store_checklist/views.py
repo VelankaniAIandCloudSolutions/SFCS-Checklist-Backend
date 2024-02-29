@@ -1247,7 +1247,7 @@ def delete_product(request, product_id):
 def get_orders(request):
     try:
         if request.method == 'GET':
-            orders = Order.objects.all()
+            orders = Order.objects.all().order_by('-created_at')
             serializer = OrderListSerializer(orders, many=True)
             return Response({'orders': serializer.data}, status=status.HTTP_200_OK)
     except Exception as e:
