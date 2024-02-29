@@ -315,6 +315,11 @@ def process_bom_file_new(bom_file, bom_file_name, data, user_id):
         else:
             issue_date = data.get('issue_date')
 
+        pcb_file_name = data.get('pcb_file_name')
+        pcb_bbt_test_report_file = None
+        if pcb_file_name:
+            pcb_bbt_test_report_file = 'pcb_bbt_test_report_files/' + pcb_file_name
+
         bom, _ = BillOfMaterials.objects.get_or_create(
             product=product,
             bom_file_name=bom_file_name,
@@ -324,8 +329,8 @@ def process_bom_file_new(bom_file, bom_file_name, data, user_id):
                 'bom_type': bom_type,
                 'change_note': data.get('bom_rev_change_note'),
                 'issue_date': issue_date,
-                'pcb_file_name': data.get('pcb_file_name'),
-                'pcb_bbt_test_report_file': 'pcb_bbt_test_report_files/' + data.get('pcb_file_name'),
+                'pcb_file_name': pcb_file_name,
+                'pcb_bbt_test_report_file': pcb_bbt_test_report_file,
                 'bom_file': 'bom_files/' + bom_file_name,
                 'updated_by': user,
                 'created_by': user,
@@ -892,6 +897,11 @@ def process_bom_file_and_create_order_new(bom_file, bom_file_name, data, user_id
         else:
             issue_date = data.get('issue_date')
 
+        pcb_file_name = data.get('pcb_file_name')
+        pcb_bbt_test_report_file = None
+        if pcb_file_name:
+            pcb_bbt_test_report_file = 'pcb_bbt_test_report_files/' + pcb_file_name
+
         bom, _ = BillOfMaterials.objects.get_or_create(
             product=product,
             bom_file_name=bom_file_name,
@@ -900,8 +910,8 @@ def process_bom_file_and_create_order_new(bom_file, bom_file_name, data, user_id
                 'bom_type': bom_type,
                 'change_note': data.get('bom_rev_change_note'),
                 'issue_date': issue_date,
-                'pcb_file_name': data.get('pcb_file_name'),
-                'pcb_bbt_test_report_file': 'pcb_bbt_test_report_files/' + data.get('pcb_file_name'),
+                'pcb_file_name': pcb_file_name,
+                'pcb_bbt_test_report_file': pcb_bbt_test_report_file,
                 'bom_file': 'bom_files/' + bom_file_name,
                 'updated_by': user,
                 'created_by': user,
