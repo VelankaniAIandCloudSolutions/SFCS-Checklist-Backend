@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-sae26)(slkk%77$mk#w5ffioy-%v)#h*k$3(+msaisbcudc89z
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
-CSRF_TRUSTED_ORIGINS=['https://sfcsdev.xtractautomation.com']
+CSRF_TRUSTED_ORIGINS = ['https://sfcsdev.xtractautomation.com']
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:8080',
     'https://sfcs.xtractautomation.com',
@@ -90,23 +90,23 @@ WSGI_APPLICATION = 'sfcs.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
-# }
-
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'sfcs_checklist',
-        'USER': 'sfcs_checklist_admin',
-        'PASSWORD': 'Aic@1234',
-        'HOST': 'localhost',  # Or use your EC2 instance IP if MySQL is running on a different server
-        'PORT': '3306',       # MySQL default port
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'sfcs_checklist',
+#         'USER': 'sfcs_checklist_admin',
+#         'PASSWORD': 'Aic@1234',
+#         'HOST': 'localhost',  # Or use your EC2 instance IP if MySQL is running on a different server
+#         'PORT': '3306',       # MySQL default port
+#     }
+# }
 REST_FRAMEWORK = {
     # 'DATETIME_FORMAT': '%d/%m/%y %H:%M',
     'DEFAULT_AUTHENTICATION_CLASSES': (
