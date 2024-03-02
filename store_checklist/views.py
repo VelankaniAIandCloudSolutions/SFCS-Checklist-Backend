@@ -169,21 +169,19 @@ def scan_code(request):
 
     print(request.data)
     # input_string = "u1UUID000128808-VEPL145154751D<Facts>Q500"
-    # pattern = r'ue1([^\-]+)-(VEPL\d{8})'
-    # match = re.search(pattern, request.data.get('value'))
-
     text = request.data.get('value')
-    print(text)
     vepl_pattern = r'(VEPL.*?)(?=1D<)'
     quantity_pattern = r'Q(\d+)'
     vepl_match = re.search(vepl_pattern, text)
     quantity_match = re.search(quantity_pattern, text)
-    print(vepl_match)
-    print(quantity_match)
-    # uid_pattern = r'.*?1U(.*?)-'
-    uid_pattern = r'u(?:el)?UUID(\d+)' 
-    uid_match = re.search(uid_pattern, text)
-    print(uid_match)
+    uid_pattern = r'UUID\d+'
+
+    matches = re.findall(uid_pattern, text)
+    if matches:
+        uuid = matches[0]
+        print(uuid)
+    else:
+        print("UUID not found in the input string.")
 
     if quantity_match:
         quantity = int(quantity_match.group(1))
@@ -191,10 +189,6 @@ def scan_code(request):
         quantity = 0
 
     if vepl_match:
-        if uid_match:
-            uuid = uid_match.group(1)
-        else:
-            uuid = ''
         part_number = vepl_match.group(1)
 
         print("UUID:", uuid)
@@ -212,14 +206,9 @@ def scan_code(request):
         if active_bom and active_checklist:
 
             if ChecklistItemUID.objects.filter(uid=uuid).exists():
-                return JsonResponse({'message': f'UUID {uuid} already exists in ChecklistItemUID table'}, status=400)
+                return JsonResponse({'message': f'UUID {uuid} already exists in ChecklistItemUID table'}, status=405)
             else:
-
                 for bom_line_item in active_bom.bom_line_items.all():
-                    print("BOM Line Item Part Number:",
-                          bom_line_item.part_number.strip())
-                    print("Input Part Number:", part_number.strip())
-
                     if bom_line_item.part_number.strip() == part_number.strip():
                         is_present = True
                         if bom_line_item.line_item_type:
@@ -261,22 +250,9 @@ def scan_code(request):
                             }
                         )
 
-                        # if ChecklistItem.objects.filter(checklist = active_checklist, bom_line_item = bom_line_item).exists():
-                        #     checklist_item.checklist_item_type = checklist_item_type
-                        #     checklist_item.save()
-                        #     checklist_item_created = False
-                        # else:
-                        #     ChecklistItem.objects.create(checklist = active_checklist, bom_line_item = bom_line_item,checklist_item_type = checklist_item_type)
-                        #     checklist_item_created = True
-
                         checklist_item_uid, checklist_item_uid_created = ChecklistItemUID.objects.get_or_create(
                             checklist_item=checklist_item,
                             uid=uuid,
-                            # defaults={
-                            #     'updated_by': request.user,
-                            #     'created_by': request.user,
-                            # }
-
                         )
                         print(
                             f'ChecklistItem created: {checklist_item_created }')
@@ -310,7 +286,7 @@ def scan_code(request):
 
     else:
         print("Pattern not found in the input string.")
-        return Response({'error': 'Invalid input string'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error': 'Invalid input string'}, status=401)
 
 
 @api_view(['POST'])
