@@ -181,7 +181,7 @@ def scan_code(request):
     print(vepl_match)
     print(quantity_match)
     # uid_pattern = r'.*?1U(.*?)-'
-    uid_pattern = r'u(?:el)?UUID(\d+)' 
+    uid_pattern = r'u(?:el)?UUID(\d+)'
     uid_match = re.search(uid_pattern, text)
     print(uid_match)
 
