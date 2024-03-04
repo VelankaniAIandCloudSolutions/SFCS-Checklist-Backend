@@ -1,5 +1,5 @@
 
-from .serializers import BillOfMaterialsLineItemSerializer, ManufacturerPartSerializer, BillOfMaterialsLineItemReferenceSerializer, BillOfMaterialsLineItemTypeSerializer
+from .serializers import BillOfMaterialsLineItemSerializer, ManufacturerPartSerializer, BillOfMaterialsLineItemReferenceSerializer, BillOfMaterialsLineItemTypeSerializer, ChecklistWithoutItemsSerializer
 from .models import BillOfMaterialsLineItem, ManufacturerPart, BillOfMaterialsLineItemReference, BillOfMaterialsLineItemType
 from django.db import transaction
 from datetime import datetime
@@ -669,9 +669,9 @@ def get_checklist_count(request):
             'Completed', today, today)
         failed_checklists = get_checklists_for_status('Failed', today, today)
         response_data = {
-            'in_progress': ChecklistSerializer(in_progress_checklists, many=True).data,
-            'completed_checklists': ChecklistSerializer(completed_checklists, many=True).data,
-            'failed_checklists': ChecklistSerializer(failed_checklists, many=True).data,
+            'in_progress': ChecklistWithoutItemsSerializer(in_progress_checklists, many=True).data,
+            'completed_checklists': ChecklistWithoutItemsSerializer(completed_checklists, many=True).data,
+            'failed_checklists': ChecklistWithoutItemsSerializer(failed_checklists, many=True).data,
         }
 
     elif selected_option == 'Previous_Week':
@@ -684,9 +684,9 @@ def get_checklist_count(request):
         failed_checklists = get_checklists_for_status(
             'Failed', last_week_start, today)
         response_data = {
-            'in_progress': ChecklistSerializer(in_progress_checklists, many=True).data,
-            'completed_checklists': ChecklistSerializer(completed_checklists, many=True).data,
-            'failed_checklists': ChecklistSerializer(failed_checklists, many=True).data,
+            'in_progress': ChecklistWithoutItemsSerializer(in_progress_checklists, many=True).data,
+            'completed_checklists': ChecklistWithoutItemsSerializer(completed_checklists, many=True).data,
+            'failed_checklists': ChecklistWithoutItemsSerializer(failed_checklists, many=True).data,
         }
     elif selected_option == 'Previous_Month':
         today = timezone.now().date()
@@ -700,9 +700,9 @@ def get_checklist_count(request):
             'Failed', previous_month_start, previous_month_end)
 
         response_data = {
-            'in_progress': ChecklistSerializer(in_progress_checklists, many=True).data,
-            'completed_checklists': ChecklistSerializer(completed_checklists, many=True).data,
-            'failed_checklists': ChecklistSerializer(failed_checklists, many=True).data,
+            'in_progress': ChecklistWithoutItemsSerializer(in_progress_checklists, many=True).data,
+            'completed_checklists': ChecklistWithoutItemsSerializer(completed_checklists, many=True).data,
+            'failed_checklists': ChecklistWithoutItemsSerializer(failed_checklists, many=True).data,
         }
     elif selected_option == 'Custom':
         start_date_str = request.data.get('start_date')
@@ -722,9 +722,9 @@ def get_checklist_count(request):
             'Failed', start_date, end_date)
 
         response_data = {
-            'in_progress': ChecklistSerializer(in_progress_checklists, many=True).data,
-            'completed_checklists': ChecklistSerializer(completed_checklists, many=True).data,
-            'failed_checklists': ChecklistSerializer(failed_checklists, many=True).data,
+            'in_progress': ChecklistWithoutItemsSerializer(in_progress_checklists, many=True).data,
+            'completed_checklists': ChecklistWithoutItemsSerializer(completed_checklists, many=True).data,
+            'failed_checklists': ChecklistWithoutItemsSerializer(failed_checklists, many=True).data,
         }
 
     else:
