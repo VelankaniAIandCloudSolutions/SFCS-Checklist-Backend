@@ -191,7 +191,7 @@ class ChecklistItemSerializer(serializers.ModelSerializer):
     # Include ChecklistItemUID as a nested serializer
     checklist_item_uids = ChecklistItemUIDSerializer(many=True, read_only=True)
 
-    class Meta: 
+    class Meta:
         model = ChecklistItem
         fields = '__all__'
 
@@ -280,6 +280,10 @@ class OrderSerializer(serializers.ModelSerializer):
 class OrderListSerializer(serializers.ModelSerializer):
 
     bom = BillOfMaterialsListSerializer()
+    updated_at = serializers.DateTimeField(format='%d/%m/%Y %H:%M:%S')
+    updated_by = UserAccountSerializer()
+    created_by = UserAccountSerializer()
+    created_at = serializers.DateTimeField(format='%d/%m/%Y %H:%M:%S')
 
     class Meta:
         model = Order
