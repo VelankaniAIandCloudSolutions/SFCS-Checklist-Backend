@@ -584,7 +584,7 @@ def end_checklist(request, checklist_id):
         setting.active_checklist = None
         setting.save()
 
-        checklist_serializer = ChecklistSerializer(checklist)
+        checklist_serializer = ChecklistWithoutItemsSerializer(checklist)
         return Response({'checklist': checklist_serializer.data}, status=status.HTTP_200_OK)
 
     except Checklist.DoesNotExist:
@@ -603,7 +603,7 @@ def get_checklists_for_bom(request, bom_id):
         bom = get_object_or_404(BillOfMaterials, id=bom_id)
 
         # Retrieve all checklists associated with the specified BOM
-        checklists = Checklist.objects.filter(bom=bom)
+        checklists = Checklist.objects.filter(bom=bom).order_by('-updated_at')
 
         # Serialize the checklists using ChecklistSerializer
         serializer = ChecklistWithoutItemsSerializer(checklists, many=True)
