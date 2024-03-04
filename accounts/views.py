@@ -101,6 +101,7 @@ def delete_user(request, user_id):
     user.delete()
     return Response(status=status.HTTP_204_NO_CONTENT)
 
+
 @api_view(['GET'])
 def check_login(request):
     return Response(status=status.HTTP_200_OK)

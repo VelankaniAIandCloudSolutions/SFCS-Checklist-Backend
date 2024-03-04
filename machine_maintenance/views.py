@@ -314,8 +314,7 @@ def create_maintenance_plan(request):
                                     week_number = int(week_num.split()[1])
                                     print('week number', week_number)
 
-                                    week_start = (
-                                        (week_number - 1) * 7) - starting_weekday + 1
+                                    week_start = (week_number - 1) * 7 + 1
                                     week_start = max(1, week_start)
                                     print('week_start', week_start)
 
@@ -487,6 +486,7 @@ def create_maintenance_plan_by_clicking(request):
     selected_activity_type_id = request.data.get('selectedActivityType')
     selected_date_in_str = request.data.get('selectedDate')
     selected_date = datetime.strptime(selected_date_in_str, '%Y-%m-%d').date()
+    print(selected_date)
 
     # Assuming you have access to the current user making the request
     current_user = request.user
