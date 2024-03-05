@@ -883,8 +883,10 @@ def update_checklist_item(request, checklist_item_id):
     try:
         checklist_item = ChecklistItem.objects.get(id=checklist_item_id)
         present_quantity = int(request.data.get('present_quantity', 0))
+        change_note = request.data.get('reason_for_change')
 
         checklist_item.present_quantity = present_quantity
+        checklist_item.present_quantity_change_note = change_note
 
         checklist_item.is_present = checklist_item.present_quantity > 0
         checklist_item.is_quantity_sufficient = checklist_item.present_quantity >= checklist_item.required_quantity
