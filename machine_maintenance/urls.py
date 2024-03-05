@@ -14,5 +14,7 @@ urlpatterns = [
          views.delete_maintenance_plan),
     path('create-maintenance-plan-by-clicking/',
          views.create_maintenance_plan_by_clicking),
-    path('test-mail/', views.test_maintenance_alert_email)
+    path('test-mail/', views.test_maintenance_alert_email),
+    path('get-maintenance-activities-for-report-generation/',
+         views.get_maintenance_activities_for_report_generation),
 ]

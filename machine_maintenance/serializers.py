@@ -82,3 +82,29 @@ class MaintenancePlanSerializer(serializers.ModelSerializer):
     class Meta:
         model = MaintenancePlan
         fields = '__all__'
+
+
+class MaintenancePlanSerializerWithoutMaintenanceActivitiesSerializer(serializers.ModelSerializer):
+    maintenance_activity_type = MaintenanceActivityTypeSerializer(
+        read_only=True)
+    created_at = serializers.DateTimeField(format='%d/%m/%Y %H:%M:%S')
+    updated_at = serializers.DateTimeField(format='%d/%m/%Y %H:%M:%S')
+    created_by = UserAccountSerializer()
+    updated_by = UserAccountSerializer()
+    machine = MachineSerializerNew()
+
+    class Meta:
+        model = MaintenancePlan
+        fields = '__all__'
+
+
+class MaintenanceActivityReportGenerationSerializer(serializers.ModelSerializer):
+    created_at = serializers.DateTimeField(format='%d/%m/%Y %H:%M:%S')
+    updated_at = serializers.DateTimeField(format='%d/%m/%Y %H:%M:%S')
+    created_by = UserAccountSerializer()
+    updated_by = UserAccountSerializer()
+    maintenance_plan = MaintenancePlanSerializerWithoutMaintenanceActivitiesSerializer()
+
+    class Meta:
+        model = MaintenanceActivity
+        fields = '__all__'
