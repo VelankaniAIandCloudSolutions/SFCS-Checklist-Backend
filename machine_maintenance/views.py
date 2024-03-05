@@ -610,12 +610,11 @@ def send_maintenance_activity_missing_mail(plans_with_no_activities):
 @api_view(['GET'])
 @authentication_classes([])  # Use appropriate authentication class here
 @permission_classes([])
-def get_maintenance_activities_for_report_generation(request):
+def get_maintenance_plans_for_report_generation(request):
     # Assuming format: "January", "February", etc.
     month = request.GET.get('month')  # Access month from request.GET
     print(month)
     # Assuming multiple machine IDs are passed as a list
-    # Access machine_ids from request.GET
     machine_ids = request.GET.getlist('machine_ids[]')
     print(machine_ids)
 
@@ -634,16 +633,15 @@ def get_maintenance_activities_for_report_generation(request):
                             month=month_number % 12 + 1, day=1)
         end_date -= timedelta(days=1)
 
-        maintenance_activities = MaintenanceActivity.objects.filter(
-            maintenance_plan__maintenance_date__range=[start_date, end_date],
-            maintenance_plan__machine__id__in=machine_ids
+        maintenance_plans = MaintenancePlan.objects.filter(
+            maintenance_date__range=[start_date, end_date],
+            machine__id__in=machine_ids
         )
 
         # Serialize the queryset using MaintenancePlanSerializer
-        activities_serializer = MaintenanceActivityReportGenerationSerializer(
-            maintenance_activities, many=True)
+        serializer = MaintenancePlanSerializer(maintenance_plans, many=True)
 
         # Return serialized data in the response
-        return JsonResponse({'maintenance_activities': activities_serializer.data}, status=200)
+        return JsonResponse({'maintenance_plans': serializer.data}, status=200)
     else:
         return JsonResponse({'error': 'Invalid month provided'}, status=400)
