@@ -8,6 +8,7 @@ from rest_framework.response import Response
 import json
 from asgiref.sync import async_to_sync
 
+
 class ChecklistConsumer(WebsocketConsumer):
     def connect(self):
         self.accept()
@@ -30,12 +31,15 @@ class ChecklistConsumer(WebsocketConsumer):
         pass
 
     def send_checklist_items(self, event):
+        print('tftftft')
         # Extract checklist items from the event data
-        checklist_items = event['checklist_items']
+        active_checklist = event['active_checklist']
+        # checklists = event['checklists']
 
         # Send the checklist items as JSON to the WebSocket client
         self.send(text_data=json.dumps({
-            'checklist_items': checklist_items
+            'active_checklist': active_checklist
+            # 'checklists': checklist_items
         }))
         # text_data_json = json.loads(text_data)
         # message = text_data_json['message']
@@ -50,7 +54,7 @@ class ChecklistConsumer(WebsocketConsumer):
         #     print('Received bom_id:', bom_id)
         # except json.JSONDecodeError:
         #     print('Invalid JSON data received:', text_data)
-        # bom_id = text_data.get('bom_id') 
+        # bom_id = text_data.get('bom_id')
         # try:
         #     setting = ChecklistSetting.objects.first()
         #     bom = BillOfMaterials.objects.get(id=bom_id)
@@ -79,5 +83,3 @@ class ChecklistConsumer(WebsocketConsumer):
 
         # except BillOfMaterials.DoesNotExist:
         #     self.send(text_data={'error': 'BOM not found'})
-
-
