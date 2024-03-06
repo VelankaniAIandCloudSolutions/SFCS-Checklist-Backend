@@ -28,3 +28,4 @@ urlpatterns = [
     path('api/v1/machine-maintenance/', include('machine_maintenance.urls')),
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+

@@ -160,6 +160,8 @@ def check_task_status(request, task_id):
 
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 
 
 @api_view(['POST'])
@@ -167,126 +169,139 @@ def check_task_status(request, task_id):
 @permission_classes([])
 def scan_code(request):
 
-    print(request.data)
-    # input_string = "u1UUID000128808-VEPL145154751D<Facts>Q500"
-    text = request.data.get('value')
-    vepl_pattern = r'(VEPL.*?)(?=1D<)'
-    quantity_pattern = r'Q(\d+)'
-    vepl_match = re.search(vepl_pattern, text)
-    quantity_match = re.search(quantity_pattern, text)
-    uid_pattern = r'UUID\d+'
+    # print(request.data)
+    # # input_string = "u1UUID000128808-VEPL145154751D<Facts>Q500"
+    # text = request.data.get('value')
+    # vepl_pattern = r'(VEPL.*?)(?=1D<)'
+    # quantity_pattern = r'Q(\d+)'
+    # vepl_match = re.search(vepl_pattern, text)
+    # quantity_match = re.search(quantity_pattern, text)
+    # uid_pattern = r'UUID\d+'
 
-    matches = re.findall(uid_pattern, text)
-    if matches:
-        uuid = matches[0]
-        print(uuid)
-    else:
-        print("UUID not found in the input string.")
+    # matches = re.findall(uid_pattern, text)
+    # if matches:
+    #     uuid = matches[0]
+    #     print(uuid)
+    # else:
+    #     print("UUID not found in the input string.")
 
-    if quantity_match:
-        quantity = int(quantity_match.group(1))
-    else:
-        quantity = 0
+    # if quantity_match:
+    #     quantity = int(quantity_match.group(1))
+    # else:
+    #     quantity = 0
 
-    if vepl_match:
-        part_number = vepl_match.group(1)
+    # if vepl_match:
+    #     part_number = vepl_match.group(1)
 
-        print("UUID:", uuid)
-        print("Part Number:", part_number)
+    #     print("UUID:", uuid)
+    #     print("Part Number:", part_number)
 
-        active_bom = ChecklistSetting.objects.first().active_bom
-        active_checklist = ChecklistSetting.objects.first().active_checklist
+    #     active_bom = ChecklistSetting.objects.first().active_bom
+    #     active_checklist = ChecklistSetting.objects.first().active_checklist
 
-        print("Active BOM:", active_bom)
-        print("Active Checklist:", active_checklist)
+    #     print("Active BOM:", active_bom)
+    #     print("Active Checklist:", active_checklist)
 
-        is_present = False
-        is_quantity_sufficient = False
+    #     is_present = False
+    #     is_quantity_sufficient = False
 
-        if active_bom and active_checklist:
+    #     if active_bom and active_checklist:
 
-            if ChecklistItemUID.objects.filter(uid=uuid).exists():
-                return JsonResponse({'message': f'UUID {uuid} already exists in ChecklistItemUID table'}, status=405)
-            else:
-                for bom_line_item in active_bom.bom_line_items.all():
-                    if bom_line_item.part_number.strip() == part_number.strip():
-                        is_present = True
-                        if bom_line_item.line_item_type:
+    #         if ChecklistItemUID.objects.filter(uid=uuid).exists():
+    #             return JsonResponse({'message': f'UUID {uuid} already exists in ChecklistItemUID table'}, status=405)
+    #         else:
+    #             for bom_line_item in active_bom.bom_line_items.all():
+    #                 if bom_line_item.part_number.strip() == part_number.strip():
+    #                     is_present = True
+    #                     if bom_line_item.line_item_type:
 
-                            if bom_line_item.line_item_type.name.strip().upper() == 'PCB':
-                                checklist_item_type_value = 'PCB'
-                            elif bom_line_item.line_item_type.name.strip().upper() == 'PCB SERIAL NUMBER LABEL':
-                                checklist_item_type_value = 'PCB SERIAL NUMBER LABEL'
-                            elif bom_line_item.line_item_type.name.strip().upper() == 'SOLDER PASTE':
-                                checklist_item_type_value = 'SOLDER PASTE'
-                            elif bom_line_item.line_item_type.name.strip().upper() == 'SOLDER BAR':
-                                checklist_item_type_value = 'SOLDER BAR'
-                            elif bom_line_item.line_item_type.name.strip().upper() == 'IPA':
-                                checklist_item_type_value = 'IPA'
-                            elif bom_line_item.line_item_type.name.strip().upper() == 'SOLDER FLUX':
-                                checklist_item_type_value = 'SOLDER FLUX'
-                            elif bom_line_item.line_item_type.name.strip().upper() == 'SOLDER WIRE':
-                                checklist_item_type_value = 'SOLDER WIRE'
-                            elif bom_line_item.line_item_type.name.strip().upper() == 'SMT PALLET':
-                                checklist_item_type_value = 'SMT PALLET'
-                            elif bom_line_item.line_item_type.name.strip().upper() == 'WAVE PALLET':
-                                checklist_item_type_value = 'WAVE PALLET'
-                            else:
-                                checklist_item_type_value = 'RAW MATERIAL'
+    #                         if bom_line_item.line_item_type.name.strip().upper() == 'PCB':
+    #                             checklist_item_type_value = 'PCB'
+    #                         elif bom_line_item.line_item_type.name.strip().upper() == 'PCB SERIAL NUMBER LABEL':
+    #                             checklist_item_type_value = 'PCB SERIAL NUMBER LABEL'
+    #                         elif bom_line_item.line_item_type.name.strip().upper() == 'SOLDER PASTE':
+    #                             checklist_item_type_value = 'SOLDER PASTE'
+    #                         elif bom_line_item.line_item_type.name.strip().upper() == 'SOLDER BAR':
+    #                             checklist_item_type_value = 'SOLDER BAR'
+    #                         elif bom_line_item.line_item_type.name.strip().upper() == 'IPA':
+    #                             checklist_item_type_value = 'IPA'
+    #                         elif bom_line_item.line_item_type.name.strip().upper() == 'SOLDER FLUX':
+    #                             checklist_item_type_value = 'SOLDER FLUX'
+    #                         elif bom_line_item.line_item_type.name.strip().upper() == 'SOLDER WIRE':
+    #                             checklist_item_type_value = 'SOLDER WIRE'
+    #                         elif bom_line_item.line_item_type.name.strip().upper() == 'SMT PALLET':
+    #                             checklist_item_type_value = 'SMT PALLET'
+    #                         elif bom_line_item.line_item_type.name.strip().upper() == 'WAVE PALLET':
+    #                             checklist_item_type_value = 'WAVE PALLET'
+    #                         else:
+    #                             checklist_item_type_value = 'RAW MATERIAL'
 
-                        checklist_item_type, _ = ChecklistItemType.objects.get_or_create(name=checklist_item_type_value,
-                                                                                         defaults={
-                                                                                             'updated_by': request.user,
-                                                                                             'created_by': request.user,
-                                                                                         })
+    #                     checklist_item_type, _ = ChecklistItemType.objects.get_or_create(name=checklist_item_type_value,
+    #                                                                                      defaults={
+    #                                                                                          'updated_by': request.user,
+    #                                                                                          'created_by': request.user,
+    #                                                                                      })
 
-                        checklist_item, checklist_item_created = ChecklistItem.objects.get_or_create(
-                            checklist=active_checklist,
-                            bom_line_item=bom_line_item,
-                            defaults={
-                                # 'updated_by': request.user,
-                                # 'created_by': request.user,
-                                'checklist_item_type': checklist_item_type
-                            }
-                        )
+    #                     checklist_item, checklist_item_created = ChecklistItem.objects.get_or_create(
+    #                         checklist=active_checklist,
+    #                         bom_line_item=bom_line_item,
+    #                         defaults={
+    #                             # 'updated_by': request.user,
+    #                             # 'created_by': request.user,
+    #                             'checklist_item_type': checklist_item_type
+    #                         }
+    #                     )
 
-                        checklist_item_uid, checklist_item_uid_created = ChecklistItemUID.objects.get_or_create(
-                            checklist_item=checklist_item,
-                            uid=uuid,
-                        )
-                        print(
-                            f'ChecklistItem created: {checklist_item_created }')
-                        print(
-                            f'ChecklistItemUID created: {checklist_item_uid_created}')
+    #                     checklist_item_uid, checklist_item_uid_created = ChecklistItemUID.objects.get_or_create(
+    #                         checklist_item=checklist_item,
+    #                         uid=uuid,
+    #                     )
+    #                     print(
+    #                         f'ChecklistItem created: {checklist_item_created }')
+    #                     print(
+    #                         f'ChecklistItemUID created: {checklist_item_uid_created}')
 
-                        if checklist_item_created:
-                            checklist_item.present_quantity = quantity
+    #                     if checklist_item_created:
+    #                         checklist_item.present_quantity = quantity
 
-                        if checklist_item_uid_created:
-                            checklist_item.present_quantity += quantity
+    #                     if checklist_item_uid_created:
+    #                         checklist_item.present_quantity += quantity
 
-                        if checklist_item.present_quantity >= checklist_item.required_quantity:
-                            is_quantity_sufficient = True
+    #                     if checklist_item.present_quantity >= checklist_item.required_quantity:
+    #                         is_quantity_sufficient = True
 
-                        checklist_item.is_present = is_present
-                        checklist_item.is_quantity_sufficient = is_quantity_sufficient
+    #                     checklist_item.is_present = is_present
+    #                     checklist_item.is_quantity_sufficient = is_quantity_sufficient
 
-                        checklist_item.save()
+    #                     checklist_item.save()
 
-        else:
-            return Response({'error': 'No active BOM'}, status=status.HTTP_400_BAD_REQUEST)
+    #     else:
+    #         return Response({'error': 'No active BOM'}, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response({
-            'uuid': uuid,
-            'part_number': part_number,
-            'is_present': is_present,
-            'is_quantity_sufficient': is_quantity_sufficient,
+        # latest_checklist_items = ChecklistItem.objects.filter(checklist__bom = active_bom)
+    latest_checklist_items = ['1','2']
 
-        })
+    # Send the latest checklist items via WebSocket
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        'checklist_update_group',  # Group name defined in your WebSocket consumer
+        {
+            'type': 'send_checklist_items',  # Method name defined in your WebSocket consumer
+            'checklist_items': latest_checklist_items,
+        }
+    )
+    return Response({'message': 'Checklist item added successfully'})
+    #     return Response({
+    #         'uuid': uuid,
+    #         'part_number': part_number,
+    #         'is_present': is_present,
+    #         'is_quantity_sufficient': is_quantity_sufficient,
 
-    else:
-        print("Pattern not found in the input string.")
-        return Response({'error': 'Invalid input string'}, status=401)
+    #     })
+
+    # else:
+    #     print("Pattern not found in the input string.")
+    #     return Response({'error': 'Invalid input string'}, status=401)
 
 
 @api_view(['POST'])
