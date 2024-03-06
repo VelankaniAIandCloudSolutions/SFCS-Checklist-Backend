@@ -283,18 +283,20 @@ def scan_code(request):
         # latest_checklists = Checklist.objects.filter(bom=active_bom)
         # latest_checklists = ['1', '2']
         # latest_checklists_serialized = ChecklistSerializer( latest_checklists, many=True)
+        try:
+            active_checklist_serialized = ChecklistSerializer(active_checklist)
 
-        active_checklist_serialized = ChecklistSerializer(active_checklist)
-
-        # Send the latest checklist items via WebSocket
-        channel_layer = get_channel_layer()
-        async_to_sync(channel_layer.group_send)(
-            'checklist_update_group',  # Group name defined in your WebSocket consumer
-            {
-                'type': 'send_checklist_items',  # Method name defined in your WebSocket consumer
-                'active_checklist': active_checklist_serialized.data,
-            }
-        )
+            # Send the latest checklist items via WebSocket
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                'checklist_update_group',  # Group name defined in your WebSocket consumer
+                {
+                    'type': 'send_checklist_items',  # Method name defined in your WebSocket consumer
+                    'active_checklist': active_checklist_serialized.data,
+                }
+            )
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_409_BAD_REQUEST)
     # return Response({'message': 'Checklist item added successfully'})
         return Response({
             'uuid': uuid,
@@ -307,7 +309,7 @@ def scan_code(request):
     else:
         print("Pattern not found in the input string.")
         return Response({'error': 'Invalid input string'}, status=401)
-
+t
 
 @api_view(['POST'])
 def generate_new_checklist(request, order_id):
