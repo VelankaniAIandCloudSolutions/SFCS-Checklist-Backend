@@ -309,7 +309,7 @@ def scan_code(request):
     else:
         print("Pattern not found in the input string.")
         return Response({'error': 'Invalid input string'}, status=401)
-t
+
 
 @api_view(['POST'])
 def generate_new_checklist(request, order_id):
