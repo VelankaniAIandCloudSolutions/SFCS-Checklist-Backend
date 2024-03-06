@@ -1,4 +1,6 @@
 
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 from .serializers import BillOfMaterialsLineItemSerializer, ManufacturerPartSerializer, BillOfMaterialsLineItemReferenceSerializer, BillOfMaterialsLineItemTypeSerializer, ChecklistWithoutItemsSerializer
 from .models import BillOfMaterialsLineItem, ManufacturerPart, BillOfMaterialsLineItemReference, BillOfMaterialsLineItemType
 from django.db import transaction
@@ -276,6 +278,26 @@ def scan_code(request):
         else:
             return Response({'error': 'No active BOM'}, status=status.HTTP_400_BAD_REQUEST)
 
+        # latest_checklist_items = ChecklistItem.objects.filter(checklist__bom = active_bom)
+
+        # latest_checklists = Checklist.objects.filter(bom=active_bom)
+        # latest_checklists = ['1', '2']
+        # latest_checklists_serialized = ChecklistSerializer( latest_checklists, many=True)
+        try:
+            active_checklist_serialized = ChecklistSerializer(active_checklist)
+
+            # Send the latest checklist items via WebSocket
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                'checklist_update_group',  # Group name defined in your WebSocket consumer
+                {
+                    'type': 'send_checklist_items',  # Method name defined in your WebSocket consumer
+                    'active_checklist': active_checklist_serialized.data,
+                }
+            )
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_409_BAD_REQUEST)
+    # return Response({'message': 'Checklist item added successfully'})
         return Response({
             'uuid': uuid,
             'part_number': part_number,
@@ -883,8 +905,10 @@ def update_checklist_item(request, checklist_item_id):
     try:
         checklist_item = ChecklistItem.objects.get(id=checklist_item_id)
         present_quantity = int(request.data.get('present_quantity', 0))
+        change_note = request.data.get('reason_for_change')
 
         checklist_item.present_quantity = present_quantity
+        checklist_item.present_quantity_change_note = change_note
 
         checklist_item.is_present = checklist_item.present_quantity > 0
         checklist_item.is_quantity_sufficient = checklist_item.present_quantity >= checklist_item.required_quantity

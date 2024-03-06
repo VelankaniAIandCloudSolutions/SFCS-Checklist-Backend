@@ -173,6 +173,7 @@ class ChecklistItem(BaseModel):
     present_quantity = models.IntegerField(default=0)
     is_present = models.BooleanField(default=False)
     is_quantity_sufficient = models.BooleanField(default=False)
+    present_quantity_change_note = models.TextField(null=True, blank=True)
 
     def __str__(self):
         return "Checklist Item for: " + str(self.bom_line_item.part_number)

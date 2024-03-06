@@ -51,7 +51,8 @@ INSTALLED_APPS = [
     'accounts',
     'machine_maintenance',
     'pricing',
-    'django_celery_results'
+    'django_celery_results',
+    'channels'
 ]
 
 MIDDLEWARE = [
@@ -229,3 +230,9 @@ EMAIL_HOST_USER = 'info@automhr.com'
 EMAIL_HOST_PASSWORD = 'Hotel123!'
 EMAIL_USE_SSL = True
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',  # Use In-Memory channel layer for development
+    },
+}
