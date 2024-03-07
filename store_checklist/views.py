@@ -1,4 +1,5 @@
 
+from django.http import JsonResponse, HttpResponseBadRequest, HttpResponseServerError
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from .serializers import BillOfMaterialsLineItemSerializer, ManufacturerPartSerializer, BillOfMaterialsLineItemReferenceSerializer, BillOfMaterialsLineItemTypeSerializer, ChecklistWithoutItemsSerializer
@@ -1446,6 +1447,53 @@ def upload_iqc_file(request):
         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
+@api_view(['POST'])
+@authentication_classes([])
+@permission_classes([])
+def toggle_checklist_settings(request, checklist_id):
+    # Get the checklist object using the provided checklist_id
+    print('bakck end -checklsit id,', checklist_id)
+    checklist = get_object_or_404(Checklist, id=checklist_id)
+
+    try:
+        # Get the checklist setting object if available, otherwise return a 404 error
+        checklist_setting = ChecklistSetting.objects.first()
+
+        if checklist_setting.active_checklist == checklist:
+            # If the active checklist matches the provided checklist, it means the checklist is active. In this case, pause the checklist.
+            checklist_setting.active_bom = None
+            checklist_setting.active_checklist = None
+            checklist.status = 'Paused'  # Update the status to 'Paused'
+            checklist.save()
+            message = 'Checklist has been paused successfully.'
+            status_code = 200  # OK
+        else:
+            # Check if there's another checklist in progress
+            active_checklist_setting = ChecklistSetting.objects.first()
+            active_checklist = active_checklist_setting.active_checklist
+            active_bom = active_checklist_setting.active_bom
+            if active_checklist and active_bom:
+                # Pause the currently active checklist
+                # Set the active checklist to None
+                active_checklist_setting.active_checklist = None
+                active_checklist_setting.active_bom = None
+                active_checklist.status = 'Paused'
+                active_checklist.save()
+
+            # Resume the provided checklist
+            checklist_setting.active_bom = checklist.bom
+            checklist_setting.active_checklist = checklist
+            checklist.status = 'In Progress'  # Update the status to 'In Progress'
+            checklist.save()
+            message = 'Checklist has been resumed successfully.'
+            status_code = 200  # OK
+
+        checklist_setting.save()
+
+        return JsonResponse({'message': message}, status=status_code)
+    except Exception as e:
+        # If any error occurs, return a JSON response with a 500 status code and the error message
+        return JsonResponse({'error': f'An error occurred: {str(e)}'}, status=500)
 # @authentication_classes([])
 # @permission_classes([])
 # @api_view(['POST'])

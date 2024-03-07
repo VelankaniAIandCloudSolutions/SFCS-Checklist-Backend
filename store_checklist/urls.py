@@ -56,6 +56,10 @@ urlpatterns = [
     path('upload-iqc-file/', views.upload_iqc_file),
     path('handle-bom-cases/', views.handle_bom_cases),
 
+
+    path('toggle-checklist-settings/<int:checklist_id>/',
+         views.toggle_checklist_settings)
+
     #     path('upload-new-bom/', views.upload_new_bom)
 
     #     path('get-products/<int:project_id>/', views.get_products_by_project),
