@@ -900,13 +900,15 @@ def delete_bom_line_item(request, bom_line_item_id):
 
 
 @api_view(['PUT'])
-@authentication_classes([])
-@permission_classes([])
 def update_checklist_item(request, checklist_item_id):
     try:
         checklist_item = ChecklistItem.objects.get(id=checklist_item_id)
         present_quantity = int(request.data.get('present_quantity', 0))
         change_note = request.data.get('reason_for_change')
+
+        # Ensure change note is not empty
+        if not change_note:
+            return Response({'message': 'Error: Please provide the change note, as it cannot be empty'}, status=status.HTTP_400_BAD_REQUEST)
 
         checklist_item.present_quantity = present_quantity
         checklist_item.present_quantity_change_note = change_note
@@ -915,14 +917,15 @@ def update_checklist_item(request, checklist_item_id):
         checklist_item.is_quantity_sufficient = checklist_item.present_quantity >= checklist_item.required_quantity
 
         checklist_item.save()
+        updated_items =ChecklistItem.objects.filter(checklist=checklist_item.checklist) 
+        # Serialize the updated checklist item
+        serializer = ChecklistItemSerializer(updated_items,many =True)
 
-        return Response({'message': 'Checklist item updated successfully'}, status=status.HTTP_200_OK)
+        return Response(serializer.data, status=status.HTTP_200_OK)
     except ChecklistItem.DoesNotExist:
         return Response({'message': 'Checklist item not found'}, status=status.HTTP_404_NOT_FOUND)
     except ValueError:
         return Response({'message': 'Invalid present quantity'}, status=status.HTTP_400_BAD_REQUEST)
-
-
 # @api_view(['GET'])
 # def get_projects(request):
 #     try:
