@@ -1,4 +1,7 @@
 
+from .models import Checklist, ChecklistSetting
+from django.shortcuts import get_object_or_404
+from rest_framework.decorators import api_view
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from .serializers import BillOfMaterialsLineItemSerializer, ManufacturerPartSerializer, BillOfMaterialsLineItemReferenceSerializer, BillOfMaterialsLineItemTypeSerializer, ChecklistWithoutItemsSerializer
@@ -899,13 +902,15 @@ def delete_bom_line_item(request, bom_line_item_id):
 
 
 @api_view(['PUT'])
-@authentication_classes([])
-@permission_classes([])
 def update_checklist_item(request, checklist_item_id):
     try:
         checklist_item = ChecklistItem.objects.get(id=checklist_item_id)
         present_quantity = int(request.data.get('present_quantity', 0))
         change_note = request.data.get('reason_for_change')
+
+        # Ensure change note is not empty
+        if not change_note:
+            return Response({'message': 'Error: Please provide the change note, as it cannot be empty'}, status=status.HTTP_400_BAD_REQUEST)
 
         checklist_item.present_quantity = present_quantity
         checklist_item.present_quantity_change_note = change_note
@@ -914,14 +919,15 @@ def update_checklist_item(request, checklist_item_id):
         checklist_item.is_quantity_sufficient = checklist_item.present_quantity >= checklist_item.required_quantity
 
         checklist_item.save()
+        updated_items =ChecklistItem.objects.filter(checklist=checklist_item.checklist) 
+        # Serialize the updated checklist item
+        serializer = ChecklistItemSerializer(updated_items,many =True)
 
-        return Response({'message': 'Checklist item updated successfully'}, status=status.HTTP_200_OK)
+        return Response(serializer.data, status=status.HTTP_200_OK)
     except ChecklistItem.DoesNotExist:
         return Response({'message': 'Checklist item not found'}, status=status.HTTP_404_NOT_FOUND)
     except ValueError:
         return Response({'message': 'Invalid present quantity'}, status=status.HTTP_400_BAD_REQUEST)
-
-
 # @api_view(['GET'])
 # def get_projects(request):
 #     try:
@@ -1257,8 +1263,18 @@ def get_orders(request):
     try:
         if request.method == 'GET':
             orders = Order.objects.all().order_by('-created_at')
+            active_checklist_setting = ChecklistSetting.objects.first()
+            active_checklist_data = None
+
+            if active_checklist_setting:
+                active_checklist = active_checklist_setting.active_checklist
+                if active_checklist:
+                    active_checklist_serializer = ChecklistWithoutItemsSerializer(
+                        active_checklist)
+                    active_checklist_data = active_checklist_serializer.data
+
             serializer = OrderListSerializer(orders, many=True)
-            return Response({'orders': serializer.data}, status=status.HTTP_200_OK)
+            return Response({'orders': serializer.data, 'active_checklist': active_checklist_data}, status=status.HTTP_200_OK)
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -1753,3 +1769,116 @@ def upload_iqc_file(request):
 #     recipient_list = [profile.user]
 #     send_mail(subject, plain_message, email_from,
 #               recipient_list, html_message=html_message)
+
+# @api_view(['POST'])
+# @authentication_classes([])
+# @permission_classes([])
+# def toggle_checklist_settings(request, checklist_id):
+#     # Get the checklist object using the provided checklist_id
+#     checklist = get_object_or_404(Checklist, id=checklist_id)
+
+#     try:
+#         # Get the checklist setting object if available, otherwise return a 404 error
+#         checklist_setting = ChecklistSetting.objects.first()
+
+#         if checklist_setting.active_checklist == checklist:
+#             # If the active checklist matches the provided checklist, it means the checklist is active. In this case, pause the checklist.
+#             checklist_setting.active_bom = None
+#             checklist_setting.active_checklist = None
+#             checklist.status = 'Paused'  # Update the status to 'Paused'
+#             checklist.save()
+#             message = 'Checklist has been paused successfully.'
+#             status_code = 200  # OK
+#         else:
+#             # Check if there's another checklist in progress
+#             active_checklist_setting = ChecklistSetting.objects.first()
+#             active_checklist = active_checklist_setting.active_checklist
+#             active_bom = active_checklist_setting.active_bom
+#             if active_checklist and active_bom:
+#                 # Pause the currently active checklist
+#                 # Set the active checklist to None
+#                 active_checklist_setting.active_checklist = None
+#                 active_checklist_setting.active_bom = None
+#                 active_checklist.status = 'Paused'
+#                 active_checklist.save()
+
+#             # Resume the provided checklist
+#             checklist_setting.active_bom = checklist.bom
+#             checklist_setting.active_checklist = checklist
+#             checklist.status = 'In Progress'  # Update the status to 'In Progress'
+#             checklist.save()
+#             message = 'Checklist has been resumed successfully.'
+#             status_code = 200  # OK
+
+#         checklist_setting.save()
+
+#         return JsonResponse({'message': message}, status=status_code)
+#     except Exception as e:
+#         # If any error occurs, return a JSON response with a 500 status code and the error message
+#         return JsonResponse({'error': f'An error occurred: {str(e)}'}, status=500)
+
+
+@api_view(['POST'])
+@authentication_classes([])
+@permission_classes([])
+def pause_checklist(request, checklist_id):
+    # Get the checklist object using the provided checklist_id
+    checklist = get_object_or_404(Checklist, id=checklist_id)
+
+    try:
+        # Retrieve the first ChecklistSetting object
+        checklist_setting = ChecklistSetting.objects.first()
+        if checklist_setting.active_checklist == checklist:
+
+            # Pause the provided checklist
+            checklist_setting.active_bom = None
+            checklist_setting.active_checklist = None
+            checklist.status = 'Paused'
+            checklist.save()
+            checklist_setting.save()
+
+            message = 'Checklist has been paused successfully.'
+            return Response({'message': message}, status=status.HTTP_200_OK)
+        else:
+            # If the active checklist doesn't match the provided checklist, return a mismatch message
+            return Response({'error': 'Mismatch: The provided checklist is not the active checklist.'}, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        # If any error occurs, return a JSON response with a 500 status code and the error message
+        return Response({'error': f'An error occurred: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@authentication_classes([])
+@permission_classes([])
+def resume_checklist(request, checklist_id):
+    # Get the checklist object using the provided checklist_id
+    checklist = get_object_or_404(Checklist, id=checklist_id)
+
+    try:
+        # Retrieve the ChecklistSetting object
+        checklist_setting = ChecklistSetting.objects.first()
+
+        if checklist_setting:
+            # Get the currently active checklist from the ChecklistSetting
+            active_checklist = checklist_setting.active_checklist
+
+            # If there's another active checklist, pause it
+            if active_checklist and active_checklist != checklist:
+                active_checklist.status = 'Paused'
+                active_checklist.save()
+
+            # Update the provided checklist to be active and set its status to 'In Progress'
+            checklist.status = 'In Progress'
+            checklist.save()
+
+            # Update the active checklist in the ChecklistSetting
+            checklist_setting.active_checklist = checklist
+            checklist_setting.active_bom = checklist.bom
+            checklist_setting.save()
+
+            message = 'Checklist has been resumed successfully.'
+            return Response({'message': message}, status=status.HTTP_200_OK)
+        else:
+            return Response({'error': 'No ChecklistSetting instance found.'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({'error': f'An error occurred: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
