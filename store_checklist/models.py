@@ -129,6 +129,7 @@ class Checklist(BaseModel):
         ('Completed', 'Completed'),
         ('In Progress', 'In Progress'),
         ('Failed', 'Failed'),
+        ('Paused', 'Paused'),
     )
 
     bom = models.ForeignKey(
