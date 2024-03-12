@@ -210,7 +210,7 @@ def scan_code(request):
 
         if active_bom and active_checklist:
 
-            if ChecklistItemUID.objects.filter(uid=uuid).exists():
+            if ChecklistItemUID.objects.filter(uid=uuid, checklist_item__checklist=active_checklist).exists():
                 return JsonResponse({'message': f'UUID {uuid} already exists in ChecklistItemUID table'}, status=405)
             else:
                 for bom_line_item in active_bom.bom_line_items.all():
@@ -919,9 +919,10 @@ def update_checklist_item(request, checklist_item_id):
         checklist_item.is_quantity_sufficient = checklist_item.present_quantity >= checklist_item.required_quantity
 
         checklist_item.save()
-        updated_items =ChecklistItem.objects.filter(checklist=checklist_item.checklist) 
+        updated_items = ChecklistItem.objects.filter(
+            checklist=checklist_item.checklist)
         # Serialize the updated checklist item
-        serializer = ChecklistItemSerializer(updated_items,many =True)
+        serializer = ChecklistItemSerializer(updated_items, many=True)
 
         return Response(serializer.data, status=status.HTTP_200_OK)
     except ChecklistItem.DoesNotExist:

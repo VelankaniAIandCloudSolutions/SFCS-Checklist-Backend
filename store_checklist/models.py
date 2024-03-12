@@ -183,11 +183,15 @@ class ChecklistItem(BaseModel):
 class ChecklistItemUID(BaseModel):
     checklist_item = models.ForeignKey(
         ChecklistItem, on_delete=models.CASCADE, related_name='checklist_item_uids')
-    uid = models.CharField(max_length=30, unique=True)
+    uid = models.CharField(max_length=30, )
     iqc_file = models.FileField(upload_to='iqc_files/', null=True, blank=True)
 
     def __str__(self):
         return str(self.uid)
+
+    class Meta:
+        # Define unique constraint for uid and checklist_item together
+        unique_together = ['uid', 'checklist_item']
 
 
 class ChecklistSetting(BaseModel):
