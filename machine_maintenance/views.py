@@ -436,6 +436,68 @@ def create_maintenance_activity(request):
         serializer = MaintenancePlanSerializer(maintenance_plans, many=True)
         return JsonResponse({'message': 'Maintenance activity created/updated successfully', 'maintenance_plans': serializer.data}, status=201)
 
+# @api_view(['POST'])
+# def create_maintenance_activity(request):
+#     if request.method == 'POST':
+#         # Convert selected date from string to datetime object
+#         clicked_formatted_date_str = request.data.get('clickedFormattedDate')
+#         clicked_formatted_date = datetime.strptime(
+#             clicked_formatted_date_str, '%Y-%m-%d').date()
+
+#         # Other code remains the same
+#         maintenance_plan_id = request.data.get('id')
+#         note = request.data.get('note', '')
+#         created_by = request.user  # Assuming you have authentication set up
+#         updated_by = request.user
+#         # Get applyToAll boolean from request
+#         apply_to_all = request.data.get('applyToAll', False)
+
+#         try:
+#             if apply_to_all:  # If applyToAll is True
+#                 selected_line_id = request.data.get('selectedLineID')
+#                 # Get all machines belonging to the selected line
+#                 machines = Machine.objects.filter(line_id=selected_line_id)
+#                 for machine in machines:
+#                     # Check if maintenance plan exists for the selected date
+#                     maintenance_plan = MaintenancePlan.objects.filter(
+#                         machine=machine, maintenance_date=clicked_formatted_date).first()
+#                     if maintenance_plan:
+#                         # Create or update maintenance activity for each machine
+#                         maintenance_activity, created = MaintenanceActivity.objects.get_or_create(
+#                             maintenance_plan=maintenance_plan,
+#                             defaults={
+#                                 'note': note, 'created_by': created_by, 'updated_by': updated_by}
+#                         )
+#                         if not created:
+#                             maintenance_activity.note = note
+#                             maintenance_activity.updated_by = updated_by
+#                             maintenance_activity.save()
+#                     else:
+#                         # Handle case where maintenance plan doesn't exist for the machine
+#                         pass  # You can add your custom logic here
+#             else:  # If applyToAll is False
+#                 # Handle single machine maintenance activity creation/update here
+#                 maintenance_plan = MaintenancePlan.objects.get(
+#                     id=maintenance_plan_id)
+#                 maintenance_activity, created = MaintenanceActivity.objects.get_or_create(
+#                     maintenance_plan=maintenance_plan,
+#                     defaults={'note': note, 'created_by': created_by,
+#                               'updated_by': updated_by}
+#                 )
+#                 if not created:
+#                     maintenance_activity.note = note
+#                     maintenance_activity.updated_by = updated_by
+#                     maintenance_activity.save()
+#         except MaintenancePlan.DoesNotExist:
+#             return JsonResponse({'error': f'Maintenance plan with id {maintenance_plan_id} does not exist'}, status=400)
+#         except Exception as e:
+#             return JsonResponse({'error': str(e)}, status=500)
+
+#         # Serialize all maintenance plans with their related activities
+#         maintenance_plans = MaintenancePlan.objects.all()
+#         serializer = MaintenancePlanSerializer(maintenance_plans, many=True)
+#         return JsonResponse({'message': 'Maintenance activity created/updated successfully', 'maintenance_plans': serializer.data}, status=201)
+
 
 @api_view(['PUT', 'DELETE'])
 def update_or_delete_maintenance_activity(request, maintenance_plan_id):
