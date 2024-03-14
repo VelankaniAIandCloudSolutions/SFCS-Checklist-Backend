@@ -571,7 +571,10 @@ def create_maintenance_plan_by_clicking(request):
         )
 
         # Fetch all maintenance plans
-        all_maintenance_plans = MaintenancePlan.objects.all()
+        # all_maintenance_plans = MaintenancePlan.objects.all()
+
+        all_maintenance_plans = MaintenancePlan.objects.filter(
+            machine_id=machine_id)
 
         # Serialize all maintenance plans
         maintenance_plans_serializer = MaintenancePlanSerializer(
