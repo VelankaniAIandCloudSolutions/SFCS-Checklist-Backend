@@ -1,5 +1,6 @@
 
 # from rest_framework.response import JsonResponse
+from datetime import datetime
 from .serializers import MaintenanceActivitySerializer
 from .models import MaintenanceActivity
 import json
@@ -218,146 +219,223 @@ def get_machine_data(request):
 #         return JsonResponse({'error': str(e)}, status=500)
 
 
+# @api_view(['POST'])
+# def create_maintenance_plan(request):
+#     try:
+#         if request.method == 'POST':
+#             # Extract form data from the request
+#             data = request.data
+#             current_user = request.user
+
+#             # Get selected machine ID from the form data
+#             selected_machine_ids = data.get('selectedMachines', [])
+#             print('selected_machine_ids', selected_machine_ids)
+
+#             selected_type_id = data.get('selectedType')
+#             print('selected_type_id', selected_type_id)
+
+#             selected_type = MaintenanceActivityType.objects.get(
+#                 pk=selected_type_id)
+#             print('selected_type', selected_type)
+
+#             # Loop through each selected machine
+#             for machine_id in selected_machine_ids:
+#                 try:
+#                     selected_machine = Machine.objects.get(pk=machine_id)
+#                     print('selected_machine', selected_machine)
+
+#                     # Loop through each year in the data
+#                     years_from_frontend = data.get('selectedYears', [])
+#                     print('year from front-end', years_from_frontend)
+
+#                     for selected_year in data.get('selectedYears', []):
+#                         # Loop through each choice in the year
+#                         print('selected_year inside first loop', selected_year)
+
+#                         for choice in data.get('dateChoices', {}).get('choices', []):
+#                             # Extract selected months and weeks from the choice
+#                             selected_months = choice.get('selectedMonths', [])
+#                             selected_weeks = choice.get('selectedWeeks', [])
+#                             selected_days = choice.get('selectedDays', [])
+
+#                             # Loop through the selected months
+#                             for month in selected_months:
+#                                 print("Selected month:", month)
+#                                 print('calendar.moth_abbr',
+#                                       list(calendar.month_abbr))
+
+#                                 # Convert month to title case for better matching
+#                                 month_title_case = month.title()
+#                                 print('month_title_case', month_title_case)
+
+#                                 # Partial matching logic
+#                                 matched_month = None
+#                                 for abbr in calendar.month_abbr:
+#                                     if abbr and abbr.lower() in month_title_case.lower():  # Partial match
+#                                         print('match found')
+#                                         matched_month = abbr
+#                                         print('matched_month', matched_month)
+#                                         break
+
+#                                 if not matched_month:
+#                                     print(
+#                                         f"Error: '{month}' does not match any valid month abbreviation")
+#                                     # Handle the error accordingly
+#                                     continue
+
+#                                 month_abbr_list = list(calendar.month_abbr)
+#                                 print('month_abbr_list', month_abbr_list)
+
+#                                 month_index = month_abbr_list.index(
+#                                     matched_month)
+#                                 print('month_index', month_index)
+
+#                                 selected_year = int(selected_year)
+
+#                                 num_days_in_month = calendar.monthrange(
+#                                     selected_year, month_index)[1]
+#                                 print('num_days_in_month', num_days_in_month)
+
+#                                 first_day_of_month = datetime.strptime(
+#                                     f'{selected_year}-{month}-01', '%Y-%B-%d').date()
+#                                 print('first_day_of_month', first_day_of_month)
+#                                 starting_weekday = first_day_of_month.weekday()
+#                                 print('starting_weekday', starting_weekday)
+
+#                                 starting_week = 0 if starting_weekday == 0 else 1
+
+#                                 selected_day_indices = [
+#                                     list(calendar.day_name).index(day) for day in selected_days]
+#                                 print('selected_day_indices',
+#                                       selected_day_indices)
+
+#                                 for week_num in selected_weeks:
+#                                     print('selected_weeks', selected_weeks)
+
+#                                     week_number = int(week_num.split()[1])
+#                                     print('week number', week_number)
+
+#                                     week_start = (week_number - 1) * 7 + 1
+#                                     week_start = max(1, week_start)
+#                                     print('week_start', week_start)
+
+#                                     week_end = min(
+#                                         week_start + 6, num_days_in_month)
+#                                     print('week_end', week_end)
+
+#                                     print('selected_days', selected_days)
+
+#                                     for day_int in range(week_start, week_end + 1):
+#                                         day_of_week_index = (
+#                                             day_int - 1 + starting_weekday) % 7
+
+#                                         if day_of_week_index in selected_day_indices:
+#                                             print('Month title case:',
+#                                                   month_title_case.capitalize())
+#                                             print('Month abbreviations:',
+#                                                   list(calendar.month_abbr))
+
+#                                             maintenance_date = datetime(
+#                                                 selected_year, month_index, day_int)
+
+#                                             print('Maintenance date:',
+#                                                   maintenance_date)
+
+#                                             # Create MaintenanceActivity object
+#                                             maintenance_plan = MaintenancePlan.objects.create(
+#                                                 maintenance_date=maintenance_date,
+#                                                 machine=selected_machine,
+#                                                 maintenance_activity_type=selected_type,
+#                                                 description=None,
+#                                                 created_by=current_user,
+#                                                 updated_by=current_user
+#                                             )
+
+#                                             maintenance_plan.save()
+#                                             print(
+#                                                 'Maintenance activity created successfully')
+
+#                 except Machine.DoesNotExist:
+#                     return JsonResponse({'error': 'Machine not found'}, status=404)
+
+#             return JsonResponse({'message': 'Maintenance activities created successfully'}, status=201)
+
+#     except MaintenanceActivityType.DoesNotExist:
+#         return JsonResponse({'error': 'Maintenance activity type not found'}, status=404)
+
+#     except Exception as e:
+#         return JsonResponse({'error': str(e)}, status=500)
+
+
 @api_view(['POST'])
 def create_maintenance_plan(request):
     try:
         if request.method == 'POST':
-            # Extract form data from the request
+            # Extract data from the request
             data = request.data
             current_user = request.user
 
-            # Get selected machine ID from the form data
-            selected_machine_ids = data.get('selectedMachines', [])
-            print('selected_machine_ids', selected_machine_ids)
-
+            # Extract parameters from the request data
+            selected_year = data.get('selectedYear')
+            selected_month = data.get('selectedMonth')
+            selected_line_id = data.get('selectedLine')
             selected_type_id = data.get('selectedType')
-            print('selected_type_id', selected_type_id)
+            selected_custom_filter = data.get('selectedCustomFilter')
 
+            # Validate inputs if needed
+            if not all([selected_year, selected_month, selected_line_id, selected_type_id, selected_custom_filter]):
+                return JsonResponse({'error': 'Missing required parameters'}, status=400)
+
+            # Retrieve line and activity type objects
+            selected_line = Line.objects.get(pk=selected_line_id)
             selected_type = MaintenanceActivityType.objects.get(
                 pk=selected_type_id)
-            print('selected_type', selected_type)
 
-            # Loop through each selected machine
-            for machine_id in selected_machine_ids:
-                try:
-                    selected_machine = Machine.objects.get(pk=machine_id)
-                    print('selected_machine', selected_machine)
+            # Convert month name to its abbreviation
+            def get_month_abbr(month_name):
+                month_abbr = calendar.month_abbr[1:]
+                month_names = calendar.month_name[1:]
+                month_dict = dict(zip(month_names, month_abbr))
+                return month_dict.get(month_name)
 
-                    # Loop through each year in the data
-                    years_from_frontend = data.get('selectedYears', [])
-                    print('year from front-end', years_from_frontend)
+            selected_month_abbr = get_month_abbr(selected_month)
+            if selected_month_abbr is None:
+                return JsonResponse({'error': 'Invalid month name'}, status=400)
 
-                    for selected_year in data.get('selectedYears', []):
-                        # Loop through each choice in the year
-                        print('selected_year inside first loop', selected_year)
+            # Get all machines belonging to the selected line
+            selected_machines = Machine.objects.filter(line=selected_line)
 
-                        for choice in data.get('dateChoices', {}).get('choices', []):
-                            # Extract selected months and weeks from the choice
-                            selected_months = choice.get('selectedMonths', [])
-                            selected_weeks = choice.get('selectedWeeks', [])
-                            selected_days = choice.get('selectedDays', [])
+            # Determine the number of days in the selected month
+            num_days_in_month = calendar.monthrange(int(selected_year), list(
+                calendar.month_abbr).index(selected_month_abbr))[1]
 
-                            # Loop through the selected months
-                            for month in selected_months:
-                                print("Selected month:", month)
-                                print('calendar.moth_abbr',
-                                      list(calendar.month_abbr))
+            if selected_custom_filter == 'wholeMonth':
+                # Loop through each machine
+                for machine in selected_machines:
+                    # Loop through each day in the month
+                    for day_int in range(1, num_days_in_month + 1):
+                        maintenance_date = datetime(int(selected_year), list(
+                            calendar.month_abbr).index(selected_month_abbr), day_int)
 
-                                # Convert month to title case for better matching
-                                month_title_case = month.title()
-                                print('month_title_case', month_title_case)
+                        # Create MaintenanceActivity object
+                        maintenance_plan = MaintenancePlan.objects.create(
+                            maintenance_date=maintenance_date,
+                            machine=machine,
+                            maintenance_activity_type=selected_type,
+                            description=None,
+                            created_by=current_user,
+                            updated_by=current_user
+                        )
 
-                                # Partial matching logic
-                                matched_month = None
-                                for abbr in calendar.month_abbr:
-                                    if abbr and abbr.lower() in month_title_case.lower():  # Partial match
-                                        print('match found')
-                                        matched_month = abbr
-                                        print('matched_month', matched_month)
-                                        break
-
-                                if not matched_month:
-                                    print(
-                                        f"Error: '{month}' does not match any valid month abbreviation")
-                                    # Handle the error accordingly
-                                    continue
-
-                                month_abbr_list = list(calendar.month_abbr)
-                                print('month_abbr_list', month_abbr_list)
-
-                                month_index = month_abbr_list.index(
-                                    matched_month)
-                                print('month_index', month_index)
-
-                                selected_year = int(selected_year)
-
-                                num_days_in_month = calendar.monthrange(
-                                    selected_year, month_index)[1]
-                                print('num_days_in_month', num_days_in_month)
-
-                                first_day_of_month = datetime.strptime(
-                                    f'{selected_year}-{month}-01', '%Y-%B-%d').date()
-                                print('first_day_of_month', first_day_of_month)
-                                starting_weekday = first_day_of_month.weekday()
-                                print('starting_weekday', starting_weekday)
-
-                                starting_week = 0 if starting_weekday == 0 else 1
-
-                                selected_day_indices = [
-                                    list(calendar.day_name).index(day) for day in selected_days]
-                                print('selected_day_indices',
-                                      selected_day_indices)
-
-                                for week_num in selected_weeks:
-                                    print('selected_weeks', selected_weeks)
-
-                                    week_number = int(week_num.split()[1])
-                                    print('week number', week_number)
-
-                                    week_start = (week_number - 1) * 7 + 1
-                                    week_start = max(1, week_start)
-                                    print('week_start', week_start)
-
-                                    week_end = min(
-                                        week_start + 6, num_days_in_month)
-                                    print('week_end', week_end)
-
-                                    print('selected_days', selected_days)
-
-                                    for day_int in range(week_start, week_end + 1):
-                                        day_of_week_index = (
-                                            day_int - 1 + starting_weekday) % 7
-
-                                        if day_of_week_index in selected_day_indices:
-                                            print('Month title case:',
-                                                  month_title_case.capitalize())
-                                            print('Month abbreviations:',
-                                                  list(calendar.month_abbr))
-
-                                            maintenance_date = datetime(
-                                                selected_year, month_index, day_int)
-
-                                            print('Maintenance date:',
-                                                  maintenance_date)
-
-                                            # Create MaintenanceActivity object
-                                            maintenance_plan = MaintenancePlan.objects.create(
-                                                maintenance_date=maintenance_date,
-                                                machine=selected_machine,
-                                                maintenance_activity_type=selected_type,
-                                                description=None,
-                                                created_by=current_user,
-                                                updated_by=current_user
-                                            )
-
-                                            maintenance_plan.save()
-                                            print(
-                                                'Maintenance activity created successfully')
-
-                except Machine.DoesNotExist:
-                    return JsonResponse({'error': 'Machine not found'}, status=404)
+                        maintenance_plan.save()
+            else:
+                # Handle other custom filter options here
+                pass
 
             return JsonResponse({'message': 'Maintenance activities created successfully'}, status=201)
+
+    except Line.DoesNotExist:
+        return JsonResponse({'error': 'Line not found'}, status=404)
 
     except MaintenanceActivityType.DoesNotExist:
         return JsonResponse({'error': 'Maintenance activity type not found'}, status=404)
