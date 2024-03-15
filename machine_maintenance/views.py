@@ -711,6 +711,59 @@ def create_maintenance_plan_by_clicking(request):
         )
 
 
+@api_view(['POST'])
+def create_maintenance_plan_new_for_all_machines_of_a_line(request):
+    # Extract data from request
+    line_id = request.data.get('line_id')
+    selected_date_in_str = request.data.get('selectedDate')
+    selected_date = datetime.strptime(selected_date_in_str, '%Y-%m-%d').date()
+    description = request.data.get('description', '')
+    activity_type_id = request.data.get('activity_type_id')
+
+    # Assuming you have access to the current user making the request
+    current_user = request.user
+
+    try:
+        # Fetch activity type
+        activity_type = MaintenanceActivityType.objects.get(
+            id=activity_type_id)
+
+        # Fetch all machines on the given line
+        machines = Machine.objects.filter(line=line_id)
+
+        # Iterate over machines and create maintenance plans
+        for machine in machines:
+            # Create MaintenancePlan instance
+            maintenance_plan = MaintenancePlan.objects.create(
+                machine=machine,
+                maintenance_date=selected_date,
+                description=description,
+                maintenance_activity_type=activity_type,
+                created_by=current_user,
+                updated_by=current_user
+            )
+
+        # Fetch all maintenance plans for the line
+
+        all_maintenance_plans = MaintenancePlan.objects.filter(
+            machine__line=line_id, maintenance_date=selected_date)
+
+        # Serialize all maintenance plans
+        maintenance_plans_serializer = MaintenancePlanSerializer(
+            all_maintenance_plans, many=True)
+        serialized_data = maintenance_plans_serializer.data
+
+        return Response(
+            {"maintenance_plans": serialized_data},
+            status=status.HTTP_201_CREATED
+        )
+    except Exception as e:
+        return Response(
+            {"error": str(e)},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+
 @api_view(['GET'])
 @authentication_classes([])  # Use appropriate authentication class here
 @permission_classes([])
