@@ -407,17 +407,31 @@ def process_bom_file_new(bom_file, bom_file_name, data, user_id):
                     else:
                         manufacturer = None
 
-                    if pd.notnull(row['Mfr. Part No']):
-                        mfr_part_no = str(row.get('Mfr. Part No')
-                                          ).strip().replace('\n', '')
+                    # if pd.notnull(row['Mfr. Part No']):
+                    #     mfr_part_no = str(row.get('Mfr. Part No')
+                    #                       ).strip().replace('\n', '')
+                    #     manufacturer_part, _ = ManufacturerPart.objects.get_or_create(
+                    #         part_number=mfr_part_no,
+                    #         manufacturer=manufacturer,
+                    #         defaults={
+                    #             'updated_by': user,
+                    #             'created_by': user,
+
+                    #         })
+
+                    if pd.notnull(row.get('Mfr. Part No', None)) or pd.notnull(row.get('Mfr.Part No', None)):
+                        mfr_part_no = str(row.get('Mfr. Part No', row.get(
+                            'Mfr.Part No', ''))).strip().replace('\n', '')
+                        # Check if either 'Mfr. Part No' or 'Mfr.Part No' column is not null
                         manufacturer_part, _ = ManufacturerPart.objects.get_or_create(
                             part_number=mfr_part_no,
                             manufacturer=manufacturer,
                             defaults={
                                 'updated_by': user,
                                 'created_by': user,
+                            }
+                        )
 
-                            })
                         # print('mfr  aprt created in db')
                     else:
                         manufacturer_part = None
@@ -985,17 +999,31 @@ def process_bom_file_and_create_order_new(bom_file, bom_file_name, data, user_id
                     else:
                         manufacturer = None
 
-                    if pd.notnull(row['Mfr. Part No']):
-                        mfr_part_no = str(row.get('Mfr. Part No')
-                                          ).strip().replace('\n', '')
+                    # if pd.notnull(row['Mfr. Part No']):
+                    #     mfr_part_no = str(row.get('Mfr. Part No')
+                    #                       ).strip().replace('\n', '')
+                    #     manufacturer_part, _ = ManufacturerPart.objects.get_or_create(
+                    #         part_number=mfr_part_no,
+                    #         manufacturer=manufacturer,
+                    #         defaults={
+                    #             'updated_by': user,
+                    #             'created_by': user,
+
+                    #         })
+
+                    if pd.notnull(row.get('Mfr. Part No', None)) or pd.notnull(row.get('Mfr.Part No', None)):
+                        mfr_part_no = str(row.get('Mfr. Part No', row.get(
+                            'Mfr.Part No', ''))).strip().replace('\n', '')
+                        # Check if either 'Mfr. Part No' or 'Mfr.Part No' column is not null
                         manufacturer_part, _ = ManufacturerPart.objects.get_or_create(
                             part_number=mfr_part_no,
                             manufacturer=manufacturer,
                             defaults={
                                 'updated_by': user,
                                 'created_by': user,
+                            }
+                        )
 
-                            })
                     else:
                         manufacturer_part = None
 
