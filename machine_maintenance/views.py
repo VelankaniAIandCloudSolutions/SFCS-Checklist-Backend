@@ -712,13 +712,13 @@ def create_maintenance_plan_by_clicking(request):
 
 
 @api_view(['POST'])
-def create_maintenance_plan_new_for_all_machines_of_a_line(request):
+def create_maintenance_plan_by_clicking_new_for_all_machines_of_a_line(request):
     # Extract data from request
     line_id = request.data.get('line_id')
     selected_date_in_str = request.data.get('selectedDate')
     selected_date = datetime.strptime(selected_date_in_str, '%Y-%m-%d').date()
     description = request.data.get('description', '')
-    activity_type_id = request.data.get('activity_type_id')
+    activity_type_id = request.data.get('selectedActivityType')
 
     # Assuming you have access to the current user making the request
     current_user = request.user
@@ -743,19 +743,84 @@ def create_maintenance_plan_new_for_all_machines_of_a_line(request):
                 updated_by=current_user
             )
 
-        # Fetch all maintenance plans for the line
+        first_machine = machines.first()
 
-        all_maintenance_plans = MaintenancePlan.objects.filter(
-            machine__line=line_id, maintenance_date=selected_date)
+        # Fetch all maintenance plans for the first machine
+        first_machine_plans = MaintenancePlan.objects.filter(
+            machine=first_machine)
+
+        # first_machine_plan = MaintenancePlan.objects.filter(
+        #     machine__line=line_id, maintenance_date=selected_date).first()
+
+        # Serialize the first machine's maintenance plan
+        serialized_first_machine_plans = MaintenancePlanSerializer(
+            first_machine_plans, many=True).data
+
+        # all_maintenance_plans = MaintenancePlan.objects.filter(
+        #     machine__line=line_id, maintenance_date=selected_date)
 
         # Serialize all maintenance plans
-        maintenance_plans_serializer = MaintenancePlanSerializer(
-            all_maintenance_plans, many=True)
-        serialized_data = maintenance_plans_serializer.data
+        # maintenance_plans_serializer = MaintenancePlanSerializer(
+        #     all_maintenance_plans, many=True)
+        # serialized_data = maintenance_plans_serializer.data
+
+        # return Response(
+        #     {"maintenance_plans": serialized_first_machine_plan},
+        #     status=status.HTTP_201_CREATED
+        # )
 
         return Response(
-            {"maintenance_plans": serialized_data},
+            {"maintenance_plans": serialized_first_machine_plans},
             status=status.HTTP_201_CREATED
+        )
+    except Exception as e:
+        return Response(
+            {"error": str(e)},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+
+@api_view(['POST'])
+@authentication_classes([])  # Use appropriate authentication class here
+@permission_classes([])
+def delete_maintenance_plan_line_wise(request):
+    # Extract data from request
+    line_id = request.data.get('line_id')
+    selected_date_in_str = request.data.get('selectedDate')
+    selected_date = datetime.strptime(selected_date_in_str, '%Y-%m-%d').date()
+    activity_type_code = request.data.get('selectedActivityTypeCode')
+
+    try:
+        # Fetch the activity type based on the provided code
+        activity_type = MaintenanceActivityType.objects.get(
+            code=activity_type_code)
+
+        print('acitivity type', activity_type)
+
+        # Delete all maintenance plans for machines on the selected line, date, and activity type
+        MaintenancePlan.objects.filter(machine__line=line_id, maintenance_date=selected_date,
+                                       maintenance_activity_type=activity_type).delete()
+
+        # Fetch all machines on the selected line
+        machines = Machine.objects.filter(line=line_id)
+
+        # Fetch maintenance plans for the first machine on the line
+        first_machine = machines.first()
+        first_machine_plans = MaintenancePlan.objects.filter(
+            machine=first_machine)
+
+        # Serialize maintenance plans for the first machine
+        serialized_first_machine_plans = MaintenancePlanSerializer(
+            first_machine_plans, many=True).data
+
+        return Response(
+            {"maintenance_plans": serialized_first_machine_plans},
+            status=status.HTTP_200_OK
+        )
+    except MaintenanceActivityType.DoesNotExist:
+        return Response(
+            {"error": "Maintenance activity type with the specified code does not exist."},
+            status=status.HTTP_404_NOT_FOUND
         )
     except Exception as e:
         return Response(
