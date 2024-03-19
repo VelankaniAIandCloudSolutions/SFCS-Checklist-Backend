@@ -12,10 +12,14 @@ urlpatterns = [
          views.get_maintenance_plan_new_line_wise),
 
     path('create-maintenance-activity', views.create_maintenance_activity),
+    path('create-maintenance-activity-new/',
+         views.create_maintenance_activity_new),
     path('create-maintenance-activity-new-for_all_machines_of_a_line',
          views.create_maintenance_activity_new_for_all_machines_of_a_line),
     path('update-or-delete-maintenance-activity/<int:maintenance_plan_id>/',
          views.update_or_delete_maintenance_activity),
+    path('update-or-delete-maintenance-activity-new/<int:maintenance_plan_id>/',
+         views.update_or_delete_maintenance_activity_new),
 
     path('delete-maintenance-plan/<int:maintenance_plan_id>/',
          views.delete_maintenance_plan),

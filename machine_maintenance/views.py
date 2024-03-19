@@ -512,6 +512,49 @@ def create_maintenance_activity(request):
 
 
 @api_view(['POST'])
+def create_maintenance_activity_new(request):
+    if request.method == 'POST':
+        maintenance_plan_id = request.data.get('id')
+        line_id = request.data.get('line_id')
+        machine_id = request.data.get('machine_id')
+        note = request.data.get('note', '')
+        is_completed = request.data.get(
+            'maintenance_activity_status', False)
+
+        print('is completed', is_completed)
+
+        # assuming it's boolean
+        created_by = request.user  # Assuming you have authentication set up
+        updated_by = request.user
+
+        try:
+            maintenance_plan = MaintenancePlan.objects.get(
+                id=maintenance_plan_id)
+            maintenance_activity, created = MaintenanceActivity.objects.get_or_create(
+                maintenance_plan=maintenance_plan,
+                defaults={'note': note, 'created_by': created_by,
+                          'updated_by': updated_by, 'is_completed': is_completed}
+            )
+            if not created:
+                maintenance_activity.note = note
+                maintenance_activity.updated_by = updated_by
+                maintenance_activity.is_completed = is_completed
+                maintenance_activity.save()
+        except MaintenancePlan.DoesNotExist:
+            return JsonResponse({'error': f'Maintenance plan with id {maintenance_plan_id} does not exist'}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+        # Serialize all maintenance plans with their related activities
+
+        maintenance_plans = MaintenancePlan.objects.filter(
+            machine_id=machine_id)
+        serializer = MaintenancePlanSerializer(maintenance_plans, many=True)
+
+        return JsonResponse({'message': 'Maintenance activity created/updated successfully', 'maintenance_plans': serializer.data}, status=201)
+
+
+@api_view(['POST'])
 def create_maintenance_activity_new_for_all_machines_of_a_line(request):
     if request.method == 'POST':
         line_id = request.data.get('line_id')
@@ -654,6 +697,58 @@ def update_or_delete_maintenance_activity(request, maintenance_plan_id):
 
         # Retrieve all maintenance plans and serialize them
         maintenance_plans = MaintenancePlan.objects.all()
+        serializer = MaintenancePlanSerializer(maintenance_plans, many=True)
+
+        return Response({'message': 'Maintenance activity deleted successfully', 'maintenance_plans': serializer.data}, status=200)
+
+
+@api_view(['PUT', 'DELETE'])
+def update_or_delete_maintenance_activity_new(request, maintenance_plan_id):
+
+    if request.method == 'PUT':
+        # Extract new note and maintenance activity status from request data
+        new_note = request.data.get('note')
+        maintenance_activity_status = request.data.get(
+            'maintenance_activity_status', False)
+
+        # Retrieve maintenance activity object
+        try:
+            maintenance_activity = MaintenanceActivity.objects.get(
+                maintenance_plan_id=maintenance_plan_id)
+        except MaintenanceActivity.DoesNotExist:
+            return Response({'error': 'Maintenance activity not found'}, status=404)
+
+        # Update the note and maintenance activity status
+        maintenance_activity.note = new_note
+        maintenance_activity.is_completed = maintenance_activity_status
+        maintenance_activity.save()
+
+        maintenance_plan = MaintenancePlan.objects.get(pk=maintenance_plan_id)
+
+        maintenance_plan_machine = maintenance_plan.machine
+        maintenance_plans = MaintenancePlan.objects.filter(
+            machine=maintenance_plan_machine)
+        serializer = MaintenancePlanSerializer(maintenance_plans, many=True)
+
+        return Response({'message': 'Note and status updated successfully', 'maintenance_plans': serializer.data}, status=200)
+
+    elif request.method == 'DELETE':
+
+        # Retrieve maintenance activity object
+        try:
+            maintenance_activity = MaintenanceActivity.objects.get(
+                maintenance_plan_id=maintenance_plan_id)
+        except MaintenanceActivity.DoesNotExist:
+            return Response({'error': 'Maintenance activity not found'}, status=404)
+
+        # Delete the maintenance activity
+        maintenance_activity.delete()
+
+        maintenance_plan = MaintenancePlan.objects.get(pk=maintenance_plan_id)
+
+        maintenance_plan_machine = maintenance_plan.machine
+        maintenance_plans = MaintenancePlan.objects.filter(
+            machine=maintenance_plan_machine)
         serializer = MaintenancePlanSerializer(maintenance_plans, many=True)
 
         return Response({'message': 'Maintenance activity deleted successfully', 'maintenance_plans': serializer.data}, status=200)
