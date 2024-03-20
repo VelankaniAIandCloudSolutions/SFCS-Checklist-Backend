@@ -9,9 +9,6 @@ from django.http import JsonResponse
 from django.shortcuts import render
 from .models import *
 from .serializers import *
-from rest_framework.decorators import api_view, authentication_classes, permission_classes
-from rest_framework.response import Response
-from rest_framework import status
 from datetime import datetime, timedelta
 import calendar
 from django.template.loader import render_to_string
@@ -19,6 +16,9 @@ from django.utils.html import strip_tags
 from django.core.mail import send_mail
 from django.conf import settings
 from .tasks import *
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.response import Response
+from rest_framework import status
 
 
 @api_view(['GET'])
