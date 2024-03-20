@@ -18,6 +18,7 @@ from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from django.core.mail import send_mail
 from django.conf import settings
+from .tasks import *
 
 
 @api_view(['GET'])
@@ -420,14 +421,11 @@ def create_maintenance_plan_for_all_machines_of_a_line(request):
 def get_maintenance_plan(request):
     if request.method == 'POST':
         # Step 1: Extract machine ID from the request
-
         machine_id = request.data.get('machine_id')
         print(machine_id)
-
         # Step 2: Retrieve maintenance plans filtered by machine ID and sorted by maintenance date
         maintenance_plans = MaintenancePlan.objects.filter(
             machine_id=machine_id).order_by('maintenance_date')
-
         # Step 3: Serialize the maintenance plans
         serializer = MaintenancePlanSerializer(maintenance_plans, many=True)
 
@@ -540,16 +538,27 @@ def create_maintenance_activity_new(request):
                 maintenance_activity.updated_by = updated_by
                 maintenance_activity.is_completed = is_completed
                 maintenance_activity.save()
+
+            # if not is_completed:
+            #     send_maintenance_activity_not_completed_email.delay(
+            #         maintenance_activity.id, maintenance_plan_id)
+
         except MaintenancePlan.DoesNotExist:
             return JsonResponse({'error': f'Maintenance plan with id {maintenance_plan_id} does not exist'}, status=400)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
 
         # Serialize all maintenance plans with their related activities
+        maintenance_plan = MaintenancePlan.objects.get(pk=maintenance_plan_id)
 
+        maintenance_plan_machine = maintenance_plan.machine
         maintenance_plans = MaintenancePlan.objects.filter(
-            machine_id=machine_id)
+            machine=maintenance_plan_machine)
         serializer = MaintenancePlanSerializer(maintenance_plans, many=True)
+
+        # maintenance_plans = MaintenancePlan.objects.filter(
+        #     machine_id=machine_id)
+        # serializer = MaintenancePlanSerializer(maintenance_plans, many=True)
 
         return JsonResponse({'message': 'Maintenance activity created/updated successfully', 'maintenance_plans': serializer.data}, status=201)
 
