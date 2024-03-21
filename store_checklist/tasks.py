@@ -418,7 +418,6 @@ def process_bom_file_new(bom_file, bom_file_name, data, user_id):
                     #             'created_by': user,
 
                     #         })
-
                     if pd.notnull(row.get('Mfr. Part No', None)) or pd.notnull(row.get('Mfr.Part No', None)):
                         mfr_part_no = str(row.get('Mfr. Part No', row.get(
                             'Mfr.Part No', ''))).strip().replace('\n', '')
@@ -1023,7 +1022,6 @@ def process_bom_file_and_create_order_new(bom_file, bom_file_name, data, user_id
                                 'created_by': user,
                             }
                         )
-
                     else:
                         manufacturer_part = None
 

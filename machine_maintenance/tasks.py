@@ -1,13 +1,11 @@
 from requests import Response
 from .models import MaintenancePlan
 from accounts.serializers import *
-
 from celery import current_task, shared_task
 import pandas as pd
 from django.db import transaction
 from .models import *
 from accounts.models import UserAccount
-
 from django.utils import timezone
 import logging
 from django.core.mail import send_mail
@@ -62,6 +60,7 @@ def get_plans_with_no_activities():
 
     # Do something with plans_with_no_activities, like sending alerts or logging
     # For example, just printing their IDs along with maintenance dates
+
     for plan in plans_with_no_activities:
         print(
             f"Plan ID {plan.id} scheduled on {plan.maintenance_date} has no activities.")
@@ -110,3 +109,9 @@ def send_maintenance_activity_missing_mail(plans_with_no_activities):
     except Exception as e:
         # Handle any exceptions
         print(f"Error sending maintenance activity missing email: {e}")
+
+
+# @shared_task
+# def send_maintenance_activity_not_completed_email(activity_id,maintenance_plan_id):
+#     try:
+#         activity = MaintenanceActivity.objects.get(pk=activity_id)
