@@ -1,3 +1,5 @@
+import datetime
+import time
 from requests import Response
 from .models import MaintenancePlan
 from accounts.serializers import *
@@ -111,7 +113,106 @@ def send_maintenance_activity_missing_mail(plans_with_no_activities):
         print(f"Error sending maintenance activity missing email: {e}")
 
 
-# @shared_task
-# def send_maintenance_activity_not_completed_email(activity_id,maintenance_plan_id):
-#     try:
-#         activity = MaintenanceActivity.objects.get(pk=activity_id)
+@shared_task
+def send_maintenance_activity_not_completed_email(maintenance_activity_id):
+    try:
+        # Retrieve the MaintenanceActivity object
+        activity = MaintenanceActivity.objects.get(pk=maintenance_activity_id)
+
+        # Prepare the context data to be passed to the template
+        context = {
+            'activity': activity,
+            # Add more context data as needed
+            # Add the website link as needed
+            'website_link': 'https://sfcs.xtractautomation.com/machine/calendar-monthly-view'
+        }
+
+        print(context)
+
+        # Render the template with the context data
+        html_message = render_to_string(
+            'maintenance_activity_not_completed.html', context)
+        plain_message = strip_tags(html_message)
+
+        subject = 'Maintenance Activity Not Completed Alert'
+        sender_email = settings.EMAIL_HOST_USER
+        sender_name = 'Velankani SFCS'
+        email_from = f'{sender_name} <{sender_email}>'
+        recipient_list = UserAccount.objects.filter(
+            is_machine_maintenance_supervisor_team=True).values_list('email', flat=True)
+        recipient_list.append('katochsatvik@gmail.com')
+
+        # Send the email
+        send_mail(subject, plain_message, sender_email,
+                  recipient_list, html_message=html_message)
+        print("Maintenance activity not completed email sent successfully")
+        print("Email sent to the following recipients:")
+        for email in recipient_list:
+            print(email)
+    except MaintenanceActivity.DoesNotExist:
+        # Handle the case where the MaintenanceActivity does not exist
+        print("Maintenance Activity is missing")
+
+    except Exception as e:
+        # Handle other exceptions
+        print(f"An error occurred: {e}")
+
+
+@shared_task
+def check_missing_activity_and_send_email_for_today():
+    try:
+
+        current_date = timezone.now().date()
+
+        # Get all maintenance plans created before 1:00 PM IST today
+        plans_with_no_activities_of_today_query_set = MaintenancePlan.objects.filter(
+            maintenance_date=current_date,
+            maintenance_activities__isnull=True
+        )
+
+        # Prepare the email content and recipients only if there are plans with missing activities
+        plans_with_no_activities_of_today = []
+
+        # Filter out plans without maintenance activities
+        for plan in plans_with_no_activities_of_today_query_set:
+            plans_with_no_activities_of_today.append(plan)
+
+        if plans_with_no_activities_of_today:
+            # Prepare the email content
+            context = {
+                'created_by': plans_with_no_activities_of_today[0].created_by,
+                'maintenance_plans_with_no_activities': plans_with_no_activities_of_today,
+                'website_link': 'https://sfcs.xtractautomation.com/machine'
+                # Add more context data as needed
+            }
+            print(context)
+            html_message = render_to_string(
+                'maintenance_activity_missing_alert_email.html', context)
+            plain_message = strip_tags(html_message)
+            subject = 'Missing Maintenance Activity Alert'
+            sender_email = settings.EMAIL_HOST_USER
+            sender_name = 'Velankani SFCS'
+            email_from = f'{sender_name} <{sender_email}>'
+
+            recipient_emails = set(
+                plan.created_by.email for plan in plans_with_no_activities_of_today)
+            recipient_emails_list = list(recipient_emails)
+            # recipient_emails_list.append('satvikkatoch@velankanigroup.com')
+            recipient_emails_list.append('katochsatvik@gmail.com')
+            # recipient_emails = [
+            #     'katochsatvik@gmail.com']
+
+            # Send the email
+            send_mail(subject, plain_message, email_from,
+                      recipient_emails, html_message=html_message)
+
+            print("Missing maintenance activity email sent successfully")
+            print("Email sent to the following recipients:")
+            for email in recipient_emails:
+                print(email)
+
+        # Return plans with missing activities
+        return
+
+    except Exception as e:
+        print(f"An error occurred: {e}")

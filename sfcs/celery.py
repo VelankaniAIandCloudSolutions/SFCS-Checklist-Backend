@@ -36,6 +36,11 @@ app.conf.beat_schedule = {
         'task': 'machine_maintenance.tasks.maintenance_alert_email',
         'schedule': crontab(minute=0, hour=7,),
     },
+    'check_missing_activity_and_send_email_for_today': {
+        'task': 'machine_maintenance.tasks.check_missing_activity_and_send_email_for_today',
+        'schedule': crontab(hour=13, minute=6),
+    },
+
 }
 
 

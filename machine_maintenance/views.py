@@ -19,6 +19,7 @@ from .tasks import *
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.response import Response
 from rest_framework import status
+from datetime import datetime, timedelta
 
 
 @api_view(['GET'])
@@ -533,6 +534,11 @@ def create_maintenance_activity_new(request):
                 defaults={'note': note, 'created_by': created_by,
                           'updated_by': updated_by, 'is_completed': is_completed}
             )
+            if not maintenance_activity.is_completed:
+                # Send email notification
+                send_maintenance_activity_not_completed_email.delay(
+                    maintenance_activity.id)
+
             if not created:
                 maintenance_activity.note = note
                 maintenance_activity.updated_by = updated_by
@@ -1029,11 +1035,11 @@ def get_maintenance_plans_for_report_generation(request):
     print(month_number)
 
     if month_number:
-        start_date = datetime(year=datetime.now().year,
-                              month=month_number, day=1)
-        end_date = datetime(year=datetime.now().year,
-                            month=month_number % 12 + 1, day=1)
-        end_date -= timedelta(days=1)
+        current_year = datetime.now().year
+        start_date = datetime(year=current_year, month=month_number, day=1)
+        end_date = start_date + timedelta(days=32)  # Move to the next month
+        # Move back to the last day of the current month
+        end_date = end_date.replace(day=1) - timedelta(days=1)
 
         maintenance_plans = MaintenancePlan.objects.filter(
             maintenance_date__range=[start_date, end_date],
