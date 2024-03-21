@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Maintenance Activity Not Completed</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f2f2f2;
+        text-align: left; /* Aligning the text to the left */
+      }
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #fff;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      }
+      h1 {
+        color: #333;
+      }
+      p {
+        margin-bottom: 10px;
+        line-height: 1.6;
+      }
+      strong {
+        color: #007bff;
+      }
+      .btn {
+        display: inline-block;
+        padding: 8px 20px;
+        background-color: #007bff;
+        color: #fff; /* Changing text color to white */
+        text-decoration: none;
+        border-radius: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Maintenance Activity Marked As Incomplete.</h1>
+      <p>Dear Supervisor,</p>
+      <p>
+        The maintenance activity for the
+        <strong>{{ activity.maintenance_plan.machine.name }}</strong> machine,
+        part of
+        <strong>{{ activity.maintenance_plan.machine.line.name }}</strong> line,
+        scheduled on
+        <strong>{{ activity.maintenance_plan.maintenance_date }}</strong> has
+        been marked as <strong>incomplete</strong>
+      </p>
+      <p>
+        This action was taken by
+        <strong>{{ activity.created_by.first_name }}</strong> at
+        <strong>{{ activity.created_at }}</strong>.
+      </p>
+      <p>
+        The provided reason was:
+        <strong>{{ activity.note }}</strong>.
+      </p>
+      <p>Please review the situation and take necessary actions accordingly.</p>
+      <a class="btn" href="{{ website_link }}" target="_blank"
+        >Visit Activity</a
+      >
+      <p>
+        Best regards,<br />
+        Your Maintenance Team
+      </p>
+    </div>
+  </body>
+</html>
