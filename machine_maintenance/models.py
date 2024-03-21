@@ -56,10 +56,11 @@ class MaintenanceActivity(BaseModel):
     maintenance_plan = models.ForeignKey(
         MaintenancePlan, on_delete=models.CASCADE, related_name='maintenance_activities')
     note = models.TextField(null=True, blank=True)
+    is_completed = models.BooleanField(default=False)
 
     def __str__(self):
         return f"Maintenance activity for Maintenance Plan ID: {self.maintenance_plan.id} "
 
 
 class MaintenancePlanSetting(BaseModel):
-    days_to_raise_alert = models.PositiveBigIntegerField(default=2)
+    days_to_raise_alert = models.PositiveBigIntegerField(default=1)

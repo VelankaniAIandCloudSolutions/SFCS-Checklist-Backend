@@ -5,15 +5,33 @@ from . import views
 urlpatterns = [
     path('get-machine-data/', views.get_machine_data),
     path('create-maintenance-plan/', views.create_maintenance_plan),
+    path('create-maintenance-plan-for-all-machines-of-a-line/',
+         views.create_maintenance_plan_for_all_machines_of_a_line),
     path('get-maintenance-plan/', views.get_maintenance_plan),
-    path('create-maintenance-activity',
-         views.create_maintenance_activity),
+    path('get-maintenance-plan-new-line-wise/',
+         views.get_maintenance_plan_new_line_wise),
+
+    path('create-maintenance-activity', views.create_maintenance_activity),
+    path('create-maintenance-activity-new/',
+         views.create_maintenance_activity_new),
+    path('create-maintenance-activity-new-for_all_machines_of_a_line',
+         views.create_maintenance_activity_new_for_all_machines_of_a_line),
     path('update-or-delete-maintenance-activity/<int:maintenance_plan_id>/',
          views.update_or_delete_maintenance_activity),
+    path('update-or-delete-maintenance-activity-new/<int:maintenance_plan_id>/',
+         views.update_or_delete_maintenance_activity_new),
+
     path('delete-maintenance-plan/<int:maintenance_plan_id>/',
          views.delete_maintenance_plan),
+    path('delete-maintenance-plan-line-wise/',
+         views.delete_maintenance_plan_line_wise),
+
     path('create-maintenance-plan-by-clicking/',
          views.create_maintenance_plan_by_clicking),
+    path('create-maintenance-plan-by-clicking-new-for-all-machines-of-a-line/',
+         views.create_maintenance_plan_by_clicking_new_for_all_machines_of_a_line),
+
+
     path('test-mail/', views.test_maintenance_alert_email),
     path('get-maintenance-plans-for-report-generation/',
          views.get_maintenance_plans_for_report_generation),
