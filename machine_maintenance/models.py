@@ -63,4 +63,4 @@ class MaintenanceActivity(BaseModel):
 
 
 class MaintenancePlanSetting(BaseModel):
-    days_to_raise_alert = models.PositiveBigIntegerField(default=2)
+    days_to_raise_alert = models.PositiveBigIntegerField(default=1)
