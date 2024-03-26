@@ -70,3 +70,9 @@ node_modules/
 # Pytest cache
 __pytest_cache__/
 sfcs/__pycache__/
+
+
+# Celery beat schedule files
+.celerybeat-schedule.bat
+.celerybeat-schedule.dir
+.celerybeat-schedule.bak
