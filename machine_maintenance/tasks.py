@@ -122,8 +122,7 @@ def send_maintenance_activity_not_completed_email(maintenance_activity_id):
         # Prepare the context data to be passed to the template
         context = {
             'activity': activity,
-            # Add more context data as needed
-            # Add the website link as needed
+
             'website_link': 'https://sfcs.xtractautomation.com/machine/calendar-monthly-view'
         }
 
@@ -138,8 +137,9 @@ def send_maintenance_activity_not_completed_email(maintenance_activity_id):
         sender_email = settings.EMAIL_HOST_USER
         sender_name = 'Velankani SFCS'
         email_from = f'{sender_name} <{sender_email}>'
-        recipient_list = UserAccount.objects.filter(
-            is_machine_maintenance_supervisor_team=True).values_list('email', flat=True)
+        # Retrieve the recipient list
+        recipient_list = list(UserAccount.objects.filter(
+            is_machine_maintenance_supervisor_team=True).values_list('email', flat=True))
         recipient_list.append('katochsatvik@gmail.com')
 
         # Send the email

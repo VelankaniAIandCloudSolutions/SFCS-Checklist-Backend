@@ -43,7 +43,11 @@
       <h1>Maintenance Activity Marked As Incomplete.</h1>
       <p>Dear Supervisor,</p>
       <p>
-        The maintenance activity for the
+        The maintenance activity of the type
+        <strong
+          >{{ activity.maintenance_plan.maintenance_activity_type }}</strong
+        >
+        for the
         <strong>{{ activity.maintenance_plan.machine.name }}</strong> machine,
         part of
         <strong>{{ activity.maintenance_plan.machine.line.name }}</strong> line,
