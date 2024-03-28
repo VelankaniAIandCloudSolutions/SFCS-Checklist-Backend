@@ -175,6 +175,7 @@ class ChecklistItem(BaseModel):
     is_present = models.BooleanField(default=False)
     is_quantity_sufficient = models.BooleanField(default=False)
     present_quantity_change_note = models.TextField(null=True, blank=True)
+    is_issued_to_production = models.BooleanField(default=False)
 
     def __str__(self):
         return "Checklist Item for: " + str(self.bom_line_item.part_number)

@@ -907,9 +907,12 @@ def update_checklist_item(request, checklist_item_id):
         checklist_item = ChecklistItem.objects.get(id=checklist_item_id)
         present_quantity = int(request.data.get('present_quantity', 0))
         change_note = request.data.get('reason_for_change')
+        is_issued_to_production = request.data.get('is_issued_to_production')
+        print('this is is_issued to producrtion coming from frontend',
+              is_issued_to_production)
 
         # Ensure change note is not empty
-        if not change_note:
+        if not change_note and not is_issued_to_production:
             return Response({'message': 'Error: Please provide the change note, as it cannot be empty'}, status=status.HTTP_400_BAD_REQUEST)
 
         checklist_item.present_quantity = present_quantity
@@ -917,8 +920,11 @@ def update_checklist_item(request, checklist_item_id):
 
         checklist_item.is_present = checklist_item.present_quantity > 0
         checklist_item.is_quantity_sufficient = checklist_item.present_quantity >= checklist_item.required_quantity
+        checklist_item.is_issued_to_production = is_issued_to_production
 
         checklist_item.save()
+
+        print('value after saving', checklist_item.is_issued_to_production)
         updated_items = ChecklistItem.objects.filter(
             checklist=checklist_item.checklist)
         # Serialize the updated checklist item
@@ -929,6 +935,44 @@ def update_checklist_item(request, checklist_item_id):
         return Response({'message': 'Checklist item not found'}, status=status.HTTP_404_NOT_FOUND)
     except ValueError:
         return Response({'message': 'Invalid present quantity'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+# @api_view(['PUT'])
+# def update_checklist_item(request, checklist_item_id):
+#     try:
+#         checklist_item = ChecklistItem.objects.get(id=checklist_item_id)
+#         present_quantity = int(request.data.get('present_quantity', 0))
+#         change_note = request.data.get('reason_for_change')
+#         is_issued_to_production = request.data.get('is_issued_to_production')
+
+#         if is_issued_to_production == 'true':
+#             is_issued_to_production = True
+#             change_note = ""  # Empty change note if issued to production
+
+#             # Set present quantity to required quantity if issued to production
+#             checklist_item.present_quantity = checklist_item.required_quantity
+#         else:
+#             is_issued_to_production = False
+#             checklist_item.present_quantity = present_quantity
+
+#         # Update other fields
+#         checklist_item.present_quantity_change_note = change_note
+#         checklist_item.is_issued_to_production = is_issued_to_production
+#         checklist_item.is_present = checklist_item.present_quantity > 0
+#         checklist_item.is_quantity_sufficient = checklist_item.present_quantity >= checklist_item.required_quantity
+
+#         checklist_item.save()
+
+#         updated_items = ChecklistItem.objects.filter(
+#             checklist=checklist_item.checklist)
+#         serializer = ChecklistItemSerializer(updated_items, many=True)
+
+#         return Response(serializer.data, status=status.HTTP_200_OK)
+#     except ChecklistItem.DoesNotExist:
+#         return Response({'message': 'Checklist item not found'}, status=status.HTTP_404_NOT_FOUND)
+#     except ValueError:
+#         return Response({'message': 'Invalid present quantity'}, status=status.HTTP_400_BAD_REQUEST)
+
 # @api_view(['GET'])
 # def get_projects(request):
 #     try:
