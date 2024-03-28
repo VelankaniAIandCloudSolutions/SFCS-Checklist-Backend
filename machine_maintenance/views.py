@@ -446,15 +446,22 @@ def get_maintenance_plan_new_line_wise(request):
         except Machine.DoesNotExist:
             return Response({"error": "No machine found for the given line ID"}, status=status.HTTP_404_NOT_FOUND)
 
-        # Step 3: Retrieve maintenance plans filtered by machine ID and sorted by maintenance date
+        # Step 3: Retrieve maintenance plans filtered by machine ID
         maintenance_plans = MaintenancePlan.objects.filter(
             machine=machine)
+
+        all_maintenance_plans = MaintenancePlan.objects.filter(
+            machine__line=line_id)
 
         # Step 4: Serialize the maintenance plans
         serializer = MaintenancePlanSerializer(maintenance_plans, many=True)
 
+        serializer_all_plans = MaintenancePlanSerializer(
+            all_maintenance_plans, many=True)
+
         # Step 4: Return serialized maintenance plans in the response
-        return Response({"maintenance_plans": serializer.data})
+        return Response({"maintenance_plans": serializer.data,
+                         "all_maintenance_plans": serializer_all_plans.data})
 
 
 @api_view(['DELETE'])
