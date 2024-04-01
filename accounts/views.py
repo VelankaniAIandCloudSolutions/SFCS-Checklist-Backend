@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from django.shortcuts import get_object_or_404
-from .serializers import UserAccountSerializer, UserCreateSerializer
+from .serializers import User, UserAccountSerializer, UserCreateSerializer
 from .models import UserAccount
 
 
@@ -44,6 +44,77 @@ def create_user(request):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+@api_view(['PUT'])
+@permission_classes([])
+def update_user(request, user_id):
+    user = get_object_or_404(UserAccount, id=user_id)
+    serializer = UserAccountSerializer(user, data=request.data, partial=True)
+
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data)
+
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['DELETE'])
+@permission_classes([])
+def delete_user(request, user_id):
+    user = get_object_or_404(UserAccount, id=user_id)
+    user.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(['GET'])
+def check_login(request):
+    return Response(status=status.HTTP_200_OK)
+
+
+# views.py
+
+@api_view(['POST'])
+def verify_password(request, user_id):
+    # Extract old password from request data
+    old_password = request.data.get('old_password')
+
+    if not old_password:
+        return Response({'error': 'Old password is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        # Retrieve the user by ID
+        user = User.objects.get(pk=user_id)
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    # Check if old password matches the user's current password
+    if not user.check_password(old_password):
+        return Response({'error': 'Old password is incorrect'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # If old password is correct, return success response
+    return Response({'success': 'Old password is correct'}, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+def update_password(request, user_id):
+    # Extract new password from request data
+    new_password = request.data.get('new_password')
+
+    if not new_password:
+        return Response({'error': 'New password is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        # Retrieve the user by ID
+        user = User.objects.get(pk=user_id)
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    # Update user's password
+    user.set_password(new_password)
+    user.save()
+
+    return Response({'success': 'Password updated successfully'}, status=status.HTTP_200_OK)
+
+
 # @api_view(['POST'])
 # @permission_classes([])
 # def create_user(request):
@@ -79,29 +150,3 @@ def create_user(request):
 
 #     # Return a success response
 #     return Response({'success': 'User created successfully'}, status=status.HTTP_201_CREATED)
-
-
-@api_view(['PUT'])
-@permission_classes([])
-def update_user(request, user_id):
-    user = get_object_or_404(UserAccount, id=user_id)
-    serializer = UserAccountSerializer(user, data=request.data, partial=True)
-
-    if serializer.is_valid():
-        serializer.save()
-        return Response(serializer.data)
-
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-@api_view(['DELETE'])
-@permission_classes([])
-def delete_user(request, user_id):
-    user = get_object_or_404(UserAccount, id=user_id)
-    user.delete()
-    return Response(status=status.HTTP_204_NO_CONTENT)
-
-
-@api_view(['GET'])
-def check_login(request):
-    return Response(status=status.HTTP_200_OK)
