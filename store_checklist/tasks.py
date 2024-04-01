@@ -1119,8 +1119,21 @@ def process_bom_file_and_create_order_new(bom_file, bom_file_name, data, user_id
                             row['Description/part']) else ''
                     customer_part_number = row['Customer Part No'] if 'Customer Part No' in row and pd.notnull(
                         row['Customer Part No']) else ''
-                    quantity = row['Qty/ Product'] if 'Qty/ Product' in row and pd.notnull(
-                        row['Qty/ Product']) else 0
+
+                    quantity_column_names = [
+                        'Qty/ Product', 'Qty/Product', 'Quantity']
+
+                    # Loop through possible column names to find the quantity
+                    for qty_col_name in quantity_column_names:
+                        if qty_col_name in row and pd.notnull(row[qty_col_name]):
+                            quantity = row[qty_col_name]
+                            break
+                    else:
+                        quantity = 0
+
+                    # quantity = row['Qty/ Product'] if 'Qty/ Product' in row and pd.notnull(
+                    #     row['Qty/ Product']) else 0
+
                     uom = row['UOM'] if 'UOM' in row and pd.notnull(
                         row['UOM']) else ''
                     ecn = row['ECN'] if 'ECN' in row and pd.notnull(
