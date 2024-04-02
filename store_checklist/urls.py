@@ -6,6 +6,7 @@ urlpatterns = [
 
     path('upload-bom/', views.upload_bom_task),
     path('scan-code/', views.scan_code),
+    path('assign_defect_type/', views.assign_defect_type),
     path('get-boms/', views.get_boms),
     path('get-checklist-report/', views.get_checklist_report),
     path('get-boms/<int:bom_id>/', views.get_bom_by_id),
@@ -59,6 +60,7 @@ urlpatterns = [
     path('resume-checklist/<int:checklist_id>/', views.resume_checklist),
     path('get-inspection-board-data/',
          views.get_inspection_board_data),
+
 
 
 

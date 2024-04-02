@@ -1942,3 +1942,42 @@ def get_inspection_board_data(request):
         return Response({'inspectionBoardData': serializer.data, 'defectTypes': defect_types_serializer.data})
     except InspectionBoard.DoesNotExist:
         return Response(status=404)
+
+
+@api_view(['POST'])
+def assign_defect_type(request):
+    if request.method == 'POST':
+        defect_id = request.POST.get('defect_id')
+        defect_type_id = request.POST.get('defect_type_id')
+        board_id = request.POST.get('board_id')
+
+        # Retrieve the defect object
+        try:
+            defect = Defect.objects.get(
+                pk=defect_id)
+        except Defect.DoesNotExist:
+            return JsonResponse({'error': 'Defect not found.'}, status=404)
+
+        # Retrieve the defect type object
+        try:
+            defect_type = DefectType.objects.get(id=defect_type_id)
+        except DefectType.DoesNotExist:
+            return JsonResponse({'error': 'Defect type not found.'}, status=404)
+
+        # Assign defect type to defect
+        defect.defect_type = defect_type
+        defect.save()
+
+        # Retrieve the inspection board object based on board_id
+        try:
+            inspection_board = InspectionBoard.objects.get(id=board_id)
+        except InspectionBoard.DoesNotExist:
+            return JsonResponse({'error': 'Inspection board not found.'}, status=404)
+
+        # Serialize the inspection board object
+        serializer = InspectionBoardSerializer(inspection_board)
+
+        # Return serialized inspection board data
+        return JsonResponse({'inspection_board_data': serializer.data})
+
+    return JsonResponse({'error': 'Invalid request method.'}, status=405)
