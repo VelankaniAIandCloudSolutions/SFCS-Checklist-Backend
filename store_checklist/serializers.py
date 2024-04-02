@@ -57,6 +57,36 @@ class ProductSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class DefectTypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DefectType
+        fields = '__all__'
+
+
+class DefectSerializer(serializers.ModelSerializer):
+    defect_type = DefectTypeSerializer()
+    defect_image_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Defect
+        fields = '__all__'
+
+    def get_defect_image_url(self, obj):
+        return f"{settings.WEBSITE_URL}{obj.defect_image.url}"
+
+
+class InspectionBoardSerializer(serializers.ModelSerializer):
+    defects = DefectSerializer(many=True)
+    inspection_board_image_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = InspectionBoard
+        fields = '__all__'
+
+    def get_inspection_board_image_url(self, obj):
+        return f"{settings.WEBSITE_URL}{obj.inspection_board_image.url}"
+
+
 class ProjectListSerializer(serializers.ModelSerializer):
 
     class Meta:

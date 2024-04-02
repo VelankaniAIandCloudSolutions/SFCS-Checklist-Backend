@@ -28,6 +28,41 @@ class Product(BaseModel):
         return self.name
 
 
+class InspectionBoard(models.Model):
+    name = models.CharField(max_length=255)
+    product = models.ForeignKey(
+        Product, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='inspection_boards'
+    )
+    inspection_board_image = models.FileField(
+        upload_to='inspection_board_images/'
+    )
+
+    def __str__(self):
+        return self.name
+
+
+class DefectType(models.Model):
+    name = models.CharField(max_length=255)
+
+    def __str__(self):
+        return self.name
+
+
+class Defect(models.Model):
+    inspection_board = models.ForeignKey(
+        InspectionBoard, on_delete=models.CASCADE, related_name='defects'
+    )
+    defect_image = models.FileField(upload_to='defect_images/')
+    defect_type = models.ForeignKey(
+        DefectType, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='defects'
+    )
+
+    def __str__(self):
+        return f"{self.defect_type} - {self.inspection_board}"
+
+
 class Manufacturer(BaseModel):
     name = models.CharField(max_length=255)
 

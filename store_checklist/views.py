@@ -1927,3 +1927,18 @@ def resume_checklist(request, checklist_id):
             return Response({'error': 'No ChecklistSetting instance found.'}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
         return Response({'error': f'An error occurred: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+def get_inspection_board_data(request):
+    try:
+        # Assuming there's only one inspection board
+        inspection_board = InspectionBoard.objects.first()
+        serializer = InspectionBoardSerializer(inspection_board)
+        # Retrieve all defect types data
+        defect_types = DefectType.objects.all()
+        defect_types_serializer = DefectTypeSerializer(defect_types, many=True)
+
+        return Response({'inspectionBoardData': serializer.data, 'defectTypes': defect_types_serializer.data})
+    except InspectionBoard.DoesNotExist:
+        return Response(status=404)

@@ -57,6 +57,10 @@ urlpatterns = [
     path('handle-bom-cases/', views.handle_bom_cases),
     path('pause-checklist/<int:checklist_id>/', views.pause_checklist),
     path('resume-checklist/<int:checklist_id>/', views.resume_checklist),
+    path('get-inspection-board-data/',
+         views.get_inspection_board_data),
+
+
 
 
 
