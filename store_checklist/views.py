@@ -1977,7 +1977,7 @@ def assign_defect_type(request):
             return Response({'error': 'Inspection board not found.'}, status=400)
 
         # Serialize the inspection board object
-        serializer = InspectionBoardSerializer(inspection_board)
+        serializer = InspectionBoardDetailedSerializer(inspection_board)
         defect_types = DefectType.objects.all()
         defect_types_serializer = DefectTypeSerializer(defect_types, many=True)
 
@@ -2005,3 +2005,11 @@ def create_defect_type(request):
         return Response({'message': 'Defect Type created successfully', 'defectTypes': defect_types_serializer.data}, status=201)
 
     return Response({'error': 'Invalid request method.'}, status=405)
+
+
+@api_view(['GET'])
+def get_inspection_boards(request):
+    if request.method == 'GET':
+        inspection_boards = InspectionBoard.objects.all()
+        serializer = InspectionBoardSerializer(inspection_boards, many=True)
+        return Response({'inspectionBoards': serializer.data}, status=status.HTTP_200_OK)

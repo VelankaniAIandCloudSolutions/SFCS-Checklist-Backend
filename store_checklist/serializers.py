@@ -76,6 +76,12 @@ class DefectSerializer(serializers.ModelSerializer):
 
 
 class InspectionBoardSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = InspectionBoard
+        fields = '__all__'
+
+
+class InspectionBoardDetailedSerializer(serializers.ModelSerializer):
     defects = DefectSerializer(many=True)
     inspection_board_image_url = serializers.SerializerMethodField()
 
