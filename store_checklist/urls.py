@@ -60,6 +60,7 @@ urlpatterns = [
     path('resume-checklist/<int:checklist_id>/', views.resume_checklist),
     path('get-inspection-board-data/',
          views.get_inspection_board_data),
+    path('create-defect-type/', views.create_defect_type)
 
 
 

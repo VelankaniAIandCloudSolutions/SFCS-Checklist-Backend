@@ -1947,22 +1947,24 @@ def get_inspection_board_data(request):
 @api_view(['POST'])
 def assign_defect_type(request):
     if request.method == 'POST':
-        defect_id = request.POST.get('defect_id')
-        defect_type_id = request.POST.get('defect_type_id')
-        board_id = request.POST.get('board_id')
+        defect_id = request.data.get('defect_id')
+        print('defect_id', defect_id)
+        defect_type_id = request.data.get('defect_type_id')
+        print('defect_type_id', defect_type_id)
+        board_id = request.data.get('board_id')
+        print('board_id', board_id)
 
         # Retrieve the defect object
         try:
-            defect = Defect.objects.get(
-                pk=defect_id)
+            defect = Defect.objects.get(pk=defect_id)
         except Defect.DoesNotExist:
-            return JsonResponse({'error': 'Defect not found.'}, status=404)
+            return Response({'error': 'Defect not found.'}, status=400)
 
         # Retrieve the defect type object
         try:
             defect_type = DefectType.objects.get(id=defect_type_id)
         except DefectType.DoesNotExist:
-            return JsonResponse({'error': 'Defect type not found.'}, status=404)
+            return Response({'error': 'Defect type not found.'}, status=400)
 
         # Assign defect type to defect
         defect.defect_type = defect_type
@@ -1972,12 +1974,34 @@ def assign_defect_type(request):
         try:
             inspection_board = InspectionBoard.objects.get(id=board_id)
         except InspectionBoard.DoesNotExist:
-            return JsonResponse({'error': 'Inspection board not found.'}, status=404)
+            return Response({'error': 'Inspection board not found.'}, status=400)
 
         # Serialize the inspection board object
         serializer = InspectionBoardSerializer(inspection_board)
+        defect_types = DefectType.objects.all()
+        defect_types_serializer = DefectTypeSerializer(defect_types, many=True)
 
         # Return serialized inspection board data
-        return JsonResponse({'inspection_board_data': serializer.data})
+    return Response({'inspectionBoardData': serializer.data, 'defectTypes': defect_types_serializer.data})
 
-    return JsonResponse({'error': 'Invalid request method.'}, status=405)
+    return Response({'error': 'Invalid request method.'}, status=405)
+
+
+@api_view(['POST'])
+def create_defect_type(request):
+    if request.method == 'POST':
+        name = request.data.get('defectName')
+
+        # Create a new defect type object
+        defect_type = DefectType.objects.create(
+            name=name)
+        # Serialize the new defect type object
+
+        defect_types = DefectType.objects.all()
+
+        defect_types_serializer = DefectTypeSerializer(defect_types, many=True)
+
+        # Return serialized defect type data
+        return Response({'message': 'Defect Type created successfully', 'defectTypes': defect_types_serializer.data}, status=201)
+
+    return Response({'error': 'Invalid request method.'}, status=405)
