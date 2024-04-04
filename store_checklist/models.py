@@ -237,6 +237,8 @@ class ChecklistSetting(BaseModel):
         BillOfMaterials, on_delete=models.SET_NULL, null=True, blank=True, related_name='active_settings')
     active_checklist = models.ForeignKey(
         Checklist, on_delete=models.SET_NULL, null=True, blank=True, related_name='active_settings')
+    active_inspection_board = models.ForeignKey(
+        InspectionBoard, on_delete=models.SET_NULL, null=True, blank=True, related_name='active_settings')
 
     def __str__(self):
         if self.active_bom:

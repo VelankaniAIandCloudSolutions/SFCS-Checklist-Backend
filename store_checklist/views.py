@@ -2009,8 +2009,17 @@ def create_defect_type(request):
 def get_inspection_boards(request):
     if request.method == 'GET':
         inspection_boards = InspectionBoard.objects.all()
+
+        checklist_settings = ChecklistSetting.objects.first()
+        active_inspection_board = checklist_settings.active_inspection_board
+        active_inspection_board_data = None
+        if active_inspection_board:
+            active_inspection_board_serializer = InspectionBoardSerializer(
+                active_inspection_board)
+            active_inspection_board_data = active_inspection_board_serializer.data
+
         serializer = InspectionBoardSerializer(inspection_boards, many=True)
-        return Response({'inspectionBoards': serializer.data}, status=status.HTTP_200_OK)
+        return JsonResponse({'inspectionBoards': serializer.data, 'activeInspectionBoard': active_inspection_board_data}, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])
@@ -2034,6 +2043,40 @@ def create_inspection_board(request):
 
         # Save the inspection board instance
         new_inspection_board.save()
+
+        # Set the new inspection board as the active_inspection_board in ChecklistSetting
+        # Assuming there's only one ChecklistSetting instance
+        checklist_setting = ChecklistSetting.objects.first()
+        if checklist_setting:
+            checklist_setting.active_inspection_board = new_inspection_board
+            checklist_setting.save()
+
+        try:
+            # Serialize the active inspection board
+            active_inspection_board = checklist_setting.active_inspection_board
+            active_inspection_board_serialized = InspectionBoardSerializer(
+                active_inspection_board)
+
+            # active_inspection_board_serialized = InspectionBoardSerializer(new_inspection_board)
+
+            # Serialize the list of all inspection boards
+            inspection_boards = InspectionBoard.objects.all()
+            inspection_boards_serialized = InspectionBoardSerializer(
+                inspection_boards, many=True)
+
+            # Send data through channels
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                'inspection_board_create_group',  # Group name defined in your WebSocket consumer
+                {
+                    # Method name defined in your WebSocket consumer
+                    'type': 'send_inspection_board',
+                    'active_inspection_board': active_inspection_board_serialized.data,
+                    'all_inspection_boards': inspection_boards_serialized.data
+                }
+            )
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         # Return success response
         return JsonResponse({'message': 'Inspection board created successfully'}, status=201)

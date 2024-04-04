@@ -66,6 +66,8 @@ class DefectTypeSerializer(serializers.ModelSerializer):
 class DefectSerializer(serializers.ModelSerializer):
     defect_type = DefectTypeSerializer()
     defect_image_url = serializers.SerializerMethodField()
+    created_at = serializers.DateTimeField(format='%d/%m/%Y %H:%M:%S')
+    updated_at = serializers.DateTimeField(format='%d/%m/%Y %H:%M:%S')
 
     class Meta:
         model = Defect
@@ -77,6 +79,8 @@ class DefectSerializer(serializers.ModelSerializer):
 
 class InspectionBoardSerializer(serializers.ModelSerializer):
     inspection_board_image_url = serializers.SerializerMethodField()
+    created_at = serializers.DateTimeField(format='%d/%m/%Y %H:%M:%S')
+    updated_at = serializers.DateTimeField(format='%d/%m/%Y %H:%M:%S')
 
     class Meta:
         model = InspectionBoard
@@ -89,6 +93,8 @@ class InspectionBoardSerializer(serializers.ModelSerializer):
 class InspectionBoardDetailedSerializer(serializers.ModelSerializer):
     defects = DefectSerializer(many=True)
     inspection_board_image_url = serializers.SerializerMethodField()
+    created_at = serializers.DateTimeField(format='%d/%m/%Y %H:%M:%S')
+    updated_at = serializers.DateTimeField(format='%d/%m/%Y %H:%M:%S')
 
     class Meta:
         model = InspectionBoard
