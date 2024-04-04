@@ -28,7 +28,9 @@ class Product(BaseModel):
         return self.name
 
 
-class InspectionBoard(models.Model):
+class InspectionBoard(BaseModel):
+
+    detected_board_id = models.CharField(max_length=255, unique=True)
     name = models.CharField(max_length=255)
     product = models.ForeignKey(
         Product, on_delete=models.SET_NULL,
@@ -42,14 +44,14 @@ class InspectionBoard(models.Model):
         return self.name
 
 
-class DefectType(models.Model):
+class DefectType(BaseModel):
     name = models.CharField(max_length=255)
 
     def __str__(self):
         return self.name
 
 
-class Defect(models.Model):
+class Defect(BaseModel):
     inspection_board = models.ForeignKey(
         InspectionBoard, on_delete=models.CASCADE, related_name='defects'
     )

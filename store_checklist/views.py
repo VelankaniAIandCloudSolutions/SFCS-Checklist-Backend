@@ -1930,12 +1930,10 @@ def resume_checklist(request, checklist_id):
 
 
 @api_view(['GET'])
-def get_inspection_board_data(request):
+def get_inspection_board_data(request, inspection_board_id):
     try:
-        # Assuming there's only one inspection board
-        inspection_board = InspectionBoard.objects.first()
-        serializer = InspectionBoardSerializer(inspection_board)
-        # Retrieve all defect types data
+        inspection_board = InspectionBoard.objects.get(pk=inspection_board_id)
+        serializer = InspectionBoardDetailedSerializer(inspection_board)
         defect_types = DefectType.objects.all()
         defect_types_serializer = DefectTypeSerializer(defect_types, many=True)
 
@@ -2013,3 +2011,63 @@ def get_inspection_boards(request):
         inspection_boards = InspectionBoard.objects.all()
         serializer = InspectionBoardSerializer(inspection_boards, many=True)
         return Response({'inspectionBoards': serializer.data}, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+def create_inspection_board(request):
+    if request.method == 'POST':
+        # Extract data from the request
+        detected_board_id = request.POST.get('detected_board_id', None)
+        board_name = request.POST.get('board_name', '')
+        board_image = request.FILES.get('board_image', None)
+
+        # Check if required fields are provided
+        if detected_board_id is None or board_image is None:
+            return JsonResponse({'error': 'Missing required fields'}, status=400)
+
+        # Create the inspection board instance
+        new_inspection_board = InspectionBoard(
+            detected_board_id=detected_board_id,
+            name=board_name,
+            inspection_board_image=board_image
+        )
+
+        # Save the inspection board instance
+        new_inspection_board.save()
+
+        # Return success response
+        return JsonResponse({'message': 'Inspection board created successfully'}, status=201)
+
+    else:
+        # Return error response for unsupported methods
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+
+@api_view(['POST'])
+def add_defects_to_board(request):
+    if request.method == 'POST':
+        # Get data from request payload
+        detected_board_id = request.data.get('detected_board_id')
+        defect_images = request.FILES.getlist('defect_images')
+
+        # Check if all required fields are present in the request
+        if not detected_board_id or not defect_images:
+            return Response({'error': 'One or more required fields are missing'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Retrieve the InspectionBoard instance
+        try:
+            board = InspectionBoard.objects.get(
+                detected_board_id=detected_board_id)
+        except InspectionBoard.DoesNotExist:
+            return Response({'error': 'Board not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Create defects and associate them with the board
+        for defect_image in defect_images:
+            defect = Defect.objects.create(
+                inspection_board=board,
+                defect_image=defect_image
+            )
+
+        return Response({'message': 'Defects added successfully'}, status=status.HTTP_201_CREATED)
+    else:
+        return Response({'error': 'Only POST requests are allowed'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)

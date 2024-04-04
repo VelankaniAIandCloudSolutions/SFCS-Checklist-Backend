@@ -58,10 +58,12 @@ urlpatterns = [
     path('handle-bom-cases/', views.handle_bom_cases),
     path('pause-checklist/<int:checklist_id>/', views.pause_checklist),
     path('resume-checklist/<int:checklist_id>/', views.resume_checklist),
-    path('get-inspection-board-data/',
+    path('get-inspection-board-data/<int:inspection_board_id>/',
          views.get_inspection_board_data),
     path('create-defect-type/', views.create_defect_type),
-    path('get-inspection-boards/', views.get_inspection_boards)
+    path('get-inspection-boards/', views.get_inspection_boards),
+    path('create-inspection-board/', views.create_inspection_board),
+    path('add-defects-to-board/', views.add_defects_to_board),
 
 
 
