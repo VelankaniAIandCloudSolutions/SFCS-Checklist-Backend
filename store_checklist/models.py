@@ -56,6 +56,7 @@ class Defect(BaseModel):
         InspectionBoard, on_delete=models.CASCADE, related_name='defects'
     )
     defect_image = models.FileField(upload_to='defect_images/')
+    defect_image_id = models.CharField(max_length=255)
     defect_type = models.ForeignKey(
         DefectType, on_delete=models.SET_NULL,
         null=True, blank=True, related_name='defects'
@@ -63,6 +64,20 @@ class Defect(BaseModel):
 
     def __str__(self):
         return f"{self.defect_type} - {self.inspection_board}"
+
+    def save(self, *args, **kwargs):
+        # Check if there is already a defect with the same inspection_board and defect_image_id
+        existing_defect = Defect.objects.filter(
+            inspection_board=self.inspection_board,
+            defect_image_id=self.defect_image_id
+        ).first()
+
+        # If there is an existing defect with the same combination, raise a validation error
+        if existing_defect:
+            raise ValueError(
+                'Defect with the same inspection board and image ID already exists.')
+
+        super().save(*args, **kwargs)
 
 
 class Manufacturer(BaseModel):
