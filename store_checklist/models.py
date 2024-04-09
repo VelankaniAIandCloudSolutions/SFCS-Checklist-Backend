@@ -66,16 +66,17 @@ class Defect(BaseModel):
         return f"{self.defect_type} - {self.inspection_board}"
 
     def save(self, *args, **kwargs):
-        # Check if there is already a defect with the same inspection_board and defect_image_id
-        existing_defect = Defect.objects.filter(
-            inspection_board=self.inspection_board,
-            defect_image_id=self.defect_image_id
-        ).first()
+        if not self.pk:
+            # Check if there is already a defect with the same inspection_board and defect_image_id
+            existing_defect = Defect.objects.filter(
+                inspection_board=self.inspection_board,
+                defect_image_id=self.defect_image_id
+            ).first()
 
-        # If there is an existing defect with the same combination, raise a validation error
-        if existing_defect:
-            raise ValueError(
-                'Defect with the same inspection board and image ID already exists.')
+            # If there is an existing defect with the same combination, raise a validation error
+            if existing_defect:
+                raise ValueError(
+                    'Defect with the same inspection board and image ID already exists.')
 
         super().save(*args, **kwargs)
 
