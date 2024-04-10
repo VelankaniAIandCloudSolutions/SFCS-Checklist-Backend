@@ -1927,3 +1927,229 @@ def resume_checklist(request, checklist_id):
             return Response({'error': 'No ChecklistSetting instance found.'}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
         return Response({'error': f'An error occurred: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+def get_inspection_board_data(request, inspection_board_id):
+    try:
+        inspection_board = InspectionBoard.objects.get(pk=inspection_board_id)
+        serializer = InspectionBoardDetailedSerializer(inspection_board)
+        defect_types = DefectType.objects.all()
+        defect_types_serializer = DefectTypeSerializer(defect_types, many=True)
+
+        return Response({'inspectionBoardData': serializer.data, 'defectTypes': defect_types_serializer.data})
+    except InspectionBoard.DoesNotExist:
+        return Response(status=404)
+
+
+@api_view(['POST'])
+def assign_defect_type(request):
+    if request.method == 'POST':
+        defect_id = request.data.get('defect_id')
+        print('defect_id', defect_id)
+        defect_type_id = request.data.get('defect_type_id')
+        print('defect_type_id', defect_type_id)
+        board_id = request.data.get('board_id')
+        print('board_id', board_id)
+
+        # Retrieve the defect object
+        try:
+            defect = Defect.objects.get(pk=defect_id)
+        except Defect.DoesNotExist:
+            return Response({'error': 'Defect not found.'}, status=400)
+
+        # Retrieve the defect type object
+        try:
+            defect_type = DefectType.objects.get(id=defect_type_id)
+        except DefectType.DoesNotExist:
+            return Response({'error': 'Defect type not found.'}, status=400)
+
+        # Assign defect type to defect
+        defect.defect_type = defect_type
+        defect.save()
+
+        # Retrieve the inspection board object based on board_id
+        try:
+            inspection_board = InspectionBoard.objects.get(id=board_id)
+        except InspectionBoard.DoesNotExist:
+            return Response({'error': 'Inspection board not found.'}, status=400)
+
+        # Serialize the inspection board object
+        serializer = InspectionBoardDetailedSerializer(inspection_board)
+        defect_types = DefectType.objects.all()
+        defect_types_serializer = DefectTypeSerializer(defect_types, many=True)
+
+        # Return serialized inspection board data
+    return Response({'inspectionBoardData': serializer.data, 'defectTypes': defect_types_serializer.data})
+
+    return Response({'error': 'Invalid request method.'}, status=405)
+
+
+@api_view(['POST'])
+def create_defect_type(request):
+    if request.method == 'POST':
+        name = request.data.get('defectName')
+
+        # Create a new defect type object
+        defect_type = DefectType.objects.create(
+            name=name)
+        # Serialize the new defect type object
+
+        defect_types = DefectType.objects.all()
+
+        defect_types_serializer = DefectTypeSerializer(defect_types, many=True)
+
+        # Return serialized defect type data
+        return Response({'message': 'Defect Type created successfully', 'defectTypes': defect_types_serializer.data}, status=201)
+
+    return Response({'error': 'Invalid request method.'}, status=405)
+
+
+@api_view(['GET'])
+def get_inspection_boards(request):
+    if request.method == 'GET':
+        inspection_boards = InspectionBoard.objects.all()
+
+        checklist_settings = ChecklistSetting.objects.first()
+        active_inspection_board = checklist_settings.active_inspection_board
+        active_inspection_board_data = None
+        if active_inspection_board:
+            active_inspection_board_serializer = InspectionBoardSerializer(
+                active_inspection_board)
+            active_inspection_board_data = active_inspection_board_serializer.data
+
+        serializer = InspectionBoardSerializer(inspection_boards, many=True)
+        return JsonResponse({'inspectionBoards': serializer.data, 'activeInspectionBoard': active_inspection_board_data}, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+def create_inspection_board(request):
+    if request.method == 'POST':
+        # Extract data from the request
+        detected_board_id = request.POST.get('detected_board_id', None)
+        board_name = request.POST.get('board_name', '')
+        board_image = request.FILES.get('board_image', None)
+
+        # Check if required fields are provided
+        if detected_board_id is None or board_image is None:
+            return JsonResponse({'error': 'Missing required fields'}, status=400)
+
+        # Create the inspection board instance
+        new_inspection_board = InspectionBoard(
+            detected_board_id=detected_board_id,
+            name=board_name,
+            inspection_board_image=board_image
+        )
+
+        # Save the inspection board instance
+        new_inspection_board.save()
+
+        # Set the new inspection board as the active_inspection_board in ChecklistSetting
+        # Assuming there's only one ChecklistSetting instance
+        checklist_setting = ChecklistSetting.objects.first()
+        if checklist_setting:
+            checklist_setting.active_inspection_board = new_inspection_board
+            checklist_setting.save()
+
+        try:
+            # Serialize the active inspection board
+            active_inspection_board = checklist_setting.active_inspection_board
+            active_inspection_board_serialized = InspectionBoardSerializer(
+                active_inspection_board)
+
+            # active_inspection_board_serialized = InspectionBoardSerializer(new_inspection_board)
+
+            # Serialize the list of all inspection boards
+            inspection_boards = InspectionBoard.objects.all()
+            inspection_boards_serialized = InspectionBoardSerializer(
+                inspection_boards, many=True)
+
+            # Send data through channels
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                'inspection_board_create_group',  # Group name defined in your WebSocket consumer
+                {
+                    # Method name defined in your WebSocket consumer
+                    'type': 'send_inspection_board',
+                    'active_inspection_board': active_inspection_board_serialized.data,
+                    'all_inspection_boards': inspection_boards_serialized.data
+                }
+            )
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        # Return success response
+        return JsonResponse({'message': 'Inspection board created successfully'}, status=201)
+
+    else:
+        # Return error response for unsupported methods
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+
+@api_view(['POST'])
+def add_defects_to_board(request):
+    if request.method == 'POST':
+        # Get data from request payload
+        detected_board_id = request.data.get('detected_board_id')
+        defect_images = request.FILES.getlist('defect_images')
+
+        # Check if all required fields are present in the request
+        if not detected_board_id or not defect_images:
+            return Response({'error': 'One or more required fields are missing'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Retrieve the InspectionBoard instance
+        try:
+            board = InspectionBoard.objects.get(
+                detected_board_id=detected_board_id)
+        except InspectionBoard.DoesNotExist:
+            return Response({'error': 'Board not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Create defects and associate them with the board
+        for defect_image in defect_images:
+            defect = Defect.objects.create(
+                inspection_board=board,
+                defect_image=defect_image
+            )
+
+        return Response({'message': 'Defects added successfully'}, status=status.HTTP_201_CREATED)
+    else:
+        return Response({'error': 'Only POST requests are allowed'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+
+@api_view(['POST'])
+def assign_defect_to_board(request):
+    if request.method == 'POST':
+        # Get data from request payload
+        detected_board_id = request.data.get('detected_board_id')
+        defect_image_id = request.data.get(
+            'defect_image', {}).get('defect_image_id')
+        defect_image_file = request.data.get(
+            'defect_image', {}).get('defect_image')
+
+        # Check if all required fields are present in the request
+        if not detected_board_id or not defect_image_id or not defect_image_file:
+            return Response({'error': 'One or more required fields are missing'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Retrieve the InspectionBoard instance
+        try:
+            board = InspectionBoard.objects.get(
+                detected_board_id=detected_board_id)
+        except InspectionBoard.DoesNotExist:
+            return Response({'error': 'Board not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Check if a defect with the same defect_image_id already exists
+        existing_defect = Defect.objects.filter(
+            defect_image_id=defect_image_id).first()
+        if existing_defect:
+            return Response({'error': 'Defect with the same image ID already exists'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Create the defect and associate it with the board
+        defect = Defect.objects.create(
+            inspection_board=board,
+            defect_image=defect_image_file,
+            defect_image_id=defect_image_id
+        )
+
+        return Response({'message': 'Defect assigned to board successfully'}, status=status.HTTP_201_CREATED)
+    else:
+        return Response({'error': 'Only POST requests are allowed'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)

@@ -41,45 +41,36 @@ class ChecklistConsumer(WebsocketConsumer):
             'active_checklist': active_checklist
             # 'checklists': checklist_items
         }))
-        # text_data_json = json.loads(text_data)
-        # message = text_data_json['message']
-        # self.send(text_data=json.dumps({
-        #     'message': message
-        # }))
-        # print('called')
-        # print(text_data)
-        # try:
-        #     data = json.loads(text_data)
-        #     bom_id = data.get('bom_id')
-        #     print('Received bom_id:', bom_id)
-        # except json.JSONDecodeError:
-        #     print('Invalid JSON data received:', text_data)
-        # bom_id = text_data.get('bom_id')
-        # try:
-        #     setting = ChecklistSetting.objects.first()
-        #     bom = BillOfMaterials.objects.get(id=bom_id)
-        #     if (setting.active_bom == bom):
-        #         checklist = Checklist.objects.get(pk=setting.active_checklist.id)
 
-        #         if (ChecklistConsumer.is_checklist_complete(checklist)):
-        #             checklist.is_passed = True
-        #             checklist.status = 'Completed'
-        #             checklist.save()
 
-        #         checklist_serializer = ChecklistSerializer(checklist)
+class InspectionBoardConsumer(WebsocketConsumer):
+    def connect(self):
+        self.accept()
+        # Add the WebSocket connection to the group
+        self.group_name = 'inspection_board_create_group'
+        async_to_sync(self.channel_layer.group_add)(
+            self.group_name,
+            self.channel_name
+        )
 
-        #         self.send(text_data=checklist_serializer.data)
-        #     else:
-        #         self.send(text_data={'error': 'No active BOM found'})
+    def disconnect(self, close_code):
+        # Remove the WebSocket connection from the group when disconnected
+        async_to_sync(self.channel_layer.group_discard)(
+            self.group_name,
+            self.channel_name
+        )
 
-        # except ChecklistSetting.DoesNotExist:
-        #     batch_quantity = text_data.get('batch_quantity') or 1
-        #     setting = ChecklistSetting.objects.create(
-        #         active_bom=BillOfMaterials.objects.get(id=bom_id), created_by=self.scope['user'], updated_by=self.scope['user'])
-        #     setting.active_checklist = Checklist.objects.create(
-        #         bom=BillOfMaterials.objects.get(id=bom_id), status='In Progress', created_by=self.scope['user'], updated_by=self.scope['user'], batch_quantity=batch_quantity)
-        #     setting.save()
-        #     self.send(text_data={'message': 'Active Checklist and BOM not defined but new ones set successfully'})
+    def receive(self, text_data):
+        # You can implement any generic message handling here if needed
+        pass
 
-        # except BillOfMaterials.DoesNotExist:
-        #     self.send(text_data={'error': 'BOM not found'})
+    def send_inspection_board(self, event):
+
+        # Extract inspection board from the event data
+        active_inspection_board = event['active_inspection_board']
+        all_inspection_boards = event['all_inspection_boards']
+ # Send the inspection board and all inspection boards as JSON to the WebSocket client
+        self.send(text_data=json.dumps({
+            'active_inspection_board': active_inspection_board,
+            'all_inspection_boards': all_inspection_boards
+        }))

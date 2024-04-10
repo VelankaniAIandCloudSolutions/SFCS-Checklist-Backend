@@ -28,6 +28,59 @@ class Product(BaseModel):
         return self.name
 
 
+class InspectionBoard(BaseModel):
+
+    detected_board_id = models.CharField(max_length=255, unique=True)
+    name = models.CharField(max_length=255)
+    product = models.ForeignKey(
+        Product, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='inspection_boards'
+    )
+    inspection_board_image = models.FileField(
+        upload_to='inspection_board_images/'
+    )
+
+    def __str__(self):
+        return self.name
+
+
+class DefectType(BaseModel):
+    name = models.CharField(max_length=255)
+
+    def __str__(self):
+        return self.name
+
+
+class Defect(BaseModel):
+    inspection_board = models.ForeignKey(
+        InspectionBoard, on_delete=models.CASCADE, related_name='defects'
+    )
+    defect_image = models.FileField(upload_to='defect_images/')
+    defect_image_id = models.CharField(max_length=255)
+    defect_type = models.ForeignKey(
+        DefectType, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='defects'
+    )
+
+    def __str__(self):
+        return f"{self.defect_type} - {self.inspection_board}"
+
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            # Check if there is already a defect with the same inspection_board and defect_image_id
+            existing_defect = Defect.objects.filter(
+                inspection_board=self.inspection_board,
+                defect_image_id=self.defect_image_id
+            ).first()
+
+            # If there is an existing defect with the same combination, raise a validation error
+            if existing_defect:
+                raise ValueError(
+                    'Defect with the same inspection board and image ID already exists.')
+
+        super().save(*args, **kwargs)
+
+
 class Manufacturer(BaseModel):
     name = models.CharField(max_length=255)
 
@@ -200,6 +253,8 @@ class ChecklistSetting(BaseModel):
         BillOfMaterials, on_delete=models.SET_NULL, null=True, blank=True, related_name='active_settings')
     active_checklist = models.ForeignKey(
         Checklist, on_delete=models.SET_NULL, null=True, blank=True, related_name='active_settings')
+    active_inspection_board = models.ForeignKey(
+        InspectionBoard, on_delete=models.SET_NULL, null=True, blank=True, related_name='active_settings')
 
     def __str__(self):
         if self.active_bom:
