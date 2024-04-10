@@ -65,7 +65,7 @@ class InspectionBoardConsumer(WebsocketConsumer):
         pass
 
     def send_inspection_board(self, event):
-        print('hoiiiii')
+
         # Extract inspection board from the event data
         active_inspection_board = event['active_inspection_board']
         all_inspection_boards = event['all_inspection_boards']
