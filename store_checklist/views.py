@@ -2134,8 +2134,9 @@ def assign_defect_to_board(request):
     if request.method == 'POST':
         # Get data from request payload
         detected_board_id = request.data.get('detected_board_id')
-        defect_image_id = request.data.get(
-            'defect_image', {}).get('defect_image_id')
+        defect_image_id = request.data.get('defect_image_id')
+        # defect_image_id = request.data.get(
+        #     'defect_image', {}).get('defect_image_id')
         defect_image_file = request.data.get(
             'defect_image', {}).get('defect_image')
 
