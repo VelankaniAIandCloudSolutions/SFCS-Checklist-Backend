@@ -2135,10 +2135,11 @@ def assign_defect_to_board(request):
         # Get data from request payload
         detected_board_id = request.data.get('detected_board_id')
         defect_image_id = request.data.get('defect_image_id')
+        defect_image_file = request.FILES.get('defect_image')
         # defect_image_id = request.data.get(
         #     'defect_image', {}).get('defect_image_id')
-        defect_image_file = request.data.get(
-            'defect_image', {}).get('defect_image')
+        # defect_image_file = request.data.get(
+        #     'defect_image', {}).get('defect_image')
 
         # Check if all required fields are present in the request
         if not detected_board_id or not defect_image_id or not defect_image_file:
