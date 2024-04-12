@@ -1943,6 +1943,8 @@ def get_inspection_board_data(request, inspection_board_id):
 
 
 @api_view(['POST'])
+@authentication_classes([])
+@permission_classes([])
 def assign_defect_type(request):
     if request.method == 'POST':
         defect_id = request.data.get('defect_id')
@@ -1986,6 +1988,8 @@ def assign_defect_type(request):
 
 
 @api_view(['POST'])
+@authentication_classes([])
+@permission_classes([])
 def create_defect_type(request):
     if request.method == 'POST':
         name = request.data.get('defectName')
@@ -2006,6 +2010,8 @@ def create_defect_type(request):
 
 
 @api_view(['GET'])
+@authentication_classes([])
+@permission_classes([])
 def get_inspection_boards(request):
     if request.method == 'GET':
         inspection_boards = InspectionBoard.objects.all()
@@ -2023,6 +2029,8 @@ def get_inspection_boards(request):
 
 
 @api_view(['POST'])
+@authentication_classes([])
+@permission_classes([])
 def create_inspection_board(request):
     if request.method == 'POST':
         # Extract data from the request
@@ -2087,7 +2095,10 @@ def create_inspection_board(request):
 
 
 @api_view(['POST'])
+@authentication_classes([])
+@permission_classes([])
 def add_defects_to_board(request):
+
     if request.method == 'POST':
         # Get data from request payload
         detected_board_id = request.data.get('detected_board_id')
@@ -2117,6 +2128,8 @@ def add_defects_to_board(request):
 
 
 @api_view(['POST'])
+@authentication_classes([])
+@permission_classes([])
 def assign_defect_to_board(request):
     if request.method == 'POST':
         # Get data from request payload
