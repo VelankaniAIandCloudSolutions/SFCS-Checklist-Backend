@@ -2132,39 +2132,42 @@ def add_defects_to_board(request):
 @permission_classes([])
 def assign_defect_to_board(request):
     if request.method == 'POST':
-        # Get data from request payload
-        detected_board_id = request.data.get('detected_board_id')
-        defect_image_id = request.data.get('defect_image_id')
-        defect_image_file = request.FILES.get('defect_image')
-        # defect_image_id = request.data.get(
-        #     'defect_image', {}).get('defect_image_id')
-        # defect_image_file = request.data.get(
-        #     'defect_image', {}).get('defect_image')
-
-        # Check if all required fields are present in the request
-        if not detected_board_id or not defect_image_id or not defect_image_file:
-            return Response({'error': 'One or more required fields are missing'}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Retrieve the InspectionBoard instance
         try:
-            board = InspectionBoard.objects.get(
-                detected_board_id=detected_board_id)
-        except InspectionBoard.DoesNotExist:
-            return Response({'error': 'Board not found'}, status=status.HTTP_404_NOT_FOUND)
+            # Get data from request payload
+            detected_board_id = request.data.get('detected_board_id')
+            defect_image_id = request.data.get('defect_image_id')
+            defect_image_file = request.FILES.get('defect_image')
+            # defect_image_id = request.data.get(
+            #     'defect_image', {}).get('defect_image_id')
+            # defect_image_file = request.data.get(
+            #     'defect_image', {}).get('defect_image')
 
-        # Check if a defect with the same defect_image_id already exists
-        existing_defect = Defect.objects.filter(
-            defect_image_id=defect_image_id).first()
-        if existing_defect:
-            return Response({'error': 'Defect with the same image ID already exists'}, status=status.HTTP_400_BAD_REQUEST)
+            # Check if all required fields are present in the request
+            if not detected_board_id or not defect_image_id or not defect_image_file:
+                return Response({'error': 'One or more required fields are missing'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Create the defect and associate it with the board
-        defect = Defect.objects.create(
-            inspection_board=board,
-            defect_image=defect_image_file,
-            defect_image_id=defect_image_id
-        )
+            # Retrieve the InspectionBoard instance
+            try:
+                board = InspectionBoard.objects.get(
+                    detected_board_id=detected_board_id)
+            except InspectionBoard.DoesNotExist:
+                return Response({'error': 'Board not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        return Response({'message': 'Defect assigned to board successfully'}, status=status.HTTP_201_CREATED)
+            # Check if a defect with the same defect_image_id already exists
+            existing_defect = Defect.objects.filter(
+                defect_image_id=defect_image_id).first()
+            if existing_defect:
+                return Response({'error': 'Defect with the same image ID already exists'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Create the defect and associate it with the board
+            defect = Defect.objects.create(
+                inspection_board=board,
+                defect_image=defect_image_file,
+                defect_image_id=defect_image_id
+            )
+
+            return Response({'message': 'Defect assigned to board successfully'}, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({'error':str(e) }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     else:
         return Response({'error': 'Only POST requests are allowed'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
