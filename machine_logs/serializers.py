@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Board, Panel, MachineLog
+from .models import Board, Panel, BoardLog
 from store_checklist.serializers import ProductSerializer
 from machine_maintenance.serializers import MachineSerializer
 
@@ -20,10 +20,10 @@ class PanelSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class MachineLogSerializer(serializers.ModelSerializer):
-    machine = MachineSerializer(many=True)
+class BoardLogSerializer(serializers.ModelSerializer):
+    machines = MachineSerializer(many=True)
     panel = PanelSerializer()
 
     class Meta:
-        model = MachineLog
+        model = BoardLog
         fields = '__all__'
