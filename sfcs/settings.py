@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'accounts',
     'machine_maintenance',
     'pricing',
+    'machine_logs',
     'django_celery_results',
     'channels'
 ]
