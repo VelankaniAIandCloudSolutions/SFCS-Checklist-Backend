@@ -12,6 +12,7 @@ class Board(BaseModel):
         return self.serial_number
     
 class Panel(BaseModel):
+    name = models.CharField(max_length=100,null=True, blank=True)
     board = models.ForeignKey(Board, on_delete=models.CASCADE, related_name='panels')
     type = models.CharField(max_length=6,choices=(('Top','Top'),('Bottom','Bottom')), default='Top')
 
