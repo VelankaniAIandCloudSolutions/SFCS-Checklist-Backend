@@ -4,6 +4,8 @@ from .models import *
 from rest_framework.response import Response
 from rest_framework import status
 from .serializers import *
+from machine_maintenance.serializers import *
+from machine_maintenance.models import *
 from rest_framework.decorators import authentication_classes, permission_classes
 
 
@@ -21,3 +23,15 @@ def get_machine_logs(request):
 
     else:
         return Response({"error": "Board number not provided in query parameters"}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET'])
+@authentication_classes([])
+@permission_classes([])
+def get_machine_list(request):
+    try:
+        machines = Machine.objects.all()
+        serializer = MachineSerializerNew(machines, many=True)
+        return Response({"machines": serializer.data}, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
