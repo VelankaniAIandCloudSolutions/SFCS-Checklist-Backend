@@ -23,7 +23,7 @@ class PanelSerializer(serializers.ModelSerializer):
 class BoardLogSerializer(serializers.ModelSerializer):
     machines = MachineSerializer(many=True)
     panel = PanelSerializer()
-
+    date = serializers.DateField()
     class Meta:
         model = BoardLog
         fields = '__all__'
