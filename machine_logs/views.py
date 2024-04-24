@@ -1,4 +1,5 @@
 
+
 from django.http import JsonResponse
 from django.shortcuts import render
 from rest_framework.decorators import api_view
@@ -17,6 +18,8 @@ import requests
 import os
 import tempfile
 import xml.etree.ElementTree as ET
+from django.db.models import Q
+import pandas as pd
 
 
 def parse_log_file(s3_url, product=None, board_type='1UP', log_files_folder=None, date=None, log_type=None):
@@ -144,7 +147,96 @@ def parse_log_file(s3_url, product=None, board_type='1UP', log_files_folder=None
                             board_log.machines.add(*pp_machines)
                             board_log.save()
             elif log_type == 'spi':
-                pass
+
+                data = pd.read_csv(temp_file_path, header=0)
+                board_serial_number = data.loc[0, 'BarCode'].strip('<>')
+
+                begin_date_time_str = data.loc[0, 'Date'] + \
+                    ' ' + data.loc[0, 'StartTime']
+
+                end_date_time_str = data.loc[0,
+                                             'Date'] + ' ' + data.loc[0, 'EndTime']
+
+                # Convert strings to datetime objects
+                begin_date_time = datetime.strptime(
+                    begin_date_time_str, '%m/%d/%Y %H:%M:%S')
+
+                end_date_time = datetime.strptime(
+                    end_date_time_str, '%m/%d/%Y %H:%M:%S')
+
+                first_result = data.loc[0, 'Result']
+
+                panel_name = data.loc[0, 'Recipe']
+                recipe_path = data.loc[0, 'Recipe'].lower()
+
+                if 'top' in recipe_path:
+                    panel_type = 'Top'
+                elif 'bot' in recipe_path or 'bottom' in recipe_path:
+                    panel_type = 'Bottom'
+                else:
+                    panel_type = 'Unknown'  # Optional: Handle cases where neither substring is found
+
+                for_result = None
+                for_operator_review = None
+                second_result = None
+
+                for index, row in data.iterrows():
+                    # Check if the value in the 'Date' column is 'Result'
+                    if row['Date'] == 'Result':
+                        # If found, store the value in the next row of the 'Date' column as part of a string in for_result
+                        for_result = f"Result: {data.loc[index + 1, 'Date']}"
+
+                    # Check if the value in the 'Start Time' column is 'Operator Review'
+                    if row['StartTime'] == "Operator Review":
+                        # If found, store the value in the next row of the 'Date' column as part of a string in for_operator_review
+                        for_operator_review = f"Operator Review: {data.loc[index + 1, 'StartTime']}"
+
+                    # If both for_result and for_operator_review have been assigned, concatenate them and store the result in second_result
+                    if for_result is not None and for_operator_review is not None:
+                        second_result = for_result + ","+" " + for_operator_review
+                        break  # Stop iterating once both conditions are met
+
+                board, created = Board.objects.update_or_create(serial_number=board_serial_number, defaults={
+                    'product': product,
+                    'type': board_type
+                })
+                panel, created = Panel.objects.update_or_create(name=panel_name, board=board, defaults={
+                    'type': panel_type
+                })
+
+                if log_files_folder:
+                    machines = Machine.objects.filter(
+                        log_files_folder=log_files_folder)
+                    if machines:
+                        board_log, created = BoardLog.objects.update_or_create(
+                            log_file_url=s3_url,
+                            defaults={
+                                'date': date,
+                                'panel': panel,
+                                'result': second_result,
+                                'begin_date_time': begin_date_time,
+                                'end_date_time': end_date_time
+                            }
+                        )
+                        board_log.machines.add(*machines)
+                        board_log.save()
+                    else:
+                        spi_machines = Machine.objects.filter(
+                            Q(name__icontains='SPI') | Q(name__icontains='Solder Paste Inspection'))
+                        if spi_machines:
+                            board_log, created = BoardLog.objects.update_or_create(
+                                log_file_url=s3_url,
+                                defaults={
+                                    'date': date,
+                                    'panel': panel,
+                                    'result': second_result,
+                                    'begin_date_time': begin_date_time,
+                                    'end_date_time': end_date_time
+                                }
+                            )
+                            board_log.machines.add(*spi_machines)
+                            board_log.save()
+
             os.unlink(temp_file_path)
             board_log_serializer = BoardLogSerializer(board_log)
             return board_log_serializer.data
