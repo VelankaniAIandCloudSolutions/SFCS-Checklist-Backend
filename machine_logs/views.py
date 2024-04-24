@@ -18,6 +18,7 @@ import os
 import tempfile
 import xml.etree.ElementTree as ET
 
+
 def parse_log_file(s3_url, product=None, board_type='1UP', log_files_folder=None, date=None, log_type=None):
     with tempfile.NamedTemporaryFile(delete=False) as temp_file:
         temp_file_path = temp_file.name
@@ -55,7 +56,8 @@ def parse_log_file(s3_url, product=None, board_type='1UP', log_files_folder=None
                 })
 
                 if log_files_folder:
-                    machines = Machine.objects.filter(log_files_folder=log_files_folder)
+                    machines = Machine.objects.filter(
+                        log_files_folder=log_files_folder)
                     if machines:
                         board_log, created = BoardLog.objects.update_or_create(
                             log_file_url=s3_url,
@@ -68,7 +70,8 @@ def parse_log_file(s3_url, product=None, board_type='1UP', log_files_folder=None
                         board_log.machines.add(*machines)
                         board_log.save()
                     else:
-                        aoi_machines = Machine.objects.filter(name__icontains='aoi')
+                        aoi_machines = Machine.objects.filter(
+                            name__icontains='aoi')
                         if aoi_machines:
                             board_log, created = BoardLog.objects.update_or_create(
                                 log_file_url=s3_url,
@@ -83,15 +86,21 @@ def parse_log_file(s3_url, product=None, board_type='1UP', log_files_folder=None
             elif log_type == 'p&p':
                 tree = ET.parse(temp_file_path)
                 root = tree.getroot()
-                begin_date_time = datetime.strptime(root.attrib.get('dateBegin'), "%Y-%m-%dT%H:%M:%S.%f%z")
-                end_date_time = datetime.strptime(root.attrib.get('dateComplete'), "%Y-%m-%dT%H:%M:%S.%f%z")
+                begin_date_time = datetime.strptime(
+                    root.attrib.get('dateBegin'), "%Y-%m-%dT%H:%M:%S.%f%z")
+                end_date_time = datetime.strptime(root.attrib.get(
+                    'dateComplete'), "%Y-%m-%dT%H:%M:%S.%f%z")
                 first_job = root.find('.//jobs/job')
-                panel_type = first_job.attrib.get('boardSide') if first_job is not None else 'Unknown'
-                panel_name = first_job.attrib.get('boardName') if first_job is not None else 'Unknown'
+                panel_type = first_job.attrib.get(
+                    'boardSide') if first_job is not None else 'Unknown'
+                panel_name = first_job.attrib.get(
+                    'boardName') if first_job is not None else 'Unknown'
                 first_panel = root.find('.//panels/panel')
-                omit_value = first_panel.attrib.get('omit') if first_panel is not None else None
-                serial_number = first_panel.attrib.get('panelID') if first_panel is not None else 'Unknown'
-                result  = 'Omit: ' + omit_value if omit_value else 'Unknown' 
+                omit_value = first_panel.attrib.get(
+                    'omit') if first_panel is not None else None
+                serial_number = first_panel.attrib.get(
+                    'panelID') if first_panel is not None else 'Unknown'
+                result = 'Omit: ' + omit_value if omit_value else 'Unknown'
 
                 board, created = Board.objects.update_or_create(serial_number=serial_number, defaults={
                     'product': product,
@@ -103,7 +112,8 @@ def parse_log_file(s3_url, product=None, board_type='1UP', log_files_folder=None
                 })
 
                 if log_files_folder:
-                    machines = Machine.objects.filter(log_files_folder=log_files_folder)
+                    machines = Machine.objects.filter(
+                        log_files_folder=log_files_folder)
                     if machines:
                         board_log, created = BoardLog.objects.update_or_create(
                             log_file_url=s3_url,
@@ -118,7 +128,8 @@ def parse_log_file(s3_url, product=None, board_type='1UP', log_files_folder=None
                         board_log.machines.add(*machines)
                         board_log.save()
                     else:
-                        pp_machines = Machine.objects.filter(name__icontains='Pick & Place')
+                        pp_machines = Machine.objects.filter(
+                            name__icontains='Pick & Place')
                         if pp_machines:
                             board_log, created = BoardLog.objects.update_or_create(
                                 log_file_url=s3_url,
@@ -141,7 +152,7 @@ def parse_log_file(s3_url, product=None, board_type='1UP', log_files_folder=None
             print("Failed to download file from S3")
             return None
 
-    
+
 @api_view(['POST'])
 @authentication_classes([])
 @permission_classes([])
@@ -150,7 +161,8 @@ def create_board_log(request):
     parsed_url = urlparse(s3_url)
     path_components = parsed_url.path.split('/')
     date = path_components[1]
-    parse_date_timezone_aware = lambda date_str: timezone.make_aware(datetime.strptime(date_str, "%d-%m-%Y"))
+    def parse_date_timezone_aware(date_str): return timezone.make_aware(
+        datetime.strptime(date_str, "%d-%m-%Y"))
     log_files_folder = unquote(path_components[2])
     if 'aoi' in log_files_folder.lower():
         log_type = 'aoi'
@@ -158,10 +170,12 @@ def create_board_log(request):
         log_type = 'p&p'
     elif 'spi' in log_files_folder.lower():
         log_type = 'spi'
-    board_log = parse_log_file(s3_url=s3_url, log_files_folder=log_files_folder, date = parse_date_timezone_aware(date).date(), log_type=log_type)
+    board_log = parse_log_file(s3_url=s3_url, log_files_folder=log_files_folder,
+                               date=parse_date_timezone_aware(date).date(), log_type=log_type)
     return Response({
         'board_log': board_log
     })
+
 
 @api_view(['GET'])
 def get_machine_logs(request):
@@ -219,7 +233,7 @@ def get_machine_reports_by_date_range(request):
             machine_logs = machine_logs.filter(date__lte=end_date)
         else:
             # If neither start_date nor end_date provided, return all logs
-            return Response({"error": "Please provide at least one date."}, status=400)
+            machine_logs = machine_logs.all()
 
         # Serialize the machine logs using BoardLogSerializer
         serialized_logs = BoardLogSerializer(machine_logs, many=True).data
