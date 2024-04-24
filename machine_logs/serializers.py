@@ -21,9 +21,16 @@ class PanelSerializer(serializers.ModelSerializer):
 
 
 class BoardLogSerializer(serializers.ModelSerializer):
+
     machines = MachineSerializer(many=True)
     panel = PanelSerializer()
+    board_serial_number = serializers.SerializerMethodField()
+
+    def get_board_serial_number(self, obj):
+        # Access the board associated with the board log and retrieve its serial_number
+        return obj.panel.board.serial_number
 
     class Meta:
         model = BoardLog
         fields = '__all__'
+        extra_fields = ['board_serial_number']
