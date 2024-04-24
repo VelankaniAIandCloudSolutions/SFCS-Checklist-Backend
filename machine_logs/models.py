@@ -21,7 +21,7 @@ class Panel(BaseModel):
 
 class MachineLog(BaseModel):
     date = models.DateField()
-    machine = models.ManyToManyField(Machine, related_name='machine_logs')
+    machines = models.ManyToManyField(Machine, related_name='machine_logs')
     panel = models.ForeignKey(Panel, on_delete=models.CASCADE, related_name='machine_logs')
     log_file_url = models.URLField()
     begin_date_time = models.DateTimeField(null=True,blank=True)
