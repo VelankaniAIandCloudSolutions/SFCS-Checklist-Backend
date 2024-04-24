@@ -18,5 +18,6 @@ def get_machine_logs(request):
             panel__board__serial_number=board_number)
         serializer = BoardLogSerializer(board_logs, many=True)
         return Response({"boardLogs": serializer.data}, status=status.HTTP_200_OK)
+
     else:
         return Response({"error": "Board number not provided in query parameters"}, status=status.HTTP_400_BAD_REQUEST)
