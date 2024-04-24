@@ -26,7 +26,6 @@ urlpatterns = [
     path('api/v1/accounts/', include('accounts.urls')),
     path('api/v1/pricing/', include('pricing.urls')),
     path('api/v1/machine-maintenance/', include('machine_maintenance.urls')),
-    # path('api/v1/machine-logs/', include('machine_logs.urls')),
+    path('api/v1/machine-logs/', include('machine_logs.urls')),
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-
