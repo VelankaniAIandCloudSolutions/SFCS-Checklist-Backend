@@ -168,8 +168,6 @@ def check_task_status(request, task_id):
 
 
 @api_view(['POST'])
-@authentication_classes([])
-@permission_classes([])
 def scan_code(request):
 
     print(request.data)
@@ -2168,6 +2166,6 @@ def assign_defect_to_board(request):
 
             return Response({'message': 'Defect assigned to board successfully'}, status=status.HTTP_201_CREATED)
         except Exception as e:
-            return Response({'error':str(e) }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     else:
         return Response({'error': 'Only POST requests are allowed'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)

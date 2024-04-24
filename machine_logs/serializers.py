@@ -21,9 +21,16 @@ class PanelSerializer(serializers.ModelSerializer):
 
 
 class BoardLogSerializer(serializers.ModelSerializer):
+
     machines = MachineSerializer(many=True)
     panel = PanelSerializer()
-    date = serializers.DateField()
+    date = serializers.DateField()    
+    board_serial_number = serializers.SerializerMethodField()
+
+    def get_board_serial_number(self, obj):
+        return obj.panel.board.serial_number
+
     class Meta:
         model = BoardLog
         fields = '__all__'
+        extra_fields = ['board_serial_number']
