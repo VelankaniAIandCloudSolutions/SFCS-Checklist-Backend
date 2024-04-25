@@ -1,5 +1,4 @@
 
-
 from django.http import JsonResponse
 from django.shortcuts import render
 from rest_framework.decorators import api_view
@@ -176,7 +175,7 @@ def parse_log_file(s3_url, product=None, board_type='1UP', log_files_folder=None
                 elif 'bot' in recipe_path or 'bottom' in recipe_path:
                     panel_type = 'Bottom'
                 else:
-                    panel_type = 'Unknown'  
+                    panel_type = 'Unknown'
 
                 for_result = None
                 for_operator_review = None
@@ -191,7 +190,7 @@ def parse_log_file(s3_url, product=None, board_type='1UP', log_files_folder=None
 
                     if for_result is not None and for_operator_review is not None:
                         second_result = for_result + ","+" " + for_operator_review
-                        break  
+                        break
                 board, created = Board.objects.update_or_create(serial_number=board_serial_number, defaults={
                     'product': product,
                     'type': board_type
@@ -266,11 +265,12 @@ def create_board_log(request):
 
 
 @api_view(['GET'])
-def get_machine_logs(request):
+def get_board_logs(request):
     if 'board_number' in request.query_params:
         board_number = request.query_params['board_number']
         board_logs = BoardLog.objects.filter(
-            panel__board__serial_number=board_number)
+            Q(panel__board__serial_number__icontains=board_number)
+        )
         serializer = BoardLogSerializer(board_logs, many=True)
         return Response({"boardLogs": serializer.data}, status=status.HTTP_200_OK)
 
