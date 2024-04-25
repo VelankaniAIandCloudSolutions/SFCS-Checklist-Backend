@@ -149,7 +149,10 @@ def parse_log_file(s3_url, product=None, board_type='1UP', log_files_folder=None
             elif log_type == 'spi':
 
                 data = pd.read_csv(temp_file_path, header=0)
-                board_serial_number = data.loc[0, 'BarCode'].strip('<>')
+                if '<>' in data.loc[0, 'BarCode']:
+                    board_serial_number = data.loc[0, 'BarCode'].strip('<>')
+                else:
+                    board_serial_number = data.loc[0, 'BarCode']
 
                 begin_date_time_str = data.loc[0, 'Date'] + \
                     ' ' + data.loc[0, 'StartTime']
@@ -157,7 +160,6 @@ def parse_log_file(s3_url, product=None, board_type='1UP', log_files_folder=None
                 end_date_time_str = data.loc[0,
                                              'Date'] + ' ' + data.loc[0, 'EndTime']
 
-                # Convert strings to datetime objects
                 begin_date_time = datetime.strptime(
                     begin_date_time_str, '%m/%d/%Y %H:%M:%S')
 
@@ -174,28 +176,22 @@ def parse_log_file(s3_url, product=None, board_type='1UP', log_files_folder=None
                 elif 'bot' in recipe_path or 'bottom' in recipe_path:
                     panel_type = 'Bottom'
                 else:
-                    panel_type = 'Unknown'  # Optional: Handle cases where neither substring is found
+                    panel_type = 'Unknown'  
 
                 for_result = None
                 for_operator_review = None
                 second_result = None
 
                 for index, row in data.iterrows():
-                    # Check if the value in the 'Date' column is 'Result'
                     if row['Date'] == 'Result':
-                        # If found, store the value in the next row of the 'Date' column as part of a string in for_result
                         for_result = f"Result: {data.loc[index + 1, 'Date']}"
 
-                    # Check if the value in the 'Start Time' column is 'Operator Review'
                     if row['StartTime'] == "Operator Review":
-                        # If found, store the value in the next row of the 'Date' column as part of a string in for_operator_review
                         for_operator_review = f"Operator Review: {data.loc[index + 1, 'StartTime']}"
 
-                    # If both for_result and for_operator_review have been assigned, concatenate them and store the result in second_result
                     if for_result is not None and for_operator_review is not None:
                         second_result = for_result + ","+" " + for_operator_review
-                        break  # Stop iterating once both conditions are met
-
+                        break  
                 board, created = Board.objects.update_or_create(serial_number=board_serial_number, defaults={
                     'product': product,
                     'type': board_type
