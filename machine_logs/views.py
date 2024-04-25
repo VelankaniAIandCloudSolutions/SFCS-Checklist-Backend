@@ -1,6 +1,6 @@
 
 from django.http import JsonResponse
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, render
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
@@ -8,9 +8,11 @@ from .serializers import *
 from machine_maintenance.serializers import *
 from machine_maintenance.models import *
 from rest_framework.decorators import authentication_classes, permission_classes
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from urllib.parse import urlparse, unquote
 from .models import *
+from machine_maintenance.models import *
+
 from datetime import datetime
 from django.utils import timezone
 import requests
@@ -594,3 +596,67 @@ def get_machine_reports_by_date_range(request):
 
     except Exception as e:
         return Response({'error': str(e)}, status=500)
+
+
+@api_view(['GET', 'POST'])
+@authentication_classes([])
+@permission_classes([])
+def get_machine_logs_count(request):
+    if request.method == 'POST':
+        try:
+            # Retrieve all lines from the Line model
+            lines = Line.objects.all()
+            # Serialize the lines
+            serializer = LineSerializer(lines, many=True)
+            selected_line_id = request.data.get('selected_line_id')
+            selected_date_option = request.data.get('selected_option')
+
+            # Retrieve the selected line
+            selected_line = None
+            if selected_line_id is not None:
+                selected_line = Line.objects.get(pk=selected_line_id)
+            # Define date range based on selected date option
+            if selected_date_option == 'Today':
+                start_date = date.today()
+                end_date = start_date + timedelta(days=1)
+            elif selected_date_option == 'Previous_Week':
+                end_date = date.today()
+                start_date = end_date - timedelta(weeks=1)
+            elif selected_date_option == 'Previous_Month':
+                end_date = date.today()
+                start_date = end_date - timedelta(days=30)
+            elif selected_date_option == 'Custom Date':
+                start_date = request.data.get('start_date')
+                end_date = request.data.get('end_date')
+
+            machines_of_that_line = Machine.objects.filter(line=selected_line)
+
+            machine_logs = BoardLog.objects.filter(
+                machines__line__in=[selected_line],
+                date__range=[start_date, end_date]
+            )
+            # Count occurrences of different types of panels
+            pick_and_place_count = machine_logs.filter(
+                machines__name__icontains='Pick & Place').count()
+
+            solder_paste_inspection_count = machine_logs.filter(
+                machines__name__icontains='Solder Paste Inspection').count()
+
+            pre_aoi_count = machine_logs.filter(
+                machines__name__icontains='Pre AOI').count()
+
+            post_aoi_count = machine_logs.filter(
+                machines__name__icontains='Post AOI').count()
+
+            # Construct response
+            response_data = {
+                'lines': serializer.data,
+                'pp_count': pick_and_place_count,
+                'spi_count': solder_paste_inspection_count,
+                'aoi_count': pre_aoi_count + post_aoi_count,
+            }
+
+            return Response(response_data, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
