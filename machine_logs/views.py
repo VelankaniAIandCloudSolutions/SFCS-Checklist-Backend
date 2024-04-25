@@ -21,16 +21,17 @@ from django.db.models import Q
 import pandas as pd
 
 def parse_log_file(s3_url, product=None, board_type='1UP', log_files_folder=None, date=None, log_type=None):
-    try:
+    # try:
         with tempfile.NamedTemporaryFile(delete=False) as temp_file:
             temp_file_path = temp_file.name
             response = requests.get(s3_url)
             if response.status_code == 200:
                 temp_file.write(response.content)
+                temp_file.flush()
+                temp_file.seek(0)
                 if log_type == 'aoi':
                     with open(temp_file_path, 'r') as file:
                         lines = file.readlines()
-
                     serial_number = ''
                     panel_type = ''
                     panel_name = ''
@@ -147,31 +148,39 @@ def parse_log_file(s3_url, product=None, board_type='1UP', log_files_folder=None
                                 )
                                 board_log.machines.add(*pp_machines)
                                 board_log.save()
-            
+                
                 elif log_type == 'spi':
-                    data = pd.read_csv(temp_file_path, header=0)
-                    if '<>' in data.loc[0, 'BarCode']:
-                        board_serial_number = data.loc[0, 'BarCode'].strip(
-                            '<>')
+                    def parse_date(date_str):
+                        try:
+                            return datetime.strptime(date_str, '%m/%d/%Y %H:%M:%S')
+                        except ValueError:
+                            pass
+                        
+                        try:
+                            return datetime.strptime(date_str, '%Y-%m-%d %H:%M:%S')
+                        except ValueError:
+                            raise ValueError("Date format not recognized")
+                        
+                    data = pd.read_csv(temp_file_path, header=0, index_col=False)
+
+                    data.reset_index(drop=True, inplace=True)
+                    if '>' in data['PCBIndex'].iloc[0]:
+                        data.iloc[0] = data.iloc[0].shift(-1)
+                    
+                    if '<' in data['BarCode'].iloc[0] or '>' in data['BarCode'].iloc[0] or '<>' in data['BarCode'].iloc[0]:    
+                        board_serial_number = data['BarCode'].iloc[0].strip('<>').strip()
                     else:
-                        board_serial_number = data.loc[0, 'BarCode']
+                        board_serial_number = data['BarCode'].iloc[0]
 
-                    begin_date_time_str = data.loc[0, 'Date'] + \
-                        ' ' + data.loc[0, 'StartTime']
+                    begin_date_time_str = data.iloc[0]['Date'] + ' ' + data.iloc[0]['StartTime']
+                    end_date_time_str = data.iloc[0]['Date'] + ' ' + data.iloc[0]['EndTime']
+                    begin_date_time = parse_date(begin_date_time_str)
+                    end_date_time = parse_date(end_date_time_str)
 
-                    end_date_time_str = data.loc[0,
-                                                'Date'] + ' ' + data.loc[0, 'EndTime']
+                    first_result = data.iloc[0]['Result']
 
-                    begin_date_time = datetime.strptime(
-                        begin_date_time_str, '%m/%d/%Y %H:%M:%S')
-
-                    end_date_time = datetime.strptime(
-                        end_date_time_str, '%m/%d/%Y %H:%M:%S')
-
-                    first_result = data.loc[0, 'Result']
-
-                    panel_name = data.loc[0, 'Recipe']
-                    recipe_path = data.loc[0, 'Recipe'].lower()
+                    panel_name = data.iloc[0]['Recipe']
+                    recipe_path = data.iloc[0]['Recipe'].lower()
 
                     if 'top' in recipe_path:
                         panel_type = 'Top'
@@ -184,15 +193,15 @@ def parse_log_file(s3_url, product=None, board_type='1UP', log_files_folder=None
                     for_operator_review = None
                     second_result = None
 
-                    for index, row in data.iterrows():
+                    for index, row in data.head(20).iterrows():
                         if row['Date'] == 'Result':
-                            for_result = f"Result: {data.loc[index + 1, 'Date']}"
+                            for_result = f"Result: {data.iloc[index + 1]['Date']}"
 
                         if row['StartTime'] == "Operator Review":
-                            for_operator_review = f"Operator Review: {data.loc[index + 1, 'StartTime']}"
+                            for_operator_review = f"Operator Review: {data.iloc[index + 1]['StartTime']}"
 
                         if for_result is not None and for_operator_review is not None:
-                            second_result = for_result + ","+" " + for_operator_review
+                            second_result = for_result + ", " + for_operator_review
                             break
                     board, created = Board.objects.update_or_create(serial_number=board_serial_number, defaults={
                         'product': product,
@@ -242,18 +251,19 @@ def parse_log_file(s3_url, product=None, board_type='1UP', log_files_folder=None
             else: 
                 print("Failed to download file from S3:")
                 return None
-    except Exception as e:
-        print("Error:", e)
-        return None
+    # except Exception as e:
+    #     print("Error:", e)
+    #     return None
 
 
 @api_view(['POST'])
 @authentication_classes([])
 @permission_classes([])
 def create_board_log(request):
-    try:
+    # try:
         s3_url = request.data.get('s3_url')
         parsed_url = urlparse(s3_url)
+        print(parsed_url)
         path_components = parsed_url.path.split('/')
         date = path_components[1]
         log_files_folder = unquote(path_components[2])
@@ -286,9 +296,9 @@ def create_board_log(request):
             return Response({'board_log': board_log})
         else:
             return Response({'error': 'Failed to parse log file.'}, status=400)
-    except Exception as e:
-        print("Error occurred while processing request:", e)
-        return Response({'error': 'An unexpected error occurred.'}, status=500)
+    # except Exception as e:
+    #     print("Error occurred while processing request:", e)
+    #     return Response({'error': 'An unexpected error occurred.'}, status=500)
     
 @api_view(['GET'])
 def get_board_logs(request):

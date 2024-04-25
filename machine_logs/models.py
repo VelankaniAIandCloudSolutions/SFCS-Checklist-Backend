@@ -36,4 +36,6 @@ class BoardLog(BaseModel):
     notes = models.TextField(null=True, blank=True)
 
     def __str__(self):
+        if self.panel is None:
+            return self.machines.first().name + ' ' + str(self.date)
         return self.machines.first().name + ' ' + self.panel.type + ' ' + str(self.date)
