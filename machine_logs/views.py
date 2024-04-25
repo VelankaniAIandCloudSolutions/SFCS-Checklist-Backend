@@ -20,13 +20,239 @@ import xml.etree.ElementTree as ET
 from django.db.models import Q
 import pandas as pd
 
+# def parse_log_file(s3_url, product=None, board_type='1UP', log_files_folder=None, date=None, log_type=None):
+#         with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+#             temp_file_path = temp_file.name
+#             response = requests.get(s3_url)
+#             if response.status_code == 200:
+#                 temp_file.write(response.content)
+#                 if log_type == 'aoi':
+#                     with open(temp_file_path, 'r') as file:
+#                         lines = file.readlines()
+
+#                     serial_number = ''
+#                     panel_type = ''
+#                     panel_name = ''
+#                     result = lines[-1].strip()
+
+#                     for line in lines:
+#                         if 'Serial Number:' in line:
+#                             serial_number = line.split(':')[-1].strip()
+#                         if 'Panel:' in line:
+#                             panel_name = line.split(':')[-1].strip()
+#                             panel_info = line.split(':')[-1].strip().lower()
+#                             if 'top' in panel_info:
+#                                 panel_type = 'Top'
+#                             elif 'bot' in panel_info or 'bottom' in panel_info:
+#                                 panel_type = 'Bottom'
+
+#                     board, created = Board.objects.update_or_create(serial_number=serial_number, defaults={
+#                         'product': product,
+#                         'type': board_type
+#                     })
+
+#                     panel, created = Panel.objects.update_or_create(name=panel_name, board=board, defaults={
+#                         'type': panel_type
+#                     })
+
+#                     if log_files_folder:
+#                         machines = Machine.objects.filter(
+#                             log_files_folder=log_files_folder)
+#                         if machines:
+#                             board_log, created = BoardLog.objects.update_or_create(
+#                                 log_file_url=s3_url,
+#                                 defaults={
+#                                     'date': date,
+#                                     'panel': panel,
+#                                     'result': result,
+#                                 }
+#                             )
+#                             board_log.machines.add(*machines)
+#                             board_log.save()
+#                         else:
+#                             aoi_machines = Machine.objects.filter(
+#                                 name__icontains='aoi')
+#                             if aoi_machines:
+#                                 board_log, created = BoardLog.objects.update_or_create(
+#                                     log_file_url=s3_url,
+#                                     defaults={
+#                                         'date': date,
+#                                         'panel': panel,
+#                                         'result': result,
+#                                     }
+#                                 )
+#                                 board_log.machines.add(*aoi_machines)
+#                                 board_log.save()
+#                 elif log_type == 'p&p':
+#                     tree = ET.parse(temp_file_path)
+#                     root = tree.getroot()
+#                     begin_date_time = datetime.strptime(
+#                         root.attrib.get('dateBegin'), "%Y-%m-%dT%H:%M:%S.%f%z")
+#                     end_date_time = datetime.strptime(root.attrib.get(
+#                         'dateComplete'), "%Y-%m-%dT%H:%M:%S.%f%z")
+#                     first_job = root.find('.//jobs/job')
+#                     panel_type = first_job.attrib.get(
+#                         'boardSide') if first_job is not None else 'Unknown'
+#                     panel_name = first_job.attrib.get(
+#                         'boardName') if first_job is not None else 'Unknown'
+#                     first_panel = root.find('.//panels/panel')
+#                     omit_value = first_panel.attrib.get(
+#                         'omit') if first_panel is not None else None
+#                     if first_panel is not None and first_panel.attrib.get('panelID') != '':
+#                         panel_name = first_panel.attrib.get('panelID')
+#                     else:
+#                         panel_name  = root.attrib.get('boardID') if root.attrib else 'Unknown'
+
+#                     result = 'Omit: ' + omit_value if omit_value else 'Unknown'
+
+#                     board, created = Board.objects.update_or_create(serial_number=serial_number, defaults={
+#                         'product': product,
+#                         'type': board_type
+#                     })
+
+#                     panel, created = Panel.objects.update_or_create(name=panel_name, board=board, defaults={
+#                         'type': panel_type
+#                     })
+
+#                     if log_files_folder:
+#                         machines = Machine.objects.filter(
+#                             log_files_folder=log_files_folder)
+#                         if machines:
+#                             board_log, created = BoardLog.objects.update_or_create(
+#                                 log_file_url=s3_url,
+#                                 defaults={
+#                                     'date': date,
+#                                     'panel': panel,
+#                                     'result': result,
+#                                     'begin_date_time': begin_date_time,
+#                                     'end_date_time': end_date_time
+#                                 }
+#                             )
+#                             board_log.machines.add(*machines)
+#                             board_log.save()
+#                         else:
+#                             pp_machines = Machine.objects.filter(
+#                                 name__icontains='Pick & Place')
+#                             if pp_machines:
+#                                 board_log, created = BoardLog.objects.update_or_create(
+#                                     log_file_url=s3_url,
+#                                     defaults={
+#                                         'date': date,
+#                                         'panel': panel,
+#                                         'result': result,
+#                                         'begin_date_time': begin_date_time,
+#                                         'end_date_time': end_date_time
+#                                     }
+#                                 )
+#                                 board_log.machines.add(*pp_machines)
+#                                 board_log.save()
+
+#                 elif log_type == 'spi':
+#                     data = pd.read_csv(temp_file_path, header=0)
+#                     if '<>' in data.loc[0, 'BarCode']:
+#                         board_serial_number = data.loc[0, 'BarCode'].strip(
+#                             '<>')
+#                     else:
+#                         board_serial_number = data.loc[0, 'BarCode']
+
+#                     begin_date_time_str = data.loc[0, 'Date'] + \
+#                         ' ' + data.loc[0, 'StartTime']
+
+#                     end_date_time_str = data.loc[0,
+#                                                 'Date'] + ' ' + data.loc[0, 'EndTime']
+
+#                     begin_date_time = datetime.strptime(
+#                         begin_date_time_str, '%m/%d/%Y %H:%M:%S')
+
+#                     end_date_time = datetime.strptime(
+#                         end_date_time_str, '%m/%d/%Y %H:%M:%S')
+
+#                     first_result = data.loc[0, 'Result']
+
+#                     panel_name = data.loc[0, 'Recipe']
+#                     recipe_path = data.loc[0, 'Recipe'].lower()
+
+#                     if 'top' in recipe_path:
+#                         panel_type = 'Top'
+#                     elif 'bot' in recipe_path or 'bottom' in recipe_path:
+#                         panel_type = 'Bottom'
+#                     else:
+#                         panel_type = 'Unknown'
+
+#                     for_result = None
+#                     for_operator_review = None
+#                     second_result = None
+
+#                     for index, row in data.iterrows():
+#                         if row['Date'] == 'Result':
+#                             for_result = f"Result: {data.loc[index + 1, 'Date']}"
+
+#                         if row['StartTime'] == "Operator Review":
+#                             for_operator_review = f"Operator Review: {data.loc[index + 1, 'StartTime']}"
+
+#                         if for_result is not None and for_operator_review is not None:
+#                             second_result = for_result + ","+" " + for_operator_review
+#                             break
+#                     board, created = Board.objects.update_or_create(serial_number=board_serial_number, defaults={
+#                         'product': product,
+#                         'type': board_type
+#                     })
+#                     panel, created = Panel.objects.update_or_create(name=panel_name, board=board, defaults={
+#                         'type': panel_type
+#                     })
+
+#                     if log_files_folder:
+#                         machines = Machine.objects.filter(
+#                             log_files_folder=log_files_folder)
+#                         if machines:
+#                             board_log, created = BoardLog.objects.update_or_create(
+#                                 log_file_url=s3_url,
+#                                 defaults={
+#                                     'date': date,
+#                                     'panel': panel,
+#                                     'result': second_result,
+#                                     'begin_date_time': begin_date_time,
+#                                     'end_date_time': end_date_time
+#                                 }
+#                             )
+#                             board_log.machines.add(*machines)
+#                             board_log.save()
+#                         else:
+#                             spi_machines = Machine.objects.filter(
+#                                 Q(name__icontains='SPI') | Q(name__icontains='Solder Paste Inspection'))
+#                             if spi_machines:
+#                                 board_log, created = BoardLog.objects.update_or_create(
+#                                     log_file_url=s3_url,
+#                                     defaults={
+#                                         'date': date,
+#                                         'panel': panel,
+#                                         'result': second_result,
+#                                         'begin_date_time': begin_date_time,
+#                                         'end_date_time': end_date_time
+#                                     }
+#                                 )
+#                                 board_log.machines.add(*spi_machines)
+#                                 board_log.save()
+
+
+#                 os.unlink(temp_file_path)
+#                 board_log_serializer = BoardLogSerializer(board_log)
+#                 return board_log_serializer.data
+#             else:
+#                 print("Failed to download file from S3:")
+#                 return None
+
 def parse_log_file(s3_url, product=None, board_type='1UP', log_files_folder=None, date=None, log_type=None):
-        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-            temp_file_path = temp_file.name
+    with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+        temp_file_path = temp_file.name
+
+        try:
             response = requests.get(s3_url)
-            if response.status_code == 200:
-                temp_file.write(response.content)
-                if log_type == 'aoi':
+            response.raise_for_status()  # Raise an exception for bad status codes
+            temp_file.write(response.content)
+
+            if log_type == 'aoi':
+                try:
                     with open(temp_file_path, 'r') as file:
                         lines = file.readlines()
 
@@ -83,7 +309,12 @@ def parse_log_file(s3_url, product=None, board_type='1UP', log_files_folder=None
                                 )
                                 board_log.machines.add(*aoi_machines)
                                 board_log.save()
-                elif log_type == 'p&p':
+                except Exception as e:
+                    print("An error occurred while parsing AOI log:", str(e))
+                    return None
+
+            elif log_type == 'p&p':
+                try:
                     tree = ET.parse(temp_file_path)
                     root = tree.getroot()
                     begin_date_time = datetime.strptime(
@@ -101,7 +332,8 @@ def parse_log_file(s3_url, product=None, board_type='1UP', log_files_folder=None
                     if first_panel is not None and first_panel.attrib.get('panelID') != '':
                         panel_name = first_panel.attrib.get('panelID')
                     else:
-                        panel_name  = root.attrib.get('boardID') if root.attrib else 'Unknown'
+                        panel_name = root.attrib.get(
+                            'boardID') if root.attrib else 'Unknown'
 
                     result = 'Omit: ' + omit_value if omit_value else 'Unknown'
 
@@ -146,8 +378,12 @@ def parse_log_file(s3_url, product=None, board_type='1UP', log_files_folder=None
                                 )
                                 board_log.machines.add(*pp_machines)
                                 board_log.save()
-            
-                elif log_type == 'spi':
+                except Exception as e:
+                    print("An error occurred while parsing P&P log:", str(e))
+                    return None
+
+            elif log_type == 'spi':
+                try:
                     data = pd.read_csv(temp_file_path, header=0)
                     if '<>' in data.loc[0, 'BarCode']:
                         board_serial_number = data.loc[0, 'BarCode'].strip(
@@ -159,7 +395,7 @@ def parse_log_file(s3_url, product=None, board_type='1UP', log_files_folder=None
                         ' ' + data.loc[0, 'StartTime']
 
                     end_date_time_str = data.loc[0,
-                                                'Date'] + ' ' + data.loc[0, 'EndTime']
+                                                 'Date'] + ' ' + data.loc[0, 'EndTime']
 
                     begin_date_time = datetime.strptime(
                         begin_date_time_str, '%m/%d/%Y %H:%M:%S')
@@ -233,14 +469,22 @@ def parse_log_file(s3_url, product=None, board_type='1UP', log_files_folder=None
                                 )
                                 board_log.machines.add(*spi_machines)
                                 board_log.save()
+                except Exception as e:
+                    print("An error occurred while parsing SPI log:", str(e))
+                    return None
 
-
-                os.unlink(temp_file_path)
-                board_log_serializer = BoardLogSerializer(board_log)
-                return board_log_serializer.data
-            else: 
-                print("Failed to download file from S3:")
+            else:
+                print("Invalid log type specified:", log_type)
                 return None
+
+            os.unlink(temp_file_path)
+            board_log_serializer = BoardLogSerializer(board_log)
+            return board_log_serializer.data
+        except requests.exceptions.RequestException as e:
+            print("Failed to download file from S3:", str(e))
+            return None
+        except Exception as e:
+            print("An unexpected error occurred:", str(e))
 
 
 @api_view(['POST'])
@@ -254,7 +498,7 @@ def create_board_log(request):
     def parse_date_timezone_aware(date_str): return timezone.make_aware(
         datetime.strptime(date_str, "%d-%m-%Y"))
     log_files_folder = unquote(path_components[2])
-    log_type =''
+    log_type = ''
     if 'aoi' in log_files_folder.lower():
         log_type = 'aoi'
     elif 'p&p' in log_files_folder.lower():
@@ -271,12 +515,12 @@ def create_board_log(request):
         board_log.save()
     else:
         if 'aoi' in log_files_folder.lower():
-            machines  = Machine.objects.filter(name__icontains='aoi')
+            machines = Machine.objects.filter(name__icontains='aoi')
         elif 'p&p' in log_files_folder.lower():
             machines = Machine.objects.filter(name__icontains='Pick & Place')
         elif 'spi' in log_files_folder.lower():
-            machines = Machine.objects.filter( Q(name__icontains='SPI') | Q(name__icontains='Solder Paste Inspection'))
-
+            machines = Machine.objects.filter(Q(name__icontains='SPI') | Q(
+                name__icontains='Solder Paste Inspection'))
 
     board_log = parse_log_file(s3_url=s3_url, log_files_folder=log_files_folder,
                                date=parse_date_timezone_aware(date).date(), log_type=log_type)
