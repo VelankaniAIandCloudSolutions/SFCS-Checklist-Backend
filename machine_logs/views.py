@@ -101,8 +101,11 @@ def parse_log_file(s3_url, product=None, board_type='1UP', log_files_folder=None
                 first_panel = root.find('.//panels/panel')
                 omit_value = first_panel.attrib.get(
                     'omit') if first_panel is not None else None
-                serial_number = first_panel.attrib.get(
-                    'panelID') if first_panel is not None else 'Unknown'
+                if first_panel is not None and first_panel.attrib.get('panelID') != '':
+                    panel_name = first_panel.attrib.get('panelID')
+                else:
+                    panel_name  = root.attrib.get('boardID') if root.attrib else 'Unknown'
+
                 result = 'Omit: ' + omit_value if omit_value else 'Unknown'
 
                 board, created = Board.objects.update_or_create(serial_number=serial_number, defaults={
@@ -252,12 +255,30 @@ def create_board_log(request):
     def parse_date_timezone_aware(date_str): return timezone.make_aware(
         datetime.strptime(date_str, "%d-%m-%Y"))
     log_files_folder = unquote(path_components[2])
+    log_type =''
     if 'aoi' in log_files_folder.lower():
         log_type = 'aoi'
     elif 'p&p' in log_files_folder.lower():
         log_type = 'p&p'
     elif 'spi' in log_files_folder.lower():
         log_type = 'spi'
+
+    machines = Machine.objects.filter(log_files_folder=log_files_folder)
+    if machines:
+        board_log, created = BoardLog.objects.update_or_create(log_file_url=s3_url, defaults={
+            'date': parse_date_timezone_aware(date).date()
+        })
+        board_log.machines.add(*machines)
+        board_log.save()
+    else:
+        if 'aoi' in log_files_folder.lower():
+            machines  = Machine.objects.filter(name__icontains='aoi')
+        elif 'p&p' in log_files_folder.lower():
+            machines = Machine.objects.filter(name__icontains='Pick & Place')
+        elif 'spi' in log_files_folder.lower():
+            machines = Machine.objects.filter( Q(name__icontains='SPI') | Q(name__icontains='Solder Paste Inspection'))
+
+
     board_log = parse_log_file(s3_url=s3_url, log_files_folder=log_files_folder,
                                date=parse_date_timezone_aware(date).date(), log_type=log_type)
     return Response({
