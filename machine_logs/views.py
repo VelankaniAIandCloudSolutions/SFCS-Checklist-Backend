@@ -21,6 +21,7 @@ from django.db.models import Q
 import pandas as pd
 
 def parse_log_file(s3_url, product=None, board_type='1UP', log_files_folder=None, date=None, log_type=None):
+    try:
         with tempfile.NamedTemporaryFile(delete=False) as temp_file:
             temp_file_path = temp_file.name
             response = requests.get(s3_url)
@@ -99,9 +100,9 @@ def parse_log_file(s3_url, product=None, board_type='1UP', log_files_folder=None
                     omit_value = first_panel.attrib.get(
                         'omit') if first_panel is not None else None
                     if first_panel is not None and first_panel.attrib.get('panelID') != '':
-                        panel_name = first_panel.attrib.get('panelID')
+                        serial_number = first_panel.attrib.get('panelID')
                     else:
-                        panel_name  = root.attrib.get('boardID') if root.attrib else 'Unknown'
+                        serial_number  = root.attrib.get('boardID') if root.attrib else 'Unknown'
 
                     result = 'Omit: ' + omit_value if omit_value else 'Unknown'
 
@@ -241,50 +242,54 @@ def parse_log_file(s3_url, product=None, board_type='1UP', log_files_folder=None
             else: 
                 print("Failed to download file from S3:")
                 return None
+    except Exception as e:
+        print("Error:", e)
+        return None
 
 
 @api_view(['POST'])
 @authentication_classes([])
 @permission_classes([])
 def create_board_log(request):
-    s3_url = request.data.get('s3_url')
-    parsed_url = urlparse(s3_url)
-    path_components = parsed_url.path.split('/')
-    date = path_components[1]
-    def parse_date_timezone_aware(date_str): return timezone.make_aware(
-        datetime.strptime(date_str, "%d-%m-%Y"))
-    log_files_folder = unquote(path_components[2])
-    log_type =''
-    if 'aoi' in log_files_folder.lower():
-        log_type = 'aoi'
-    elif 'p&p' in log_files_folder.lower():
-        log_type = 'p&p'
-    elif 'spi' in log_files_folder.lower():
-        log_type = 'spi'
-
-    machines = Machine.objects.filter(log_files_folder=log_files_folder)
-    if machines:
-        board_log, created = BoardLog.objects.update_or_create(log_file_url=s3_url, defaults={
-            'date': parse_date_timezone_aware(date).date()
-        })
-        board_log.machines.add(*machines)
-        board_log.save()
-    else:
+    try:
+        s3_url = request.data.get('s3_url')
+        parsed_url = urlparse(s3_url)
+        path_components = parsed_url.path.split('/')
+        date = path_components[1]
+        log_files_folder = unquote(path_components[2])
+        log_type = ''
         if 'aoi' in log_files_folder.lower():
-            machines  = Machine.objects.filter(name__icontains='aoi')
+            log_type = 'aoi'
         elif 'p&p' in log_files_folder.lower():
-            machines = Machine.objects.filter(name__icontains='Pick & Place')
+            log_type = 'p&p'
         elif 'spi' in log_files_folder.lower():
-            machines = Machine.objects.filter( Q(name__icontains='SPI') | Q(name__icontains='Solder Paste Inspection'))
+            log_type = 'spi'
 
+        machines = Machine.objects.filter(log_files_folder=log_files_folder)
+        if machines:
+            board_log, created = BoardLog.objects.update_or_create(log_file_url=s3_url, defaults={
+                'date': timezone.make_aware(datetime.strptime(date, "%d-%m-%Y")).date()
+            })
+            board_log.machines.add(*machines)
+            board_log.save()
+        else:
+            if 'aoi' in log_files_folder.lower():
+                machines = Machine.objects.filter(name__icontains='aoi')
+            elif 'p&p' in log_files_folder.lower():
+                machines = Machine.objects.filter(name__icontains='Pick & Place')
+            elif 'spi' in log_files_folder.lower():
+                machines = Machine.objects.filter(Q(name__icontains='SPI') | Q(name__icontains='Solder Paste Inspection'))
 
-    board_log = parse_log_file(s3_url=s3_url, log_files_folder=log_files_folder,
-                               date=parse_date_timezone_aware(date).date(), log_type=log_type)
-    return Response({
-        'board_log': board_log
-    })
-
-
+        board_log = parse_log_file(s3_url=s3_url, log_files_folder=log_files_folder,
+                                   date=timezone.make_aware(datetime.strptime(date, "%d-%m-%Y")).date(), log_type=log_type)
+        if board_log is not None:
+            return Response({'board_log': board_log})
+        else:
+            return Response({'error': 'Failed to parse log file.'}, status=400)
+    except Exception as e:
+        print("Error occurred while processing request:", e)
+        return Response({'error': 'An unexpected error occurred.'}, status=500)
+    
 @api_view(['GET'])
 def get_board_logs(request):
     if 'board_number' in request.query_params:
