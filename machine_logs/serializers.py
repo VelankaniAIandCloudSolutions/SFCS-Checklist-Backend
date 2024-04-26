@@ -28,8 +28,10 @@ class BoardLogSerializer(serializers.ModelSerializer):
     board_serial_number = serializers.SerializerMethodField()
 
     def get_board_serial_number(self, obj):
-        return obj.panel.board.serial_number
-
+        if obj.panel:
+            return obj.panel.board.serial_number
+        else:
+            return ''
     class Meta:
         model = BoardLog
         fields = '__all__'
