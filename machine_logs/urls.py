@@ -7,4 +7,5 @@ urlpatterns = [
     path('get-machine-list/', views.get_machine_list),
     path('get-machine-reports-by-date-range/',
          views.get_machine_reports_by_date_range),
+    path('get-machineLogs-count/', views.get_machine_logs_count)
 ]
