@@ -622,7 +622,7 @@ def get_machine_logs_count(request):
             elif selected_date_option == 'Previous_Month':
                 end_date = date.today()
                 start_date = end_date - timedelta(days=30)
-            elif selected_date_option == 'Custom Date':
+            elif selected_date_option == 'Custom':
                 start_date = request.data.get('start_date')
                 end_date = request.data.get('end_date')
 
