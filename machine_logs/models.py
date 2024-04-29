@@ -5,7 +5,7 @@ from accounts.models import BaseModel
 
 
 class Board(BaseModel):
-    serial_number = models.CharField(max_length=20)
+    serial_number = models.CharField(max_length=255)
     product = models.ForeignKey(
         Product, on_delete=models.SET_NULL, null=True, related_name='boards')
     type = models.CharField(max_length=6, default='1UP')
@@ -15,7 +15,7 @@ class Board(BaseModel):
 
 
 class Panel(BaseModel):
-    name = models.CharField(max_length=100, null=True, blank=True)
+    name = models.CharField(max_length=255, null=True, blank=True)
     board = models.ForeignKey(
         Board, on_delete=models.CASCADE, related_name='panels')
     type = models.CharField(max_length=6, choices=(
