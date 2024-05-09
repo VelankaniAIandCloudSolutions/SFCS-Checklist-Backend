@@ -113,6 +113,8 @@ class BillOfMaterialsType(BaseModel):
 
 class BomFormat(BaseModel):
     name = models.CharField(max_length=255, null=True, blank=True)
+    sample_file = models.FileField(
+        null=True, blank=True, upload_to='bom_format_files/')
 
     def __str__(self):
         return self.name
