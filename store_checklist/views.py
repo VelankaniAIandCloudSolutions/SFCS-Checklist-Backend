@@ -534,7 +534,7 @@ def get_boms(request):
         # boms = BillOfMaterials.objects.all()
         # serializer = BillOfMaterialsSerializer(boms, many=True)
 
-        boms_without_line_items = BillOfMaterials.objects.all()
+        boms_without_line_items = BillOfMaterials.objects.all().order_by('-created_at')
         bom_serializer = BillOfMaterialsListSerializer(
             boms_without_line_items, many=True)
 
