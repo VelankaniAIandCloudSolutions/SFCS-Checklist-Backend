@@ -8,7 +8,7 @@ from .models import *
 from .serializers import *
 from django.utils import timezone
 from store_checklist.models import BillOfMaterials, BillOfMaterialsLineItem, Product, Project
-from store_checklist.serializers import BillOfMaterialsSerializer, BillOfMaterialsLineItemSerializer, ProductSerializer, ProjectSerializer
+from store_checklist.serializers import BillOfMaterialsSerializer, BillOfMaterialsLineItemSerializer, ProductSerializer, ProjectSerializer , BillOfMaterialsSerializerNew
 from django.db.models import Max
 import re
 from django_celery_results.models import TaskResult
@@ -74,8 +74,10 @@ def get_project_pricing_page(request):
     try:
         projects = Project.objects.all()
         products = Product.objects.all()
+        boms = BillOfMaterials.objects.all()
         projects_serializer = ProjectSerializer(projects, many=True)
         products_serializer = ProductSerializer(products, many=True)
+        boms_serializer = BillOfMaterialsSerializerNew(boms , many = True)
 
         last_task_result = TaskResult.objects.filter(result='1').order_by('-date_done').first()
         last_updated_at = ''
@@ -89,6 +91,7 @@ def get_project_pricing_page(request):
             'projects': projects_serializer.data,
             'products': products_serializer.data,
             'last_updated_at': last_updated_at,
+            'boms' : boms_serializer.data,
         }
 
         return Response(data, status=status.HTTP_200_OK)
