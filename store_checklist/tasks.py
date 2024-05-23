@@ -1743,7 +1743,7 @@ def process_bom_file_and_create_order_new(bom_file, bom_file_name, data, user_id
             return ('BOM Uploaded and Order Created Successfully', 'SUCCESS', None)
 
         else:
-
+            print('inside else ')
             pe_bom_file_data = pd.read_excel(
                 bom_file, header=11, sheet_name='gen2_1600w_aux_supply')
 
@@ -1760,7 +1760,7 @@ def process_bom_file_and_create_order_new(bom_file, bom_file_name, data, user_id
             for index, row in pe_bom_file_data.iterrows():
                 mfr_part_number = row['Mfr. Part No'] if pd.notna(
                     row['Mfr. Part No']) else None
-                print(f"Index: {index}, Row: {row}")
+                # print(f"Index: {index}, Row: {row}")
                 if mfr_part_number is not None:
                     # Update or create Manufacturer
                     print(f"Index: {index}, Row: {row}")
@@ -1865,11 +1865,12 @@ def process_bom_file_and_create_order_new(bom_file, bom_file_name, data, user_id
                                 }
                             )
                             # print(f"BillOfMaterialsLineItemReference {'updated' if not updated else 'created'}: {ref}")
-                return 'PE BOM Uploaded Successfully'
+            # return 'PE BOM Uploaded Successfully'
 
         order = Order.objects.create(
             bom=bom, batch_quantity=data.get('batch_quantity'), updated_by=user, created_by=user)
 
+        print('order created succesfully', order)
         store_team_profiles = UserAccount.objects.filter(
             is_store_team=True)
 
