@@ -111,6 +111,15 @@ class BillOfMaterialsType(BaseModel):
         return self.name
 
 
+class BomFormat(BaseModel):
+    name = models.CharField(max_length=255, null=True, blank=True)
+    sample_file = models.FileField(
+        null=True, blank=True, upload_to='bom_format_files/')
+
+    def __str__(self):
+        return self.name
+
+
 class BillOfMaterials(BaseModel):
     product = models.ForeignKey(
         Product, on_delete=models.CASCADE, related_name='boms')
@@ -127,6 +136,8 @@ class BillOfMaterials(BaseModel):
     pcb_file_name = models.CharField(max_length=255, null=True, blank=True)
     bom_file_name = models.CharField(max_length=255, null=True, blank=True)
     change_note = models.TextField(null=True, blank=True)
+    bom_format = models.ForeignKey(
+        BomFormat, on_delete=models.SET_NULL, null=True, blank=True)
 
     def __str__(self):
         return "BOM for: " + self.product.name

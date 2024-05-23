@@ -128,8 +128,10 @@ def upload_bom_task(request):
         'bom_rev_no': request.data.get('bom_rev_no'),
         'issue_date': request.data.get('issue_date'),
         'bom_rev_change_note': request.data.get('bom_rev_change_note'),
+        'bom_format_id': request.data.get('bom_format_id'),
         'pcb_file_name': pcb_file_name,
         'pcb_file_path': pcb_path,
+
 
 
         # 'batch_quantity': request.data.get('batch_quantity'),
@@ -534,7 +536,7 @@ def get_boms(request):
         # boms = BillOfMaterials.objects.all()
         # serializer = BillOfMaterialsSerializer(boms, many=True)
 
-        boms_without_line_items = BillOfMaterials.objects.all()
+        boms_without_line_items = BillOfMaterials.objects.all().order_by('-created_at')
         bom_serializer = BillOfMaterialsListSerializer(
             boms_without_line_items, many=True)
 
@@ -1365,10 +1367,14 @@ def create_order(request, *args, **kwargs):
             #     boms_by_project, many=True)
 
             # Return all data in a single response
+            bom_formats = BomFormat.objects.all()
+            bom_formats_serializer = BomFormatSerializer(
+                bom_formats, many=True)
             response_data = {
                 'projects': project_serializer.data,
                 'products': serialized_products,
                 'boms': bom_serializer.data,
+                'bom_formats': bom_formats_serializer.data
                 # 'boms_by_project': bom_by_project_serializer.data,
 
             }
@@ -1471,6 +1477,7 @@ def create_order_task(request):
         'issue_date': request.data.get('issue_date'),
         'bom_rev_change_note': request.data.get('bom_rev_change_note'),
         'batch_quantity': request.data.get('batch_quantity'),
+        'bom_format_id': request.data.get('bom_format_id'),
         'pcb_file_name': pcb_file_name,
         'pcb_file_path': pcb_path,
 
