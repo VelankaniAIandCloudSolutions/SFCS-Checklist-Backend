@@ -64,7 +64,8 @@ urlpatterns = [
     path('get-inspection-boards/', views.get_inspection_boards),
     path('create-inspection-board/', views.create_inspection_board),
     path('add-defects-to-board/', views.add_defects_to_board),
-    path('assign-defect-to-board/', views.assign_defect_to_board)
+    path('assign-defect-to-board/', views.assign_defect_to_board),
+    #     path('parse-bom-new/', views.parse_bom_new)
 
 
 

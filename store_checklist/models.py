@@ -155,7 +155,7 @@ class BillOfMaterialsLineItem(BaseModel):
         BillOfMaterials, on_delete=models.CASCADE, related_name='bom_line_items')
     level = models.CharField(max_length=10, blank=True, null=True)
     # uuid = models.CharField(max_length=20,blank=True,null=True)
-    part_number = models.CharField(max_length=255)
+    part_number = models.CharField(max_length=255, blank=True, null=True)
     priority_level = models.CharField(max_length=4, blank=True, null=True)
     value = models.CharField(max_length=255)
     pcb_footprint = models.CharField(max_length=255, null=True, blank=True)
@@ -175,7 +175,8 @@ class BillOfMaterialsLineItem(BaseModel):
     msl = models.CharField(max_length=255, null=True, blank=True)
 
     def __str__(self):
-        return self.part_number + " for BOM ID: " + str(self.bom.id)
+        part_number = self.part_number if self.part_number else "No Part Number"
+        return part_number + " for BOM ID: " + str(self.bom.id)
 
 
 class BillOfMaterialsLineItemReference(BaseModel):
@@ -281,3 +282,11 @@ class Order(BaseModel):
 
     def __str__(self):
         return 'Order for:  ' + str(self.bom.product.name)
+
+
+class Distributor(models.Model):
+    name = models.CharField(max_length=255)
+    api_url = models.URLField()
+
+    def __str__(self):
+        return self.name
