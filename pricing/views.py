@@ -102,9 +102,8 @@ def get_project_pricing_page(request):
 
 
 @api_view(['GET'])
-def get_product_pricing(request, product_id):
+def get_bom_pricing(request, bom_id):
     try:
-        bom_id = request.query_params.get('bom_id')
         print("bom id:", bom_id)
         
         bom_lineitems = BillOfMaterialsLineItem.objects.filter(bom_id=bom_id)
@@ -143,42 +142,23 @@ def get_product_pricing(request, product_id):
 
 
 
-# @api_view(['GET'])
-# def get_product_pricing(request, product_id):
-#     try:
-#         part_prices = PartPricing.objects.filter(product_id=product_id)
-#         part_prices_serializer = PartPricingSerializer(part_prices, many=True)
+@api_view(['GET'])
+def get_product_pricing(request, product_id):
+    try:
+        part_prices = PartPricing.objects.filter(product_id=product_id)
+        part_prices_serializer = PartPricingSerializer(part_prices, many=True)
 
-#         data = {
-#             'part_prices': part_prices_serializer.data,
-#         }
+        data = {
+            'part_prices': part_prices_serializer.data,
+        }
 
-#         return Response(data, status=status.HTTP_200_OK)
+        return Response(data, status=status.HTTP_200_OK)
 
-#     except PartPricing.DoesNotExist:
-#         raise Http404("Part pricing not found for the given product_id.")
+    except PartPricing.DoesNotExist:
+        raise Http404("Part pricing not found for the given product_id.")
 
-#     except Exception as e:
-#         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-# @api_view(['GET'])
-# def get_product_pricing(request, product_id):
-#     try:
-#         part_prices = PartPricing.objects.filter(product_id=product_id)
-#         part_prices_serializer = PartPricingSerializer(part_prices, many=True)
-
-#         data = {
-#             'part_prices': part_prices_serializer.data,
-#         }
-
-#         return Response(data, status=status.HTTP_200_OK)
-
-#     except PartPricing.DoesNotExist:
-#         raise Http404("Part pricing not found for the given product_id.")
-
-#     except Exception as e:
-#         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])
 def get_project_pricing(request, project_id):
