@@ -175,6 +175,19 @@ class BillOfMaterialsLineItemSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class BillOfMaterialsLineItemSerializerNew(serializers.ModelSerializer):
+
+    manufacturer_parts = ManufacturerPartSerializer(many=True)
+    # assembly_stage = AssemblyStageSerializer()
+    line_item_type = BillOfMaterialsLineItemTypeSerializer()
+    # references = BillOfMaterialsLineItemReferenceSerializer(many=True)
+    bom = BillOfMaterialsListSerializer()
+
+    class Meta:
+        model = BillOfMaterialsLineItem
+        fields = '__all__'
+
+
 class BillOfMaterialsSerializer(serializers.ModelSerializer):
     bom_type = BillOfMaterialsTypeSerializer()
     bom_line_items = BillOfMaterialsLineItemSerializer(many=True)

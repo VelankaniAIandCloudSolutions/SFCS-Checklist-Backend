@@ -8,7 +8,7 @@ from .models import *
 from .serializers import *
 from django.utils import timezone
 from store_checklist.models import BillOfMaterials, BillOfMaterialsLineItem, Product, Project
-from store_checklist.serializers import BillOfMaterialsSerializer, BillOfMaterialsLineItemSerializer, ProductSerializer, ProjectSerializer , BillOfMaterialsSerializerNew
+from store_checklist.serializers import BillOfMaterialsSerializer, BillOfMaterialsLineItemSerializer, ProductSerializer, ProjectSerializer , BillOfMaterialsSerializerNew , BillOfMaterialsLineItemSerializerNew, ManufacturerPartSerializer
 from django.db.models import Max
 import re
 from django_celery_results.models import TaskResult
@@ -100,23 +100,85 @@ def get_project_pricing_page(request):
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+
 @api_view(['GET'])
 def get_product_pricing(request, product_id):
     try:
-        part_prices = PartPricing.objects.filter(product_id=product_id)
-        part_prices_serializer = PartPricingSerializer(part_prices, many=True)
+        bom_id = request.query_params.get('bom_id')
+        print("bom id:", bom_id)
+        
+        bom_lineitems = BillOfMaterialsLineItem.objects.filter(bom_id=bom_id)
+        #take bom format into consideration for hdware design 
+        line_items_data = []
+
+        for line_item in bom_lineitems:
+            first_manufacturer_part = line_item.manufacturer_parts.first()
+            
+            if first_manufacturer_part:
+                # manufacturer_data = {
+                #     'id': first_manufacturer_part.manufacturer.id,
+                #     'name': first_manufacturer_part.manufacturer.name
+                # }
+                # part_data = {
+                #     'id': first_manufacturer_part.id,
+                #     'number': first_manufacturer_part.part_number,
+                #     'manufacturer': manufacturer_data
+                # }
+                part_data = ManufacturerPartSerializer(first_manufacturer_part).data
+                line_items_data.append(part_data)
 
         data = {
-            'part_prices': part_prices_serializer.data,
+            'line_items': line_items_data
         }
+
+        print(" Response Data" , data)
 
         return Response(data, status=status.HTTP_200_OK)
 
-    except PartPricing.DoesNotExist:
-        raise Http404("Part pricing not found for the given product_id.")
+    except BillOfMaterials.DoesNotExist:
+        raise Http404("Bill of Materials not found for the given bom_id.")
 
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+# @api_view(['GET'])
+# def get_product_pricing(request, product_id):
+#     try:
+#         part_prices = PartPricing.objects.filter(product_id=product_id)
+#         part_prices_serializer = PartPricingSerializer(part_prices, many=True)
+
+#         data = {
+#             'part_prices': part_prices_serializer.data,
+#         }
+
+#         return Response(data, status=status.HTTP_200_OK)
+
+#     except PartPricing.DoesNotExist:
+#         raise Http404("Part pricing not found for the given product_id.")
+
+#     except Exception as e:
+#         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# @api_view(['GET'])
+# def get_product_pricing(request, product_id):
+#     try:
+#         part_prices = PartPricing.objects.filter(product_id=product_id)
+#         part_prices_serializer = PartPricingSerializer(part_prices, many=True)
+
+#         data = {
+#             'part_prices': part_prices_serializer.data,
+#         }
+
+#         return Response(data, status=status.HTTP_200_OK)
+
+#     except PartPricing.DoesNotExist:
+#         raise Http404("Part pricing not found for the given product_id.")
+
+#     except Exception as e:
+#         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])
 def get_project_pricing(request, project_id):
