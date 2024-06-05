@@ -10,6 +10,8 @@ from store_checklist.models import BillOfMaterials, BillOfMaterialsLineItem, Pro
 from django.db.models import Max
 import re
 import logging
+from django.conf import settings
+from .distributors import digikey_online_distributor, mouser_online_distributor
 logger = logging.getLogger(__name__)
 
 
@@ -155,3 +157,81 @@ def update_pricing_for_all_products():
         logger.error(
             'An error occurred in update_pricing_for_all_products: %s', e)
         raise
+
+
+@shared_task
+def update_distributor_data():
+    try:
+        # Fetch all ManufacturerPart instances
+        manufacturer_parts = ManufacturerPart.objects.all()
+
+        # Iterate through each ManufacturerPart
+        for manufacturer_part in manufacturer_parts:
+            try:
+                # Fetch all Distributor instances
+                for distributor in Distributor.objects.all():
+                    try:
+                        # Check distributor type
+                        if distributor.name.lower() == "digikey":
+                            distributor_response = digikey_online_distributor(
+                                settings.DIGIKEY_APIS_CLIENT_ID,
+                                settings.DIGIKEY_APIS_CLIENT_SECRET,
+                                manufacturer_part.part_number,
+                                "DigiKey"
+                            )
+                        elif distributor.name.lower() == "mouser":
+                            distributor_response = mouser_online_distributor(
+                                settings.MOUSER_API_KEY,
+                                manufacturer_part.part_number,
+                                "Mouser"
+                            )
+
+                        # Print distributor response
+                        print(
+                            f"Distributor Response for {distributor.name}: {distributor_response}")
+
+                        # If distributor response is successful
+                        if distributor_response and not distributor_response.get("error"):
+                            # Update or create currency
+                            # currency, created = Currency.objects.update_or_create(
+                            #     name=distributor_response["Currency"]
+                            # )
+
+                            currency_name = distributor_response.get(
+                                "Currency")
+                            currency, _ = Currency.objects.get_or_create(
+                                name=currency_name)
+
+                            distributor_instance, _ = Distributor.objects.update_or_create(
+                                name=distributor.name.capitalize())
+
+                            # Update or create ManufacturerPartDistributorDetail instance
+                            distributor_detail, created = ManufacturerPartDistributorDetail.objects.update_or_create(
+                                manufacturer_part=manufacturer_part,
+                                distributor=distributor_instance,
+                                defaults={
+                                    'description': distributor_response["Description"],
+                                    'product_url': distributor_response["Product Url"],
+                                    'datasheet_url': distributor_response["Datasheet Url"],
+                                    'stock': distributor_response["Stock"],
+                                    'currency': currency
+                                }
+                            )
+
+                            # Update or create ManufacturerPartPricing instances
+                            pricing = distributor_response.get("Pricing", [])
+                            for price in pricing:
+                                ManufacturerPartPricing.objects.update_or_create(
+                                    manufacturer_part_distributor_detail=distributor_detail,
+
+                                    defaults={
+                                        'price': price["Unit Price"], 'quantity': price["Quantity"], }
+                                )
+                    except Exception as dist_err:
+                        print(
+                            f"Error processing distributor {distributor.name}: {dist_err}")
+            except Exception as part_err:
+                print(
+                    f"Error processing manufacturer part {manufacturer_part.part_number}: {part_err}")
+    except Exception as e:
+        print(f"Error occurred: {e}")
