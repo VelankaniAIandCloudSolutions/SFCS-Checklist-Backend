@@ -22,3 +22,11 @@ admin.site.register(ChecklistSetting)
 admin.site.register(AssemblyStage)
 admin.site.register(Order)
 admin.site.register(BomFormat)
+
+
+admin.site.register(Distributor)
+admin.site.register(Currency)
+admin.site.register(PackageType)
+admin.site.register(ManufacturerPartDistributorDetail)
+admin.site.register(DistributorPackageTypeDetail)
+admin.site.register(ManufacturerPartPricing)
