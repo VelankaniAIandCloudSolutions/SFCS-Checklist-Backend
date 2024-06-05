@@ -32,7 +32,7 @@ class PartPricing(BaseModel):
         return self.part_number
 
 
-class Currency(models.Model):
+class Currency(BaseModel):
     name = models.CharField(max_length=255)
     symbol = models.CharField(max_length=10)
 
@@ -40,14 +40,14 @@ class Currency(models.Model):
         return f'{self.name} ({self.symbol})'
 
 
-class PackageType(models.Model):
+class PackageType(BaseModel):
     name = models.CharField(max_length=255)
 
     def __str__(self):
         return self.name
 
 
-class ManufacturerPartDistributorDetail(models.Model):
+class ManufacturerPartDistributorDetail(BaseModel):
     description = models.TextField()
     product_url = models.URLField()
     datasheet_url = models.URLField()
@@ -61,7 +61,7 @@ class ManufacturerPartDistributorDetail(models.Model):
         return f'{self.manufacturer_part} - {self.distributor}'
 
 
-class DistributorPackageTypeDetail(models.Model):
+class DistributorPackageTypeDetail(BaseModel):
     distributor = models.ForeignKey(Distributor, on_delete=models.CASCADE)
     package_type = models.ForeignKey(PackageType, on_delete=models.CASCADE)
     related_field = models.CharField(max_length=255)
@@ -70,7 +70,7 @@ class DistributorPackageTypeDetail(models.Model):
         return f'{self.distributor} - {self.package_type}'
 
 
-class ManufacturerPartPricing(models.Model):
+class ManufacturerPartPricing(BaseModel):
     price = models.DecimalField(max_digits=10, decimal_places=2)
     quantity = models.PositiveIntegerField()
     manufacturer_part_distributor_detail = models.ForeignKey(

@@ -284,9 +284,9 @@ class Order(BaseModel):
         return 'Order for:  ' + str(self.bom.product.name)
 
 
-class Distributor(models.Model):
+class Distributor(BaseModel):
     name = models.CharField(max_length=255)
-    api_url = models.URLField(blank = True , null = True)
+    api_url = models.URLField(blank=True, null=True)
 
     def __str__(self):
         return self.name
