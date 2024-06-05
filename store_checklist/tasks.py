@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 @shared_task
 def test_func(x, y):
+    print('oihuhhuh',x)
     return x + y
 
 
@@ -655,6 +656,7 @@ def process_bom_file(bom_file, bom_file_name, data, user_id):
 @shared_task
 def process_bom_file_new(bom_file, bom_file_name, data, user_id):
     try:
+        print('helo')
         # Assuming 'user' is defined somewhere in your code
 
         # Get the uploaded file from the request
@@ -662,6 +664,7 @@ def process_bom_file_new(bom_file, bom_file_name, data, user_id):
         bom_format_id = data.get('bom_format_id')
         bom_format = BomFormat.objects.get(
             pk=bom_format_id) if bom_format_id else None
+        print(bom_format)
 
         bom_file_data = pd.read_excel(bom_file, header=5, sheet_name=1)
 
@@ -752,7 +755,7 @@ def process_bom_file_new(bom_file, bom_file_name, data, user_id):
                 processed_part_numbers = set()
 
                 # Iterate through rows in the DataFrame
-                for _, row in bom_file_data.head().iterrows():
+                for _, row in bom_file_data.head(15).iterrows():
                     print('index', _)
 
                     if str(row['VEPL Part No']) != 'nan' and str(row['VEPL Part No']).strip().startswith('VEPL'):
@@ -1021,7 +1024,9 @@ def process_bom_file_new(bom_file, bom_file_name, data, user_id):
             # pe_bom_file_data.dropna(how='all', inplace=True)
             print('pe bom fiel first few rows', pe_bom_file_data.head())
 
-            for index, row in pe_bom_file_data.iterrows():
+            # for index, row in pe_bom_file_data.iterrows():
+            for index, row in pe_bom_file_data.head(15).iterrows():
+
                 mfr_part_number = row['Mfr. Part No'] if pd.notna(
                     row['Mfr. Part No']) else None
                 print(f"Index: {index}, Row: {row}")

@@ -7,6 +7,7 @@ class AccessToken(BaseModel):
     access_token = models.CharField(max_length=255)
     expires_in = models.IntegerField()
     expiry_date_time = models.DateTimeField()
+    token_type = models.CharField(max_length=255 , null = True , blank = True)
 
     def __str__(self):
         return self.access_token

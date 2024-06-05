@@ -86,6 +86,7 @@ def handle_bom_cases(request):
 @api_view(['POST'])
 def upload_bom_task(request):
     # try:
+    test_func.delay(5,6)
     bom_file = request.FILES.get('bom_file')
     print('this is bom file', bom_file)
 

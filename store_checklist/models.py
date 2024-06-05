@@ -286,7 +286,7 @@ class Order(BaseModel):
 
 class Distributor(models.Model):
     name = models.CharField(max_length=255)
-    api_url = models.URLField()
+    api_url = models.URLField(blank = True , null = True)
 
     def __str__(self):
         return self.name

@@ -7,7 +7,7 @@ from datetime import timedelta, datetime
 from .models import *
 from .serializers import *
 from django.utils import timezone
-from store_checklist.models import BillOfMaterials, BillOfMaterialsLineItem, Product, Project
+from store_checklist.models import BillOfMaterials, BillOfMaterialsLineItem, Product, Project , Distributor
 from store_checklist.serializers import BillOfMaterialsSerializer, BillOfMaterialsLineItemSerializer, ProductSerializer, ProjectSerializer , BillOfMaterialsSerializerNew , BillOfMaterialsLineItemSerializerNew, ManufacturerPartSerializer
 from django.db.models import Max
 import re
@@ -17,6 +17,8 @@ import pytz
 from .tasks import *
 from celery.result import AsyncResult
 from django.http import Http404
+
+from .distributors import digikey_online_distributor, Oauth_digikey , mouser_online_distributor
 
 # @api_view(['GET'])
 # def get_product_pricing(request,product_id):
@@ -77,7 +79,13 @@ def get_project_pricing_page(request):
         boms = BillOfMaterials.objects.all()
         projects_serializer = ProjectSerializer(projects, many=True)
         products_serializer = ProductSerializer(products, many=True)
-        boms_serializer = BillOfMaterialsSerializerNew(boms , many = True)
+        boms_data = []
+
+        for bom in boms:
+            bom_data = BillOfMaterialsSerializerNew(bom).data
+            bom_format_name = bom.bom_format.name if bom.bom_format else None
+            bom_data['bom_format_name'] = bom_format_name
+            boms_data.append(bom_data)
 
         last_task_result = TaskResult.objects.filter(result='1').order_by('-date_done').first()
         last_updated_at = ''
@@ -91,54 +99,339 @@ def get_project_pricing_page(request):
             'projects': projects_serializer.data,
             'products': products_serializer.data,
             'last_updated_at': last_updated_at,
-            'boms' : boms_serializer.data,
+            'boms': boms_data,
         }
 
         return Response(data, status=status.HTTP_200_OK)
 
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
 
 @api_view(['GET'])
 def get_bom_pricing(request, bom_id):
     try:
         print("bom id:", bom_id)
         
+        try:
+            bom = BillOfMaterials.objects.get(id=bom_id)
+        except BillOfMaterials.DoesNotExist:
+            raise Http404("Bill of Materials not found for the given bom_id.")
+
         bom_lineitems = BillOfMaterialsLineItem.objects.filter(bom_id=bom_id)
-        #take bom format into consideration for hdware design 
         line_items_data = []
+        final_json = []
 
-        for line_item in bom_lineitems:
-            first_manufacturer_part = line_item.manufacturer_parts.first()
-            
-            if first_manufacturer_part:
-                # manufacturer_data = {
-                #     'id': first_manufacturer_part.manufacturer.id,
-                #     'name': first_manufacturer_part.manufacturer.name
-                # }
-                # part_data = {
-                #     'id': first_manufacturer_part.id,
-                #     'number': first_manufacturer_part.part_number,
-                #     'manufacturer': manufacturer_data
-                # }
-                part_data = ManufacturerPartSerializer(first_manufacturer_part).data
-                line_items_data.append(part_data)
+        if bom.bom_format and bom.bom_format.name == "Power Electronics":
+            for line_item in bom_lineitems:
+                first_manufacturer_part = line_item.manufacturer_parts.first()
 
+                if first_manufacturer_part:
+                    part_data = ManufacturerPartSerializer(first_manufacturer_part).data
+
+                    distributors = Distributor.objects.all()
+                    distributor_responses = {}
+
+                    for distributor in distributors:
+                        if distributor.name.lower() == "digikey":
+                            distributor_response = digikey_online_distributor(
+                                settings.DIGIKEY_APIS_CLIENT_ID, 
+                                settings.DIGIKEY_APIS_CLIENT_SECRET, 
+                                first_manufacturer_part.part_number, 
+                                "DigiKey",
+                                bom_id 
+                            )
+                            distributor_responses["digikey"] = distributor_response
+                        
+                        elif distributor.name.lower() == "mouser":
+                            distributor_response = mouser_online_distributor(
+                                settings.MOUSER_API_KEY, 
+                                first_manufacturer_part.part_number, 
+                                "Mouser",
+                                bom_id 
+                            )
+                            # distributor_responses["mouser"] = distributor_response
+                        # else:
+                        #     distributor_responses[distributor.name.lower()] = {'error': f'No API defined for {distributor.name}'}
+
+                        if distributor_response:
+                            if distributor_response.get("error"):
+                                continue
+                            else:
+                                distributor_responses[distributor.name.lower()] = distributor_response
+                    
+                    if distributor_response.items():
+
+                        part_data['distributors'] = distributor_responses
+                        line_items_data.append(part_data)
+
+                        for distributor_name, distributor_data in distributor_responses.items():
+                            row = {
+                                "distributor": distributor_name,
+                                "Manufacturer Part Number": distributor_data.get("Manufacturer Part Number", ""),
+                                "Manufacturer Name": distributor_data.get("Manufacturer Name", ""),
+                                "Online Distributor Name": distributor_data.get("Online Distributor Name", ""),
+                                "Description": distributor_data.get("Description", ""),
+                                "Product Url": distributor_data.get("Product Url", ""),
+                                "Datasheet Url": distributor_data.get("Datasheet Url", ""),
+                                "Package Type": distributor_data.get("Package Type", ""),
+                                "Stock": distributor_data.get("Stock", ""),
+                                "Currency": distributor_data.get("Currency", "")
+                            }
+
+                            # Flatten the pricing information
+                            pricing = distributor_data.get("Pricing", [])
+                            for price in pricing:
+                                row[f"price({price['Quantity']})"] = price["Unit Price"]
+
+                            final_json.append(row)
+
+                    # part_data['distributors'] = distributor_responses
+                    # line_items_data.append(part_data)
+
+                    # # Create rows for the final_json
+                    # for distributor_name, distributor_data in distributor_responses.items():
+                    #     row = {
+                    #         "distributor": distributor_name,
+                    #         "Manufacturer Part Number": distributor_data.get("Manufacturer Part Number", ""),
+                    #         "Manufacturer Name": distributor_data.get("Manufacturer Name", ""),
+                    #         "Online Distributor Name": distributor_data.get("Online Distributor Name", ""),
+                    #         "Description": distributor_data.get("Description", ""),
+                    #         "Product Url": distributor_data.get("Product Url", ""),
+                    #         "Datasheet Url": distributor_data.get("Datasheet Url", ""),
+                    #         "Package Type": distributor_data.get("Package Type", ""),
+                    #         "Stock": distributor_data.get("Stock", ""),
+                    #         "Currency": distributor_data.get("Currency", "")
+                    #     }
+
+                    #     # Flatten the pricing information
+                    #     pricing = distributor_data.get("Pricing", [])
+                    #     for price in pricing:
+                    #         row[f"price({price['Quantity']})"] = price["Unit Price"]
+
+                    #     final_json.append(row)
+                        
+        else:
+            for line_item in bom_lineitems:
+                vepl_part_number = line_item.part_number
+                manufacturer_parts = line_item.manufacturer_parts.all()
+
+                for manufacturer_part in manufacturer_parts:
+                    distributors = Distributor.objects.all()
+                    distributor_responses = {}
+
+                    for distributor in distributors:
+                        if distributor.name.lower() == "digikey":
+                            distributor_response = digikey_online_distributor(
+                                settings.DIGIKEY_APIS_CLIENT_ID, 
+                                settings.DIGIKEY_APIS_CLIENT_SECRET, 
+                                manufacturer_part.part_number, 
+                                "DigiKey",
+                                bom_id 
+                            )
+                        elif distributor.name.lower() == "mouser":
+                            distributor_response = mouser_online_distributor(
+                                settings.MOUSER_API_KEY, 
+                                manufacturer_part.part_number,
+                                "Mouser",
+                                bom_id 
+                            )
+                        # else:
+                        #     distributor_responses[distributor.name.lower()] = {'error': f'No API defined for {distributor.name}'}
+                        if distributor_response:
+                            if distributor_response.get("error"):
+                                continue
+                            else:
+                                distributor_responses[distributor.name.lower()] = distributor_response
+
+                    if distributor_responses.items():
+                        line_item_data = {
+                            "VEPL part number": vepl_part_number,
+                            "distributors": distributor_responses
+                        }
+                        line_items_data.append(line_item_data)
+                        for distributor_name, distributor_data in distributor_responses.items():
+                            row = {
+                                "part_number": line_item.part_number,
+                                "distributor": distributor_name,
+                                "Manufacturer Part Number": distributor_data.get("Manufacturer Part Number", ""),
+                                "Manufacturer Name": distributor_data.get("Manufacturer Name", ""),
+                                "Online Distributor Name": distributor_data.get("Online Distributor Name", ""),
+                                "Description": distributor_data.get("Description", ""),
+                                "Product Url": distributor_data.get("Product Url", ""),
+                                "Datasheet Url": distributor_data.get("Datasheet Url", ""),
+                                "Package Type": distributor_data.get("Package Type", ""),
+                                "Stock": distributor_data.get("Stock", ""),
+                                "Currency": distributor_data.get("Currency", "")
+                            }
+
+                            # Flatten the pricing information
+                            pricing = distributor_data.get("Pricing", [])
+                            for price in pricing:
+                                row[f"price({price['Quantity']})"] = price["Unit Price"]
+
+                            final_json.append(row)
         data = {
-            'line_items': line_items_data
+            'line_items': line_items_data,
+            'final_json': final_json
         }
 
-        print(" Response Data" , data)
-
+        # print("Response Data", data)
         return Response(data, status=status.HTTP_200_OK)
 
-    except BillOfMaterials.DoesNotExist:
+    except BillOfMaterialsLineItem.DoesNotExist:
         raise Http404("Bill of Materials not found for the given bom_id.")
-
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+# @api_view(['GET'])
+# def get_bom_pricing(request, bom_id):
+#     try:
+#         print("bom id:", bom_id)
+        
+#         try:
+#             bom = BillOfMaterials.objects.get(id=bom_id)
+#         except BillOfMaterials.DoesNotExist:
+#             raise Http404("Bill of Materials not found for the given bom_id.")
+
+#         bom_lineitems = BillOfMaterialsLineItem.objects.filter(bom_id=bom_id)
+#         line_items_data = []
+#         final_json = []
+
+#         if bom.bom_format and bom.bom_format.name == "Power Electronics":
+#             for line_item in bom_lineitems:
+#                 first_manufacturer_part = line_item.manufacturer_parts.first()
+
+#                 if first_manufacturer_part:
+#                     part_data = ManufacturerPartSerializer(first_manufacturer_part).data
+
+#                     distributors = Distributor.objects.all()
+#                     distributor_responses = {}
+
+#                     for distributor in distributors:
+#                         if distributor.name.lower() == "digikey":
+#                             distributor_response = digikey_online_distributor(
+#                                 settings.DIGIKEY_APIS_CLIENT_ID, 
+#                                 settings.DIGIKEY_APIS_CLIENT_SECRET, 
+#                                 first_manufacturer_part.part_number, 
+#                                 "DigiKey",
+#                                 bom_id 
+#                             )
+#                             distributor_responses["digikey"] = distributor_response
+                        
+#                         elif distributor.name.lower() == "mouser":
+#                             distributor_response = mouser_online_distributor(
+#                                 settings.MOUSER_API_KEY, 
+#                                 first_manufacturer_part.part_number, 
+#                                 "Mouser",
+#                                 bom_id 
+#                             )
+#                             distributor_responses["mouser"] = distributor_response
+#                         else:
+#                             distributor_responses[distributor.name.lower()] = {'error': f'No API defined for {distributor.name}'}
+
+#                     part_data['distributors'] = distributor_responses
+#                     line_items_data.append(part_data)
+
+#                     # Create rows for the final_json
+#                     for distributor_name, distributor_data in distributor_responses.items():
+#                         row = {
+#                             # "part_number": first_manufacturer_part.part_number,
+#                             "distributor": distributor_name,
+#                             "Manufacturer Part Number": distributor_data.get("Manufacturer Part Number", ""),
+#                             "Manufacturer Name": distributor_data.get("Manufacturer Name", ""),
+#                             "Online Distributor Name": distributor_data.get("Online Distributor Name", ""),
+#                             "Description": distributor_data.get("Description", ""),
+#                             "Product Url": distributor_data.get("Product Url", ""),
+#                             "Datasheet Url": distributor_data.get("Datasheet Url", ""),
+#                             "Package Type": distributor_data.get("Package Type", ""),
+#                             "Stock": distributor_data.get("Stock", ""),
+#                             "Currency": distributor_data.get("Currency", "")
+#                         }
+
+#                         # Flatten the pricing information
+#                         pricing = distributor_data.get("Pricing", [])
+#                         for price in pricing:
+#                             row[f"price({price['Quantity']})"] = price["Unit Price"]
+
+#                         final_json.append(row)
+#         else:
+#             for line_item in bom_lineitems:
+#                 vepl_part_number = line_item.part_number
+#                 manufacturer_parts = line_item.manufacturer_parts.all()
+
+#                 for manufacturer_part in manufacturer_parts:
+#                     distributor_response = digikey_online_distributor(
+#                         settings.DIGIKEY_APIS_CLIENT_ID, 
+#                         settings.DIGIKEY_APIS_CLIENT_SECRET, 
+#                         manufacturer_part.part_number, 
+#                         "DigiKey",
+#                         bom_id 
+#                     )
+                    
+#                     # Format the distributor response as needed
+#                     distributor_data = {
+#                         "Manufacturer Part Number": distributor_response.get("Manufacturer Part Number", ""),
+#                         "Manufacturer Name": distributor_response.get("Manufacturer Name", ""),
+#                         "Online Distributor Name": distributor_response.get("Online Distributor Name", ""),
+#                         "Description": distributor_response.get("Description", ""),
+#                         "Product Url": distributor_response.get("Product Url", ""),
+#                         "Datasheet Url": distributor_response.get("Datasheet Url", ""),
+#                         "Package Type": distributor_response.get("Package Type", ""),
+#                         "Stock": distributor_response.get("Stock", ""),
+#                         "Currency": distributor_response.get("Currency", ""),
+#                         "Pricing": distributor_response.get("Pricing", [])
+#                     }
+
+                   
+#                     line_item_data = {
+#                         "VEPL part number": vepl_part_number,
+#                         "distributors": {
+#                             "digikey": distributor_data
+#                         }
+#                     }
+
+#                     line_items_data.append(line_item_data)
+
+#                     # Create rows for the final_json
+#                     row = {
+#                         "part_number": line_item.part_number,
+#                         "distributor": "digikey",
+#                         "Manufacturer Part Number": distributor_data.get("Manufacturer Part Number", ""),
+#                         "Manufacturer Name": distributor_data.get("Manufacturer Name", ""),
+#                         "Online Distributor Name": distributor_data.get("Online Distributor Name", ""),
+#                         "Description": distributor_data.get("Description", ""),
+#                         "Product Url": distributor_data.get("Product Url", ""),
+#                         "Datasheet Url": distributor_data.get("Datasheet Url", ""),
+#                         "Package Type": distributor_data.get("Package Type", ""),
+#                         "Stock": distributor_data.get("Stock", ""),
+#                         "Currency": distributor_data.get("Currency", "")
+#                     }
+
+#                     # Flatten the pricing information
+#                     pricing = distributor_data.get("Pricing", [])
+#                     for price in pricing:
+#                         row[f"price({price['Quantity']})"] = price["Unit Price"]
+
+#                     final_json.append(row)
+
+#         data = {
+#             'line_items': line_items_data,
+#             'final_json': final_json
+#         }
+
+#         # print("Response Data", data)
+#         return Response(data, status=status.HTTP_200_OK)
+
+#     except BillOfMaterialsLineItem.DoesNotExist:
+#         raise Http404("Bill of Materials not found for the given bom_id.")
+#     except Exception as e:
+#         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+
 
 
 
@@ -169,7 +462,6 @@ def get_project_pricing(request, project_id):
         data = {
             'part_prices': part_prices_serializer.data,
         }
-
         return Response(data, status=status.HTTP_200_OK)
 
     except PartPricing.DoesNotExist:
