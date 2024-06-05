@@ -755,7 +755,7 @@ def process_bom_file_new(bom_file, bom_file_name, data, user_id):
                 processed_part_numbers = set()
 
                 # Iterate through rows in the DataFrame
-                for _, row in bom_file_data.head(15).iterrows():
+                for _, row in bom_file_data.head().iterrows():
                     print('index', _)
 
                     if str(row['VEPL Part No']) != 'nan' and str(row['VEPL Part No']).strip().startswith('VEPL'):
@@ -1024,9 +1024,7 @@ def process_bom_file_new(bom_file, bom_file_name, data, user_id):
             # pe_bom_file_data.dropna(how='all', inplace=True)
             print('pe bom fiel first few rows', pe_bom_file_data.head())
 
-            # for index, row in pe_bom_file_data.iterrows():
-            for index, row in pe_bom_file_data.head(15).iterrows():
-
+            for index, row in pe_bom_file_data.iterrows():
                 mfr_part_number = row['Mfr. Part No'] if pd.notna(
                     row['Mfr. Part No']) else None
                 print(f"Index: {index}, Row: {row}")
