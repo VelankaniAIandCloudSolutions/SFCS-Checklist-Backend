@@ -5,8 +5,6 @@ admin.site.register(PartPricing)
 admin.site.register(AccessToken)
 
 
-admin.site.register(Manufacturer)
-admin.site.register(ManufacturerPart)
 admin.site.register(Currency)
 admin.site.register(PackageType)
 admin.site.register(ManufacturerPartDistributorDetail)
