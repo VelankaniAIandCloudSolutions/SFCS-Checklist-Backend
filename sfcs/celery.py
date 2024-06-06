@@ -40,6 +40,11 @@ app.conf.beat_schedule = {
         'task': 'machine_maintenance.tasks.check_missing_activity_and_send_email_for_today',
         'schedule': crontab(hour=13, minute=6),
     },
+    'create-distributor-data': {
+        'task': 'pricing.tasks.create_mfr_part_distributor_data',
+        'schedule': crontab(hour=0, minute=0),
+    },
+
 
 }
 

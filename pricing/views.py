@@ -18,7 +18,7 @@ from .tasks import *
 from celery.result import AsyncResult
 from django.http import Http404
 
-from .distributors import digikey_online_distributor, Oauth_digikey, mouser_online_distributor
+from .distributors import digikey_online_distributor, Oauth_digikey, mouser_online_distributor, element14_online_distributor
 
 # @api_view(['GET'])
 # def get_product_pricing(request,product_id):
@@ -494,7 +494,7 @@ def refresh_product_pricing(request):
 @permission_classes([])
 def create_mfr_part_distributor_data(request):
     try:
-        print('sasasas')
+
         # Fetch all ManufacturerPart instances
         manufacturer_parts = ManufacturerPart.objects.all()[:1]
         print(manufacturer_parts)
@@ -579,12 +579,11 @@ def create_mfr_part_distributor_data(request):
                                 name="element14")
                             if element14_distributor_instance and element14_distributor_instance.api_key:
                                 # Call the API function with the provided API key
-                                distributor_response = mouser_online_distributor(
+                                distributor_response = element14_online_distributor(
                                     element14_distributor_instance.api_key,
                                     manufacturer_part.part_number,
-                                    "103.89.8.2"
-                                    # insert header ip here
                                 )
+
                             else:
                                 print(
                                     "Distributor instance or API key not available for element14")

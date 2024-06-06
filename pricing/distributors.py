@@ -284,18 +284,34 @@ def mouser_online_distributor(key, part_number):
         return {"Manufacturer Part Number": part_number, "Online Distributor Name": str(distributor.name), "error": str(e)}
 
 
-def element14_online_distributor(key, part_number, header_ip):
+def element14_online_distributor(key, part_number):
     print(f"Element14 ----------- {part_number}")
 
-    # key = "574e2u973fa67jt6wb5et68z"
-    element14_distributor_instance = Distributor.objects.get(name="element14")
-    key = element14_distributor_instance.key
-    # header_ip = "103.89.8.2"
     try:
+        # key = "574e2u973fa67jt6wb5et68z"
+        element14_distributor_instance = Distributor.objects.get(
+            name="element14")
+        key = element14_distributor_instance.api_key
+        base_url = element14_distributor_instance.api_url
         # calling API
-        url = f"https://api.element14.com/catalog/products?versionNumber=1.3&term=manuPartNum%3A{part_number}&storeInfo.id=www.newark.com&resultsSettings.offset=0&resultsSettings.numberOfResults=1&resultsSettings.refinements.filters=rohsCompliant%2CinStock&resultsSettings.responseGroup=large&callInfo.omitXmlSchema=false&callInfo.responseDataFormat=json&callinfo.apiKey={key}"
-        headers = {'X-Originating-IP': header_ip}
-        response = requests.get(url, headers=headers)
+        # url = f"https://api.element14.com/catalog/products?versionNumber=1.3&term=manuPartNum%3A{part_number}&storeInfo.id=www.newark.com&resultsSettings.offset=0&resultsSettings.numberOfResults=1&resultsSettings.refinements.filters=rohsCompliant%2CinStock&resultsSettings.responseGroup=large&callInfo.omitXmlSchema=false&callInfo.responseDataFormat=json&callinfo.apiKey={key}"        url = f"https://api.element14.com/catalog/products?versionNumber=1.3&term=manuPartNum%3A{part_number}&storeInfo.id=www.newark.com&resultsSettings.offset=0&resultsSettings.numberOfResults=1&resultsSettings.refinements.filters=rohsCompliant%2CinStock&resultsSettings.responseGroup=large&callInfo.omitXmlSchema=false&callInfo.responseDataFormat=json&callinfo.apiKey={key}"
+        # headers = {'X-Originating-IP': header_ip}
+
+        # Construct the URL with query parameters
+        query_params = {
+            "versionNumber": "1.3",
+            "term": f"manuPartNum:{part_number}",
+            "storeInfo.id": "www.newark.com",
+            "resultsSettings.offset": "0",
+            "resultsSettings.numberOfResults": "1",
+            "resultsSettings.refinements.filters": "rohsCompliant,inStock",
+            "resultsSettings.responseGroup": "large",
+            "callInfo.omitXmlSchema": "false",
+            "callInfo.responseDataFormat": "json",
+            "callinfo.apiKey": key
+        }
+        url = f"{base_url}?{requests.compat.urlencode(query_params)}"
+        response = requests.get(url)
         api_response = response.json()
 
         # Transform API response into standard format

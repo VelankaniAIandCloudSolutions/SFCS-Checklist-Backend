@@ -1,4 +1,5 @@
 from celery import shared_task
+from fastapi import Response
 from store_checklist.models import Product
 from .models import PartPricing
 import requests
@@ -11,7 +12,8 @@ from django.db.models import Max
 import re
 import logging
 from django.conf import settings
-from .distributors import digikey_online_distributor, mouser_online_distributor
+
+from .distributors import digikey_online_distributor, Oauth_digikey, mouser_online_distributor, element14_online_distributor
 logger = logging.getLogger(__name__)
 
 
@@ -160,10 +162,10 @@ def update_pricing_for_all_products():
 
 
 @shared_task
-def update_distributor_data():
+def create_mfr_part_distributor_data():
     try:
         # Fetch all ManufacturerPart instances
-        manufacturer_parts = ManufacturerPart.objects.all()
+        manufacturer_parts = ManufacturerPart.objects.all()[:1]
 
         # Iterate through each ManufacturerPart
         for manufacturer_part in manufacturer_parts:
@@ -171,53 +173,82 @@ def update_distributor_data():
                 # Fetch all Distributor instances
                 for distributor in Distributor.objects.all():
                     try:
-                        # Check distributor type
                         if distributor.name.lower() == "digikey":
-                            distributor_response = digikey_online_distributor(
-                                settings.DIGIKEY_APIS_CLIENT_ID,
-                                settings.DIGIKEY_APIS_CLIENT_SECRET,
-                                manufacturer_part.part_number,
-                                "DigiKey"
-                            )
+                            digi_key_distributor_instance = Distributor.objects.get(
+                                name="Digikey")
+                            if digi_key_distributor_instance.access_id and digi_key_distributor_instance.access_secret:
+                                distributor_response = digikey_online_distributor(
+                                    digi_key_distributor_instance.access_id,
+                                    digi_key_distributor_instance.access_secret,
+                                    manufacturer_part.part_number,
+                                )
+                            else:
+                                print(
+                                    "Access ID or Access Secret not available for Digikey")
                         elif distributor.name.lower() == "mouser":
-                            distributor_response = mouser_online_distributor(
-                                settings.MOUSER_API_KEY,
-                                manufacturer_part.part_number,
-                                "Mouser"
-                            )
+                            mouser_distributor_instance = Distributor.objects.get(
+                                name="mouser")
+                            if mouser_distributor_instance and mouser_distributor_instance.api_key:
+                                distributor_response = mouser_online_distributor(
+                                    mouser_distributor_instance.api_key,
+                                    manufacturer_part.part_number,
+                                )
+                                if distributor_response and not distributor_response.get("error"):
+                                    pricing = distributor_response.get(
+                                        "Pricing", [])
+                                    for price in pricing:
+                                        if 'Unit Price' in price:
+                                            unit_price_str = price['Unit Price']
+                                            if unit_price_str.startswith('$'):
+                                                unit_price_str = unit_price_str[1:]
+                                            try:
+                                                unit_price = float(
+                                                    unit_price_str)
+                                                price['Unit Price'] = unit_price
+                                            except ValueError:
+                                                print(
+                                                    f"Invalid price format: {unit_price_str}")
+                                        else:
+                                            print(
+                                                "No 'Unit Price' key found in pricing")
+                            else:
+                                print(
+                                    "Distributor instance or API key not available for Mouser")
+                        elif distributor.name.lower() == "element14":
+                            element14_distributor_instance = Distributor.objects.get(
+                                name="element14")
+                            if element14_distributor_instance and element14_distributor_instance.api_key:
+                                distributor_response = element14_online_distributor(
+                                    element14_distributor_instance.api_key,
+                                    manufacturer_part.part_number,
+                                )
+                            else:
+                                print(
+                                    "Distributor instance or API key not available for element14")
+                        # print(f"Distributor Response for {distributor.name}: {distributor_response}")
 
-                        # Print distributor response
-                        print(
-                            f"Distributor Response for {distributor.name}: {distributor_response}")
-
-                        # If distributor response is successful
                         if distributor_response and not distributor_response.get("error"):
-
                             currency_name = distributor_response.get(
                                 "Currency")
                             currency, _ = Currency.objects.get_or_create(
                                 name=currency_name)
-
-                            # Update or create ManufacturerPartDistributorDetail instance
                             mfr_part_distributor_detail, created = ManufacturerPartDistributorDetail.objects.update_or_create(
                                 manufacturer_part=manufacturer_part,
                                 distributor=distributor,
                                 defaults={
-                                    'description': distributor_response["Description"],
-                                    'product_url': distributor_response["Product Url"],
-                                    'datasheet_url': distributor_response["Datasheet Url"],
-                                    'stock': distributor_response["Stock"],
+                                    'description': distributor_response.get("Description", ""),
+                                    'product_url': distributor_response.get("Product Url", ""),
+                                    'datasheet_url': distributor_response.get("Datasheet Url", ""),
+                                    'stock': distributor_response.get("Stock", ""),
                                     'currency': currency
                                 }
                             )
-
-                            # Update or create ManufacturerPartPricing instances
                             pricing = distributor_response.get("Pricing", [])
                             for price in pricing:
                                 ManufacturerPartPricing.objects.update_or_create(
                                     manufacturer_part_distributor_detail=mfr_part_distributor_detail,
-                                    defaults={
-                                        'price': price["Unit Price"], 'quantity': price["Quantity"], }
+                                    quantity=price["Quantity"],
+                                    defaults={'price': price["Unit Price"]}
                                 )
                     except Exception as dist_err:
                         print(
@@ -225,5 +256,8 @@ def update_distributor_data():
             except Exception as part_err:
                 print(
                     f"Error processing manufacturer part {manufacturer_part.part_number}: {part_err}")
+
+        return {"message": "Manufacturer part distributor data created successfully"}
     except Exception as e:
         print(f"Error occurred: {e}")
+        return {"error": "An error occurred"}
