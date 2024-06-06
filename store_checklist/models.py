@@ -284,9 +284,12 @@ class Order(BaseModel):
         return 'Order for:  ' + str(self.bom.product.name)
 
 
-class Distributor(BaseModel):
+class Distributor(models.Model):
     name = models.CharField(max_length=255)
     api_url = models.URLField(blank=True, null=True)
+    access_id = models.CharField(max_length=255, blank=True, null=True)
+    access_secret = models.CharField(max_length=255, blank=True, null=True)
+    api_key = models.CharField(max_length=255, blank=True, null=True)
 
     def __str__(self):
         return self.name

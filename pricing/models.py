@@ -37,7 +37,7 @@ class Currency(BaseModel):
     symbol = models.CharField(max_length=10)
 
     def __str__(self):
-        return f'{self.name} ({self.symbol})'
+        return f'{self.symbol}{self.name} '
 
 
 class PackageType(BaseModel):

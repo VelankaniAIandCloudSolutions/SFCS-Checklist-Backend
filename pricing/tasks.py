@@ -192,23 +192,16 @@ def update_distributor_data():
 
                         # If distributor response is successful
                         if distributor_response and not distributor_response.get("error"):
-                            # Update or create currency
-                            # currency, created = Currency.objects.update_or_create(
-                            #     name=distributor_response["Currency"]
-                            # )
 
                             currency_name = distributor_response.get(
                                 "Currency")
                             currency, _ = Currency.objects.get_or_create(
                                 name=currency_name)
 
-                            distributor_instance, _ = Distributor.objects.update_or_create(
-                                name=distributor.name.capitalize())
-
                             # Update or create ManufacturerPartDistributorDetail instance
-                            distributor_detail, created = ManufacturerPartDistributorDetail.objects.update_or_create(
+                            mfr_part_distributor_detail, created = ManufacturerPartDistributorDetail.objects.update_or_create(
                                 manufacturer_part=manufacturer_part,
-                                distributor=distributor_instance,
+                                distributor=distributor,
                                 defaults={
                                     'description': distributor_response["Description"],
                                     'product_url': distributor_response["Product Url"],
@@ -222,8 +215,7 @@ def update_distributor_data():
                             pricing = distributor_response.get("Pricing", [])
                             for price in pricing:
                                 ManufacturerPartPricing.objects.update_or_create(
-                                    manufacturer_part_distributor_detail=distributor_detail,
-
+                                    manufacturer_part_distributor_detail=mfr_part_distributor_detail,
                                     defaults={
                                         'price': price["Unit Price"], 'quantity': price["Quantity"], }
                                 )

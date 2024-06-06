@@ -6,7 +6,7 @@ import pandas as pd
 
 from django.utils import timezone
 from datetime import timedelta
-from .models import AccessToken
+from .models import *
 from django.conf import settings
 
 from store_checklist.models import BillOfMaterials
@@ -104,20 +104,26 @@ def get_digikey_access_token():
     return access_token
 
 
-def digikey_online_distributor(client_id, client_secret, part_number, web_name, bom_id):
+# def digikey_online_distributor(client_id, client_secret, part_number, web_name, bom_id):
+def digikey_online_distributor(client_id, client_secret, part_number,):
     access_token = get_digikey_access_token()
     if not access_token:
         return {"Manufacturer Part Number": part_number, "error": "Failed to obtain access token"}
 
     print("token:--->", access_token, "\n")
 
-    try:
-        bom = BillOfMaterials.objects.get(id=bom_id)
-    except BillOfMaterials.DoesNotExist:
-        raise Http404("Bill of Materials not found for the given bom_id.")
+    # try:
+    #     bom = BillOfMaterials.objects.get(id=bom_id)
+    # except BillOfMaterials.DoesNotExist:
+    #     raise Http404("Bill of Materials not found for the given bom_id.")
 
     try:
-        url = f"https://api.digikey.com/products/v4/search/{part_number}/productdetails"
+        distributor = Distributor.objects.get(name="Digikey")
+        base_url = distributor.api_url
+        url = f"{base_url}{part_number}/productdetails"
+        print('digi_key url from db', url)
+        # url = f"https://api.digikey.com/products/v4/search/{part_number}/productdetails"
+
         headers = {
             'X-DIGIKEY-Client-Id': client_id,
             'Authorization': f'Bearer {access_token}',
@@ -130,8 +136,10 @@ def digikey_online_distributor(client_id, client_secret, part_number, web_name, 
         response.raise_for_status()
         digikey_api_response = response.json()
 
-        print(
-            f"bom_id: {bom_id}, digikey_api_response: {digikey_api_response}")
+        # print(
+        #     f"bom_id: {bom_id}, digikey_api_response: {digikey_api_response}")
+        # print(
+        #     f"mfr_part: {part_number}, digikey_api_response: {digikey_api_response}")
 
         product = digikey_api_response.get("Product", {})
         mfg_part_number = product.get("ManufacturerProductNumber")
@@ -147,12 +155,18 @@ def digikey_online_distributor(client_id, client_secret, part_number, web_name, 
         for variation in product.get("ProductVariations", []):
             package_id = variation.get("PackageType", {}).get("Id")
             # if bom.bom_format and bom.bom_format.name == "Power Electronics":
-            if package_id in [2, 3, 62]:
-                package_type = variation.get(
-                    "PackageType", {}).get("Name", "N/A")
-                standard_pricing = variation.get("StandardPricing", [])
-                found_data = True
-                break
+            package_type_details = DistributorPackageTypeDetail.objects.filter(
+                distributor=distributor)
+
+            # Iterate through each related DistributorPackageTypeDetail instance
+            for package_type_detail in package_type_details:
+                # package_id = package_type_detail.package_type_id
+                # Use the package type IDs dynamically from the related fields
+                if package_id in [package_type_detail.related_field]:
+                    package_type = package_type_detail.package_type.name
+                    standard_pricing = variation.get("StandardPricing", [])
+                    found_data = True
+                    break
 
         if not found_data:
             for variation in product.get("ProductVariations", []):
@@ -181,7 +195,8 @@ def digikey_online_distributor(client_id, client_secret, part_number, web_name, 
         standard_json = {
             "Manufacturer Part Number": mfg_part_number,
             "Manufacturer Name": mfg_name,
-            "Online Distributor Name": web_name,
+            # "Online Distributor Name": web_name,
+            "Online Distributor Name": distributor.name,
             "Description": description,
             "Product Url": product_url,
             "Datasheet Url": datasheet_url,
@@ -191,73 +206,27 @@ def digikey_online_distributor(client_id, client_secret, part_number, web_name, 
             "Pricing": standard_pricing_data
         }
 
-        print(f"bom_id: {bom_id}, Response data: {standard_json}")
+        # print(f"bom_id: {bom_id}, Response data: {standard_json}")
+        print(f"mfr_part: {part_number}, Response data: {standard_json}")
         return standard_json
 
     except requests.RequestException as e:
         return {"Manufacturer Part Number": part_number, "error": str(e)}
 
 
-# def Oauth_digikey(id,secret):
-#     url = "https://api.digikey.com/v1/oauth2/token"
-#     payload = {
-#         'client_id': id,
-#         'client_secret': secret,
-#         'grant_type': 'client_credentials'
-#     }
-#     headers = {
-#         'Content-Type': 'application/x-www-form-urlencoded'
-#     }
-#     response = requests.post(url, headers=headers, data=payload)
-#     response.raise_for_status()
-#     token_info = response.json()
-#     return token_info["access_token"]
-
-
-# def Oauth_digikey():
-#     url = "https://api.digikey.com/v1/oauth2/token"
-#     payload = {
-#         'client_id': "8mG60KW8HvJYHk2hCiLDGANQ9HossidT",
-#         'client_secret': "euhdJWXXdnd6rH4s",
-#         'grant_type': 'client_credentials'
-#     }
-#     headers = {
-#         'Content-Type': 'application/x-www-form-urlencoded'
-#     }
-
-#     try:
-#         response = requests.post(url, headers=headers, data=payload)
-#         response.raise_for_status()
-#         token_info = response.json()
-
-#         # Extract token information
-#         access_token = token_info["access_token"]
-#         expires_in = token_info["expires_in"]
-#         expiry_date_time = timezone.now() + timedelta(seconds=expires_in)
-
-#         # Store the new access token in the database with token_type as "digikey"
-#         AccessToken.objects.create(
-#             access_token=access_token,
-#             expires_in=expires_in,
-#             expiry_date_time=expiry_date_time,
-#             token_type="digikey"  # Hardcode token_type as "digikey"
-#         )
-
-#         print(access_token)
-#         return access_token
-#     except requests.RequestException as e:
-#         # Log the error and return None or raise an exception
-#         print("Error obtaining access token:", e)
-#         return None
-
-
-def mouser_online_distributor(key, part_number, web_name, bom_id):
+# def mouser_online_distributor(key, part_number, web_name, bom_id):
+def mouser_online_distributor(key, part_number):
     print(f"Mouser ----- {part_number}")
     # calling mouser api
+    distributor = Distributor.objects.get(name="mouser")
+    key = distributor.api_key
 
-    key = "daf53999-5620-4003-8217-5c2ed9947d13"
+    # key = "daf53999-5620-4003-8217-5c2ed9947d13"
     try:
-        url = f"https://api.mouser.com/api/v1/search/keyword?apiKey={key}"
+        base_url = distributor.api_url
+        url = f"{base_url}{key}"
+        print('mouser url from db', url)
+        # url = f"https://api.mouser.com/api/v1/search/keyword?apiKey={key}"
         payload = json.dumps({
             "SearchByKeywordRequest": {
                 "keyword": part_number,
@@ -278,12 +247,17 @@ def mouser_online_distributor(key, part_number, web_name, bom_id):
         # transform mouser api response into standard Vepl format
         no_of_results = API_response["SearchResults"]["NumberOfResult"]
         # condition to fetch the exact part number as per the Part.no in BOM file
+
+        mouser_package_types = DistributorPackageTypeDetail.objects.filter(
+            distributor__name="mouser"
+        ).values_list('related_field', flat=True)
         for index in range(no_of_results):
             part = API_response["SearchResults"]["Parts"][index]
             if part["ManufacturerPartNumber"] == part_number:
                 PackageType = "N/A"
                 for attribute in part["ProductAttributes"]:
-                    if attribute["AttributeName"] == "Packaging" and attribute["AttributeValue"] in ["Cut Tape", "Ammo Pack", "Bulk"]:
+                    # if attribute["AttributeName"] == "Packaging" and attribute["AttributeValue"] in ["Cut Tape", "Ammo Pack", "Bulk"]:
+                    if attribute["AttributeName"] == "Packaging" and attribute["AttributeValue"] in mouser_package_types:
                         PackageType = attribute["AttributeValue"]
                         break
                 Standard_Pricing = [{
@@ -294,7 +268,8 @@ def mouser_online_distributor(key, part_number, web_name, bom_id):
                 std_data = {
                     "Manufacturer Part Number": part["ManufacturerPartNumber"],
                     "Manufacturer Name": part["Manufacturer"],
-                    "Online Distributor Name": web_name,
+                    # "Online Distributor Name": web_name,
+                    "Online Distributor Name": distributor.name,
                     "Description": part["Description"],
                     "Product Url": part["ProductDetailUrl"],
                     "Datasheet Url": part["DataSheetUrl"],
@@ -304,13 +279,57 @@ def mouser_online_distributor(key, part_number, web_name, bom_id):
                     "Pricing": Standard_Pricing
                 }
                 return std_data
-        return {"Manufacturer Part Number": part_number, "Online Distributor Name": str(web_name), "error": "Part number not found", "API_response": API_response}
+        return {"Manufacturer Part Number": part_number, "Online Distributor Name": str(distributor.name), "error": "Part number not found", "API_response": API_response}
     except Exception as e:
-        return {"Manufacturer Part Number": part_number, "Online Distributor Name": str(web_name), "error": str(e)}
+        return {"Manufacturer Part Number": part_number, "Online Distributor Name": str(distributor.name), "error": str(e)}
 
 
-def element14_online_distributor(key, header_ip, web_name):
-    pass
+def element14_online_distributor(key, part_number, header_ip):
+    print(f"Element14 ----------- {part_number}")
+
+    # key = "574e2u973fa67jt6wb5et68z"
+    element14_distributor_instance = Distributor.objects.get(name="element14")
+    key = element14_distributor_instance.key
+    # header_ip = "103.89.8.2"
+    try:
+        # calling API
+        url = f"https://api.element14.com/catalog/products?versionNumber=1.3&term=manuPartNum%3A{part_number}&storeInfo.id=www.newark.com&resultsSettings.offset=0&resultsSettings.numberOfResults=1&resultsSettings.refinements.filters=rohsCompliant%2CinStock&resultsSettings.responseGroup=large&callInfo.omitXmlSchema=false&callInfo.responseDataFormat=json&callinfo.apiKey={key}"
+        headers = {'X-Originating-IP': header_ip}
+        response = requests.get(url, headers=headers)
+        api_response = response.json()
+
+        # Transform API response into standard format
+        no_of_results = api_response["manufacturerPartNumberSearchReturn"]["numberOfResults"]
+        # filtering the 0-results Parts
+        if no_of_results == 0:
+            return {"Manufacturer Part Number": part_number, "Online Distributor Name": str(element14_distributor_instance.name), "Error": "Part Number Not found (or) Stock = 0", "Api_response": api_response}
+
+        element14_package_types = DistributorPackageTypeDetail.objects.filter(
+            distributor__name="element14"
+        ).values_list('related_field', flat=True)
+        for index in range(no_of_results):
+            part = api_response["manufacturerPartNumberSearchReturn"]["products"][index]
+            if part_number in part["translatedManufacturerPartNumber"] or part_number.replace("-", "") in part["translatedManufacturerPartNumber"]:
+                # if part["packageName"] in ["Cut Tape", "Each"]:
+                if part["packageName"] in element14_package_types:
+                    Standard_Pricing = [
+                        {"Quantity": i["from"], "Unit Price": i["cost"]} for i in part["prices"]]
+                    std_data = {
+                        "Manufacturer Part Number": part["translatedManufacturerPartNumber"],
+                        "Online Distributor Name": element14_distributor_instance.name,
+                        "Manufacturer Name": part["vendorName"],
+                        "Description": part["displayName"],
+                        "Product Url": part["productURL"],
+                        "Datasheet Url": part["datasheets"][0]["url"] if "datasheets" in part else "N/A",
+                        "Package Type": part["packageName"],
+                        "Stock": part["stock"]["level"],
+                        "Currency": "USD",
+                        "Pricing": Standard_Pricing
+                    }
+                    return std_data
+        return {"Manufacturer Part Number": part_number, "Online Distributor Name": str(element14_distributor_instance.name), "error": "Part number not found", "API_response": api_response}
+    except Exception as e:
+        return {"Manufacturer Part Number": part_number, "Online Distributor Name": str(element14_distributor_instance.name), "error": str(e)}
 
 
 def api_call(distributor_name, part_no):
@@ -441,3 +460,10 @@ async def root(part_numbers, manufacturer_names, client_id, client_secret):
     data_frame.to_excel("generic_veplexcel.xlsx")
     # print(data_frame)
     return vepl_json_format
+
+
+# if package_id in [2, 3, 62]:
+#     package_type = variation.get(
+#         "PackageType", {}).get("Name", "N/A")
+#     standard_pricing = variation.get("StandardPricing", [])
+#     found_data = True
