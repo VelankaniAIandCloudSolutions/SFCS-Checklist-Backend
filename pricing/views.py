@@ -18,7 +18,7 @@ from .tasks import *
 from celery.result import AsyncResult
 from django.http import Http404
 
-from .distributors import digikey_online_distributor, Oauth_digikey , mouser_online_distributor
+from .distributors import digikey_online_distributor, Oauth_digikey , mouser_online_distributor , element14_online_distributor
 
 # @api_view(['GET'])
 # def get_product_pricing(request,product_id):
@@ -149,6 +149,15 @@ def get_bom_pricing(request, bom_id):
                                 "Mouser",
                                 bom_id 
                             )
+
+                        elif distributor.name.lower() == "element14":
+                            distributor_response = element14_online_distributor(
+                                settings.ELEMENT14_API_KEY,
+                                first_manufacturer_part.part_number,
+                                # settings.HEADER_IP,                        
+                                "Element14"
+
+                            )
                             # distributor_responses["mouser"] = distributor_response
                         # else:
                         #     distributor_responses[distributor.name.lower()] = {'error': f'No API defined for {distributor.name}'}
@@ -234,6 +243,15 @@ def get_bom_pricing(request, bom_id):
                                 manufacturer_part.part_number,
                                 "Mouser",
                                 bom_id 
+                            )
+                        
+                        if distributor.name.lower() == "element14":
+                            distributor_response = element14_online_distributor(
+                                settings.ELEMENT14_API_KEY,
+                                manufacturer_part.part_number, 
+                                # settings.HEADER_IP,              
+                                "Element14"
+
                             )
                         # else:
                         #     distributor_responses[distributor.name.lower()] = {'error': f'No API defined for {distributor.name}'}

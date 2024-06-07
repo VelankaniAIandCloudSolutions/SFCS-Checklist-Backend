@@ -123,7 +123,7 @@ def digikey_online_distributor(client_id, client_secret, part_number, web_name, 
         response.raise_for_status()
         digikey_api_response = response.json()
 
-        print(f"bom_id: {bom_id}, digikey_api_response: {digikey_api_response}")
+        # print(f"bom_id: {bom_id}, digikey_api_response: {digikey_api_response}")
 
         product = digikey_api_response.get("Product", {})
         mfg_part_number = product.get("ManufacturerProductNumber")
@@ -298,9 +298,47 @@ def mouser_online_distributor(key,part_number,web_name , bom_id):
     except Exception as e:
         return {"Manufacturer Part Number": part_number, "Online Distributor Name":str(web_name),"error": str(e)}
 
-def element14_online_distributor(key,header_ip,web_name):
-    pass
+def element14_online_distributor(key,part_number,web_name):
+    print(f"Element14 ----------- {part_number}")
 
+    key = "574e2u973fa67jt6wb5et68z"
+    # header_ip = "103.89.8.2"
+    try:
+        # calling API
+        url = f"https://api.element14.com/catalog/products?versionNumber=1.3&term=manuPartNum%3A{part_number}&storeInfo.id=www.newark.com&resultsSettings.offset=0&resultsSettings.numberOfResults=1&resultsSettings.refinements.filters=rohsCompliant%2CinStock&resultsSettings.responseGroup=large&callInfo.omitXmlSchema=false&callInfo.responseDataFormat=json&callinfo.apiKey={key}"
+        # headers = {'X-Originating-IP': header_ip}
+        # response = requests.get(url, headers=headers)
+        response = requests.get(url)
+
+        api_response = response.json()
+       
+        # Transform API response into standard format
+        no_of_results = api_response["manufacturerPartNumberSearchReturn"]["numberOfResults"]
+        # filtering the 0-results Parts
+        if no_of_results == 0:
+            return {"Manufacturer Part Number": part_number, "Online Distributor Name": str(web_name), "Error": "Part Number Not found (or) Stock = 0", "Api_response": api_response}
+       
+        for index in range(no_of_results):
+            part = api_response["manufacturerPartNumberSearchReturn"]["products"][index]
+            if part_number in part["translatedManufacturerPartNumber"] or part_number.replace("-", "") in part["translatedManufacturerPartNumber"]:
+                if part["packageName"] in ["Cut Tape", "Each"]:
+                    Standard_Pricing = [{"Quantity": i["from"], "Unit Price": i["cost"]} for i in part["prices"]]
+                    std_data = {
+                        "Manufacturer Part Number": part["translatedManufacturerPartNumber"],
+                        "Online Distributor Name": web_name,
+                        "Manufacturer Name": part["vendorName"],
+                        "Description": part["displayName"],
+                        "Product Url": part["productURL"],
+                        "Datasheet Url": part["datasheets"][0]["url"] if "datasheets" in part else "N/A",
+                        "Package Type": part["packageName"],
+                        "Stock": part["stock"]["level"],
+                        "Currency": "USD",
+                        "Pricing": Standard_Pricing
+                    }
+                    return std_data
+        return {"Manufacturer Part Number": part_number, "Online Distributor Name": str(web_name), "error": "Part number not found","API_response": api_response}
+    except Exception as e:
+        return {"Manufacturer Part Number": part_number, "Online Distributor Name": str(web_name), "error": str(e)}
 
 
 
@@ -312,13 +350,13 @@ def api_call(distributor_name,part_no):
         return digikey_online_distributor(client_id,client_secret,part_no,distributor_name)
    
     if distributor_name == "mouser":
-        mouser_apikey = " "
+        mouser_apikey = "daf53999-5620-4003-8217-5c2ed9947d13"
         return mouser_online_distributor(mouser_apikey,part_no,distributor_name)
    
     if distributor_name == "element14":
-        element14_apikey = " "
-        request_header_ip = " "
-        return element14_online_distributor(element14_apikey,request_header_ip,distributor_name)
+        element14_apikey = "574e2u973fa67jt6wb5et68z"
+        request_header_ip = "103.89.8.2" #static value.Not system specific
+        return element14_online_distributor(element14_apikey,part_no,request_header_ip,distributor_name)
    
 
 def convert_stdjson_to_excel(frontend_vepl_json):
