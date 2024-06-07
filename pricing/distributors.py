@@ -359,11 +359,14 @@ def api_call(distributor_name, part_no):
         mouser_apikey = " "
         return mouser_online_distributor(mouser_apikey, part_no, distributor_name)
 
+        mouser_apikey = "daf53999-5620-4003-8217-5c2ed9947d13"
+        return mouser_online_distributor(mouser_apikey,part_no,distributor_name)
+   
     if distributor_name == "element14":
-        element14_apikey = " "
-        request_header_ip = " "
-        return element14_online_distributor(element14_apikey, request_header_ip, distributor_name)
-
+        element14_apikey = "574e2u973fa67jt6wb5et68z"
+        request_header_ip = "103.89.8.2" #static value.Not system specific
+        return element14_online_distributor(element14_apikey,part_no,request_header_ip,distributor_name)
+   
 
 def convert_stdjson_to_excel(frontend_vepl_json):
     # creating whole list consists of all distributors

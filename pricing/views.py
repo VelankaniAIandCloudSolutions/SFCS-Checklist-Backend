@@ -153,6 +153,15 @@ def get_bom_pricing(request, bom_id):
                                 "Mouser",
                                 bom_id
                             )
+
+                        elif distributor.name.lower() == "element14":
+                            distributor_response = element14_online_distributor(
+                                settings.ELEMENT14_API_KEY,
+                                first_manufacturer_part.part_number,
+                                # settings.HEADER_IP,                        
+                                "Element14"
+
+                            )
                             # distributor_responses["mouser"] = distributor_response
                         # else:
                         #     distributor_responses[distributor.name.lower()] = {'error': f'No API defined for {distributor.name}'}
@@ -238,7 +247,16 @@ def get_bom_pricing(request, bom_id):
                                 settings.MOUSER_API_KEY,
                                 manufacturer_part.part_number,
                                 "Mouser",
-                                bom_id
+                                bom_id 
+                            )
+                        
+                        if distributor.name.lower() == "element14":
+                            distributor_response = element14_online_distributor(
+                                settings.ELEMENT14_API_KEY,
+                                manufacturer_part.part_number, 
+                                # settings.HEADER_IP,              
+                                "Element14"
+
                             )
                         # else:
                         #     distributor_responses[distributor.name.lower()] = {'error': f'No API defined for {distributor.name}'}
