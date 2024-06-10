@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import PartPricing
 from accounts.serializers import UserAccountSerializer
-from store_checklist.serializers import ProjectListSerializer, ProductSerializer
+from store_checklist.serializers import *
 from pricing.models import *
 
 
@@ -41,6 +41,9 @@ class ManufacturerPartDistributorDetailSerializer(serializers.ModelSerializer):
     updated_by = UserAccountSerializer()
     created_by = UserAccountSerializer()
     created_at = serializers.DateTimeField(format='%d/%m/%Y %H:%M:%S')
+    currency = CurrencySerializer()
+    manufacturer_part = ManufacturerPartSerializer()
+    distributor = DistributorSerializer()
 
     class Meta:
         model = ManufacturerPartDistributorDetail
