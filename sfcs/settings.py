@@ -12,6 +12,8 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 
 from pathlib import Path
 import os
+import sys
+import logging
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -206,6 +208,30 @@ MOUSER_API_KEY = "daf53999-5620-4003-8217-5c2ed9947d13"
 ELEMENT14_API_KEY = "574e2u973fa67jt6wb5et68z"
 HEADER_IP = "103.89.8.2"
 
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
+        },
+    },
+    'handlers': {
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR / 'error_new.log',
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'sfcs': {
+            'handlers': ['file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}
 
 # LOGGING = {
 #     'version': 1,
@@ -216,21 +242,22 @@ HEADER_IP = "103.89.8.2"
 #         },
 #     },
 #     'handlers': {
-#         'file': {
+#         'console': {
 #             'level': 'INFO',
-#             'class': 'logging.FileHandler',
-#             'filename': BASE_DIR / 'error.log',
+#             'class': 'logging.StreamHandler',
 #             'formatter': 'verbose',
+#             'stream': sys.stdout,  # Use sys.stderr for error output
 #         },
 #     },
 #     'loggers': {
-#         'celery': {
-#             'handlers': ['file'],
+#         '': {
+#             'handlers': ['console'],
 #             'level': 'INFO',
 #             'propagate': False,
 #         },
 #     },
 # }
+
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtpout.secureserver.net'

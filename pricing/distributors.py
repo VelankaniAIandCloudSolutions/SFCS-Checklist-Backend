@@ -278,6 +278,7 @@ def mouser_online_distributor(key, part_number):
                     "Currency": part["PriceBreaks"][0]["Currency"] if part["PriceBreaks"] else "USD",
                     "Pricing": Standard_Pricing
                 }
+                print('JSON form mouser=', std_data)
                 return std_data
         return {"Manufacturer Part Number": part_number, "Online Distributor Name": str(distributor.name), "error": "Part number not found", "API_response": API_response}
     except Exception as e:
@@ -318,7 +319,7 @@ def element14_online_distributor(key, part_number):
         no_of_results = api_response["manufacturerPartNumberSearchReturn"]["numberOfResults"]
         # filtering the 0-results Parts
         if no_of_results == 0:
-            return {"Manufacturer Part Number": part_number, "Online Distributor Name": str(element14_distributor_instance.name), "Error": "Part Number Not found (or) Stock = 0", "Api_response": api_response}
+            return {"Manufacturer Part Number": part_number, "Online Distributor Name": str(element14_distributor_instance.name), "error": "Part Number Not found (or) Stock = 0", "Api_response": api_response}
 
         element14_package_types = DistributorPackageTypeDetail.objects.filter(
             distributor__name="element14"
@@ -342,6 +343,7 @@ def element14_online_distributor(key, part_number):
                         "Currency": "USD",
                         "Pricing": Standard_Pricing
                     }
+                    print('std_data', std_data)
                     return std_data
         return {"Manufacturer Part Number": part_number, "Online Distributor Name": str(element14_distributor_instance.name), "error": "Part number not found", "API_response": api_response}
     except Exception as e:
@@ -360,13 +362,13 @@ def api_call(distributor_name, part_no):
         return mouser_online_distributor(mouser_apikey, part_no, distributor_name)
 
         mouser_apikey = "daf53999-5620-4003-8217-5c2ed9947d13"
-        return mouser_online_distributor(mouser_apikey,part_no,distributor_name)
-   
+        return mouser_online_distributor(mouser_apikey, part_no, distributor_name)
+
     if distributor_name == "element14":
         element14_apikey = "574e2u973fa67jt6wb5et68z"
-        request_header_ip = "103.89.8.2" #static value.Not system specific
-        return element14_online_distributor(element14_apikey,part_no,request_header_ip,distributor_name)
-   
+        request_header_ip = "103.89.8.2"  # static value.Not system specific
+        return element14_online_distributor(element14_apikey, part_no, request_header_ip, distributor_name)
+
 
 def convert_stdjson_to_excel(frontend_vepl_json):
     # creating whole list consists of all distributors

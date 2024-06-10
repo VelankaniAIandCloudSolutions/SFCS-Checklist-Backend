@@ -164,8 +164,11 @@ def update_pricing_for_all_products():
 @shared_task
 def create_mfr_part_distributor_data():
     try:
+        logger.info('Task started: create_mfr_part_distributor_data')
+
         # Fetch all ManufacturerPart instances
-        manufacturer_parts = ManufacturerPart.objects.all()[:1]
+        manufacturer_parts = ManufacturerPart.objects.all()[:100]
+        logger.info(f'Fetched {len(manufacturer_parts)} manufacturer parts')
 
         # Iterate through each ManufacturerPart
         for manufacturer_part in manufacturer_parts:
@@ -183,7 +186,7 @@ def create_mfr_part_distributor_data():
                                     manufacturer_part.part_number,
                                 )
                             else:
-                                print(
+                                logger.warning(
                                     "Access ID or Access Secret not available for Digikey")
                         elif distributor.name.lower() == "mouser":
                             mouser_distributor_instance = Distributor.objects.get(
@@ -206,13 +209,13 @@ def create_mfr_part_distributor_data():
                                                     unit_price_str)
                                                 price['Unit Price'] = unit_price
                                             except ValueError:
-                                                print(
+                                                logger.error(
                                                     f"Invalid price format: {unit_price_str}")
                                         else:
-                                            print(
+                                            logger.warning(
                                                 "No 'Unit Price' key found in pricing")
                             else:
-                                print(
+                                logger.warning(
                                     "Distributor instance or API key not available for Mouser")
                         elif distributor.name.lower() == "element14":
                             element14_distributor_instance = Distributor.objects.get(
@@ -223,9 +226,8 @@ def create_mfr_part_distributor_data():
                                     manufacturer_part.part_number,
                                 )
                             else:
-                                print(
+                                logger.warning(
                                     "Distributor instance or API key not available for element14")
-                        # print(f"Distributor Response for {distributor.name}: {distributor_response}")
 
                         if distributor_response and not distributor_response.get("error"):
                             currency_name = distributor_response.get(
@@ -251,13 +253,14 @@ def create_mfr_part_distributor_data():
                                     defaults={'price': price["Unit Price"]}
                                 )
                     except Exception as dist_err:
-                        print(
+                        logger.error(
                             f"Error processing distributor {distributor.name}: {dist_err}")
             except Exception as part_err:
-                print(
+                logger.error(
                     f"Error processing manufacturer part {manufacturer_part.part_number}: {part_err}")
 
+        logger.info('Task completed: create_mfr_part_distributor_data')
         return {"message": "Manufacturer part distributor data created successfully"}
     except Exception as e:
-        print(f"Error occurred: {e}")
+        logger.error(f"Error occurred: {e}")
         return {"error": "An error occurred"}

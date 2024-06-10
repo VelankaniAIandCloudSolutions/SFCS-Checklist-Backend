@@ -27,21 +27,21 @@ app.autodiscover_tasks()
 
 
 app.conf.beat_schedule = {
-    'update-part-pricing-task': {
-        'task': 'pricing.tasks.update_pricing_for_all_products',
-        'schedule': timedelta(hours=12),
-    },
-    'check-maintenance-activity-task': {
-        'task': 'machine_maintenance.tasks.maintenance_alert_email',
-        'schedule': crontab(minute=0, hour=7,),
-    },
-    'check_missing_activity_and_send_email_for_today': {
-        'task': 'machine_maintenance.tasks.check_missing_activity_and_send_email_for_today',
-        'schedule': crontab(hour=13, minute=6),
-    },
+    # 'update-part-pricing-task': {
+    #     'task': 'pricing.tasks.update_pricing_for_all_products',
+    #     'schedule': timedelta(hours=12),
+    # },
+    # 'check-maintenance-activity-task': {
+    #     'task': 'machine_maintenance.tasks.maintenance_alert_email',
+    #     'schedule': crontab(minute=0, hour=7,),
+    # },
+    # 'check_missing_activity_and_send_email_for_today': {
+    #     'task': 'machine_maintenance.tasks.check_missing_activity_and_send_email_for_today',
+    #     'schedule': crontab(hour=13, minute=6),
+    # },
     'create-distributor-data': {
         'task': 'pricing.tasks.create_mfr_part_distributor_data',
-        'schedule': crontab(hour=0, minute=0),
+        'schedule': crontab(hour=10, minute=48),
     },
 
 
