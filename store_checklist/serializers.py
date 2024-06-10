@@ -366,3 +366,10 @@ class BomFormatSerializer(serializers.ModelSerializer):
     class Meta:
         model = BomFormat
         fields = '__all__'
+
+class DistributorSerializer(serializers.ModelSerializer):
+
+    class Meta:
+
+        model = Distributor
+        fields = '__all__'

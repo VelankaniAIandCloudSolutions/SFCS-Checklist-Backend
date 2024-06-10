@@ -72,6 +72,9 @@ from .distributors import digikey_online_distributor, Oauth_digikey, mouser_onli
 #     return Response(data,status=status.HTTP_200_OK)
 
 
+from django.http import JsonResponse
+import json
+
 @api_view(['GET'])
 def get_project_pricing_page(request):
     try:
@@ -88,8 +91,7 @@ def get_project_pricing_page(request):
             bom_data['bom_format_name'] = bom_format_name
             boms_data.append(bom_data)
 
-        last_task_result = TaskResult.objects.filter(
-            result='1').order_by('-date_done').first()
+        last_task_result = TaskResult.objects.filter(result='1').order_by('-date_done').first()
         last_updated_at = ''
 
         if last_task_result:
@@ -104,10 +106,11 @@ def get_project_pricing_page(request):
             'boms': boms_data,
         }
 
-        return Response(data, status=status.HTTP_200_OK)
+        return JsonResponse(data)
 
     except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return JsonResponse({'error': str(e)})
+
 
 
 @api_view(['GET'])
@@ -300,12 +303,12 @@ def get_bom_pricing(request, bom_id):
         }
 
         # print("Response Data", data)
-        return Response(data, status=status.HTTP_200_OK)
+        return JsonResponse(data)
 
     except BillOfMaterialsLineItem.DoesNotExist:
         raise Http404("Bill of Materials not found for the given bom_id.")
     except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return JsonResponse({'error': str(e)})
 
 
 # @api_view(['GET'])
@@ -653,3 +656,63 @@ def create_mfr_part_distributor_data(request):
     except Exception as e:
         print(f"Error occurred: {e}")
         return Response({"error": "An error occurred"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+from django.http import JsonResponse
+
+@api_view(["GET"])
+def get_manufacture_part_pricing(request, bom_id):
+   
+    bom_line_items = BillOfMaterialsLineItem.objects.filter(bom_id=bom_id)
+
+    # Collect the manufacturer part ids and part numbers (VEPL Numbers)
+    manufacturer_parts = {}
+    for item in bom_line_items:
+        for part in item.manufacturer_parts.all():
+            manufacturer_parts[part.id] = item.part_number
+
+    # Filter ManufacturerPartDistributorDetail based on the extracted manufacturer part ids
+    manufacturer_pricing = ManufacturerPartDistributorDetail.objects.filter(
+        manufacturer_part_id__in=manufacturer_parts.keys()
+    )
+
+    # Serialize the filtered manufacturer parts
+    serializers = ManufacturerPartDistributorDetailSerializer(manufacturer_pricing, many=True)
+    data = serializers.data
+    final_data = []
+
+    for item in data:
+        manufacturer_part_id = item['manufacturer_part']['id']
+        vepl_number = manufacturer_parts.get(manufacturer_part_id, "Unknown")
+        print(f"Mapping manufacturer_part_id {manufacturer_part_id} to VEPL Number: {vepl_number}")  
+
+        # Initialize the row dictionary with the required fields
+        row = {
+            'VEPL Number': vepl_number,  # Map VEPL Number using part number
+            'Manufacturer Part Number': item['manufacturer_part']['part_number'],
+            'Online Distributor Name': item['distributor']['name'],
+            'Manufacturer': item['manufacturer_part']['manufacturer']['name'],
+            'Description': item.get('description'),
+            'Stock': item.get('stock'),
+            'Currency': item['currency']['name'],
+            'Symbol' : item['currency']['symbol'],
+            'Datasheet Url': item.get('datasheet_url'),
+            'Product Url': item.get('product_url')
+        }
+
+        # Fetch pricing details for the current ManufacturerPartDistributorDetail
+        manufacturer_part_distributor_detail_id = item['id']
+        pricing_details = ManufacturerPartPricing.objects.filter(
+            manufacturer_part_distributor_detail=manufacturer_part_distributor_detail_id
+        )
+        pricing_serializer = ManufacturerPartPricingSerializer(pricing_details, many=True)
+        
+        # Add pricing details dynamically
+        for pricing_detail in pricing_serializer.data:
+            quantity = pricing_detail['quantity']
+            price_field = f'Price ({quantity})'
+            row[price_field] = pricing_detail['price']
+
+        final_data.append(row)
+
+    return JsonResponse(final_data, safe=False)
+
