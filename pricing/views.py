@@ -716,3 +716,288 @@ def get_manufacture_part_pricing(request, bom_id):
 
     return JsonResponse(final_data, safe=False)
 
+
+
+# @api_view(['GET'])
+# def get_pricing_details(request):
+#     try:
+#         part_number = request.query_params.get("part_number")
+
+#         if not part_number:
+#             return JsonResponse({'error': 'Part number is required'}, status=400)
+
+#         distributors = Distributor.objects.all()
+#         distributor_responses = {}
+#         line_items_data = []
+#         final_json = []
+#         part_data = {}
+
+#         for distributor in distributors:
+#             distributor_response = None
+#             if distributor.name.lower() == "digikey":
+#                 distributor_response = digikey_online_distributor(
+#                     settings.DIGIKEY_APIS_CLIENT_ID,
+#                     settings.DIGIKEY_APIS_CLIENT_SECRET,
+#                     part_number,
+#                 )
+#             elif distributor.name.lower() == "mouser":
+#                 distributor_response = mouser_online_distributor(
+#                     settings.MOUSER_API_KEY,
+#                     part_number,
+#                 )
+#             elif distributor.name.lower() == "element14":
+#                 distributor_response = element14_online_distributor(
+#                     settings.ELEMENT14_API_KEY,
+#                     part_number,
+#                 )
+
+#             if distributor_response:
+#                 if distributor_response.get("error"):
+#                     continue
+#                 else:
+#                     distributor_responses[distributor.name.lower()] = distributor_response
+
+#         if distributor_responses:
+#             part_data['distributors'] = distributor_responses
+#             line_items_data.append(part_data)
+
+#             for distributor_name, distributor_data in distributor_responses.items():
+#                 currency_name = distributor_data.get("Currency", "")
+#                 try:
+#                     currency = Currency.objects.get(name=currency_name)
+#                     currency_symbol = currency.symbol
+#                 except Currency.DoesNotExist:
+#                     currency_symbol = ""
+
+#                 row = {
+#                     "distributor": distributor_name,
+#                     "Manufacturer Part Number": distributor_data.get("Manufacturer Part Number", ""),
+#                     "Manufacturer Name": distributor_data.get("Manufacturer Name", ""),
+#                     "Online Distributor Name": distributor_data.get("Online Distributor Name", ""),
+#                     "Description": distributor_data.get("Description", ""),
+#                     "Product Url": distributor_data.get("Product Url", ""),
+#                     "Datasheet Url": distributor_data.get("Datasheet Url", ""),
+#                     "Package Type": distributor_data.get("Package Type", ""),
+#                     "Stock": distributor_data.get("Stock", ""),
+#                     "Currency": distributor_data.get("Currency", ""),
+#                     "Currency Symbol": currency_symbol,
+#                 }
+
+#                 pricing = distributor_data.get("Pricing", [])
+#                 for price in pricing:
+#                     row[f"price({price['Quantity']})"] = price["Unit Price"]
+
+#                 final_json.append(row)
+
+#         data = {
+#             'line_items': line_items_data,
+#             'final_json': final_json
+#         }
+
+#         return JsonResponse(data)
+
+#     except BillOfMaterialsLineItem.DoesNotExist:
+#         raise Http404("Bill of Materials not found for the given bom_id.")
+#     except Exception as e:
+#         return JsonResponse({'error': str(e)}, status=500)
+
+
+@api_view(['GET'])
+def get_pricing_details(request):
+    try:
+        part_number = request.query_params.get("part_number")
+
+        if not part_number:
+            return JsonResponse({'error': 'Part number is required'}, status=400)
+
+        distributors = Distributor.objects.all()
+        distributor_responses = {}
+        line_items_data = []
+        final_json = []
+        part_data = {}
+
+        for distributor in distributors:
+            distributor_response = None
+            if distributor.name.lower() == "digikey":
+                distributor_response = digikey_online_distributor(
+                    settings.DIGIKEY_APIS_CLIENT_ID,
+                    settings.DIGIKEY_APIS_CLIENT_SECRET,
+                    part_number,
+                )
+            elif distributor.name.lower() == "mouser":
+                distributor_response = mouser_online_distributor(
+                    settings.MOUSER_API_KEY,
+                    part_number,
+                )
+            elif distributor.name.lower() == "element14":
+                distributor_response = element14_online_distributor(
+                    settings.ELEMENT14_API_KEY,
+                    part_number,
+                )
+
+            if distributor_response:
+                if distributor_response.get("error"):
+                    continue
+                else:
+                    distributor_responses[distributor.name.lower()] = distributor_response
+
+        if distributor_responses:
+            part_data['distributors'] = distributor_responses
+            line_items_data.append(part_data)
+
+            for distributor_name, distributor_data in distributor_responses.items():
+                currency_name = distributor_data.get("Currency", "")
+                try:
+                    currency = Currency.objects.get(name=currency_name)
+                    currency_symbol = currency.symbol
+                except Currency.DoesNotExist:
+                    currency_symbol = ""
+
+                row = {
+                    "distributor": distributor_name,
+                    "Manufacturer Part Number": distributor_data.get("Manufacturer Part Number", ""),
+                    "Manufacturer Name": distributor_data.get("Manufacturer Name", ""),
+                    "Online Distributor Name": distributor_data.get("Online Distributor Name", ""),
+                    "Description": distributor_data.get("Description", ""),
+                    "Product Url": distributor_data.get("Product Url", ""),
+                    "Datasheet Url": distributor_data.get("Datasheet Url", ""),
+                    "Package Type": distributor_data.get("Package Type", ""),
+                    "Stock": distributor_data.get("Stock", ""),
+                    "Currency": distributor_data.get("Currency", ""),
+                    "Currency Symbol": currency_symbol,
+                }
+
+                pricing = distributor_data.get("Pricing", [])
+                for price in pricing:
+                    quantity = price["Quantity"]
+                    unit_price = price["Unit Price"]
+
+                    # Convert price to numeric format
+                    if isinstance(unit_price, str):
+                        try:
+                            unit_price = float(unit_price.replace("$", "").replace(",", ""))
+                        except ValueError:
+                            unit_price = None
+
+                    row[f"price({quantity})"] = unit_price
+
+                final_json.append(row)
+
+        data = {
+            'line_items': line_items_data,
+            'final_json': final_json
+        }
+
+        return JsonResponse(data)
+
+    except BillOfMaterialsLineItem.DoesNotExist:
+        raise Http404("Bill of Materials not found for the given bom_id.")
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@api_view(['GET'])
+def get_VeplNumber_prices(request):
+    try:
+        vepl_number = request.query_params.get("part_number")
+
+        if not vepl_number:
+            return JsonResponse({'error': 'VEPL number is required'}, status=400)
+
+        # Fetch the BillOfMaterialsLineItems using the VEPL number
+        line_items = BillOfMaterialsLineItem.objects.filter(part_number=vepl_number)
+
+        if not line_items.exists():
+            return JsonResponse({'error': 'VEPL number not found'}, status=404)
+
+        final_json = []
+        line_items_data = []
+
+        # Iterate over the line items and fetch related manufacturer parts
+        for line_item in line_items:
+            manufacturer_parts = line_item.manufacturer_parts.all()
+
+            if not manufacturer_parts:
+                continue
+
+            for part in manufacturer_parts:
+                distributors = Distributor.objects.all()
+                distributor_responses = {}
+                part_data = {}
+
+                for distributor in distributors:
+                    distributor_response = None
+                    if distributor.name.lower() == "digikey":
+                        distributor_response = digikey_online_distributor(
+                            settings.DIGIKEY_APIS_CLIENT_ID,
+                            settings.DIGIKEY_APIS_CLIENT_SECRET,
+                            part.part_number,
+                        )
+                    elif distributor.name.lower() == "mouser":
+                        distributor_response = mouser_online_distributor(
+                            settings.MOUSER_API_KEY,
+                            part.part_number,
+                        )
+                    elif distributor.name.lower() == "element14":
+                        distributor_response = element14_online_distributor(
+                            settings.ELEMENT14_API_KEY,
+                            part.part_number,
+                        )
+
+                    if distributor_response:
+                        if distributor_response.get("error"):
+                            continue
+                        else:
+                            distributor_responses[distributor.name.lower()] = distributor_response
+
+                if distributor_responses:
+                    part_data['distributors'] = distributor_responses
+                    line_items_data.append(part_data)
+
+                    for distributor_name, distributor_data in distributor_responses.items():
+                        currency_name = distributor_data.get("Currency", "")
+                        try:
+                            currency = Currency.objects.get(name=currency_name)
+                            currency_symbol = currency.symbol
+                        except Currency.DoesNotExist:
+                            currency_symbol = ""
+
+                        row = {
+                            "vepl_number": vepl_number,
+                            "distributor": distributor_name,
+                            "Manufacturer Part Number": distributor_data.get("Manufacturer Part Number", ""),
+                            "Manufacturer Name": distributor_data.get("Manufacturer Name", ""),
+                            "Online Distributor Name": distributor_data.get("Online Distributor Name", ""),
+                            "Description": distributor_data.get("Description", ""),
+                            "Product Url": distributor_data.get("Product Url", ""),
+                            "Datasheet Url": distributor_data.get("Datasheet Url", ""),
+                            "Package Type": distributor_data.get("Package Type", ""),
+                            "Stock": distributor_data.get("Stock", ""),
+                            "Currency": distributor_data.get("Currency", ""),
+                            "Currency Symbol": currency_symbol,
+                        }
+
+                        pricing = distributor_data.get("Pricing", [])
+                        for price in pricing:
+                            unit_price = price["Unit Price"]
+                            if isinstance(unit_price, str):
+                                unit_price = float(unit_price.replace('$', '').replace(',', '').strip())
+                            row[f"price({price['Quantity']})"] = unit_price
+
+                        final_json.append(row)
+
+        data = {
+            'vepl_number': vepl_number,
+            'line_items': line_items_data,
+            'final_json': final_json
+        }
+
+        return JsonResponse(data)
+
+    except BillOfMaterialsLineItem.DoesNotExist:
+        raise Http404("Bill of Materials not found for the given VEPL number.")
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+
+
