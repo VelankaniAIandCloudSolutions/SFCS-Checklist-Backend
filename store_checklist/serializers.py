@@ -175,6 +175,19 @@ class BillOfMaterialsLineItemSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class BillOfMaterialsLineItemSerializerNew(serializers.ModelSerializer):
+
+    manufacturer_parts = ManufacturerPartSerializer(many=True)
+    # assembly_stage = AssemblyStageSerializer()
+    line_item_type = BillOfMaterialsLineItemTypeSerializer()
+    # references = BillOfMaterialsLineItemReferenceSerializer(many=True)
+    bom = BillOfMaterialsListSerializer()
+
+    class Meta:
+        model = BillOfMaterialsLineItem
+        fields = '__all__'
+
+
 class BillOfMaterialsSerializer(serializers.ModelSerializer):
     bom_type = BillOfMaterialsTypeSerializer()
     bom_line_items = BillOfMaterialsLineItemSerializer(many=True)
@@ -187,6 +200,18 @@ class BillOfMaterialsSerializer(serializers.ModelSerializer):
         model = BillOfMaterials
         fields = '__all__'
 
+
+class BillOfMaterialsSerializerNew(serializers.ModelSerializer):
+    # bom_type = BillOfMaterialsTypeSerializer()
+    # bom_line_items = BillOfMaterialsLineItemSerializer(many=True)
+    # product = ProductSerializer()
+    # issue_date = serializers.DateField(format="%d/%m/%Y")
+
+    # references = serializers.SerializerMethodField()
+
+    class Meta:
+        model = BillOfMaterials
+        fields = '__all__'
     # def get_references(self, obj):
     #     # Extract the references from bom_line_items and flatten the list
     #     references_list = [ref for item in obj.bom_line_items.all()
@@ -334,4 +359,17 @@ class OrderListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Order
+        fields = '__all__'
+
+
+class BomFormatSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BomFormat
+        fields = '__all__'
+
+class DistributorSerializer(serializers.ModelSerializer):
+
+    class Meta:
+
+        model = Distributor
         fields = '__all__'

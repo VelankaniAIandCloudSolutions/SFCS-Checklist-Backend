@@ -328,7 +328,8 @@ def parse_log_file(s3_url, product=None, board_type='1UP', log_files_folder=None
                     if first_panel is not None and first_panel.attrib.get('panelID') != '':
                         serial_number = first_panel.attrib.get('panelID')
                     else:
-                        serial_number  = root.attrib.get('boardID') if root.attrib else 'Unknown'
+                        serial_number = root.attrib.get(
+                            'boardID') if root.attrib else 'Unknown'
 
                     result = 'Omit: ' + omit_value if omit_value else 'Unknown'
 
@@ -373,32 +374,36 @@ def parse_log_file(s3_url, product=None, board_type='1UP', log_files_folder=None
                                 )
                                 board_log.machines.add(*pp_machines)
                                 board_log.save()
-                
+
                 elif log_type == 'spi':
                     def parse_date(date_str):
                         try:
                             return datetime.strptime(date_str, '%m/%d/%Y %H:%M:%S')
                         except ValueError:
                             pass
-                        
+
                         try:
                             return datetime.strptime(date_str, '%Y-%m-%d %H:%M:%S')
                         except ValueError:
                             raise ValueError("Date format not recognized")
-                        
-                    data = pd.read_csv(temp_file_path, header=0, index_col=False)
+
+                    data = pd.read_csv(
+                        temp_file_path, header=0, index_col=False)
 
                     data.reset_index(drop=True, inplace=True)
                     if '>' in data['PCBIndex'].iloc[0]:
                         data.iloc[0] = data.iloc[0].shift(-1)
-                    
-                    if '<' in data['BarCode'].iloc[0] or '>' in data['BarCode'].iloc[0] or '<>' in data['BarCode'].iloc[0]:    
-                        board_serial_number = data['BarCode'].iloc[0].strip('<>').strip()
+
+                    if '<' in data['BarCode'].iloc[0] or '>' in data['BarCode'].iloc[0] or '<>' in data['BarCode'].iloc[0]:
+                        board_serial_number = data['BarCode'].iloc[0].strip(
+                            '<>').strip()
                     else:
                         board_serial_number = data['BarCode'].iloc[0]
 
-                    begin_date_time_str = data.iloc[0]['Date'] + ' ' + data.iloc[0]['StartTime']
-                    end_date_time_str = data.iloc[0]['Date'] + ' ' + data.iloc[0]['EndTime']
+                    begin_date_time_str = data.iloc[0]['Date'] + \
+                        ' ' + data.iloc[0]['StartTime']
+                    end_date_time_str = data.iloc[0]['Date'] + \
+                        ' ' + data.iloc[0]['EndTime']
                     begin_date_time = parse_date(begin_date_time_str)
                     end_date_time = parse_date(end_date_time_str)
 
@@ -476,7 +481,7 @@ def parse_log_file(s3_url, product=None, board_type='1UP', log_files_folder=None
                 os.unlink(temp_file_path)
                 board_log_serializer = BoardLogSerializer(board_log)
                 return board_log_serializer.data
-            else: 
+            else:
                 print("Failed to download file from S3:")
                 return None
     except Exception as e:
@@ -513,9 +518,11 @@ def create_board_log(request):
             if 'aoi' in log_files_folder.lower():
                 machines = Machine.objects.filter(name__icontains='aoi')
             elif 'p&p' in log_files_folder.lower():
-                machines = Machine.objects.filter(name__icontains='Pick & Place')
+                machines = Machine.objects.filter(
+                    name__icontains='Pick & Place')
             elif 'spi' in log_files_folder.lower():
-                machines = Machine.objects.filter(Q(name__icontains='SPI') | Q(name__icontains='Solder Paste Inspection'))
+                machines = Machine.objects.filter(Q(name__icontains='SPI') | Q(
+                    name__icontains='Solder Paste Inspection'))
         print(log_files_folder)
         board_log = parse_log_file(s3_url=s3_url, log_files_folder=log_files_folder,
                                    date=timezone.make_aware(datetime.strptime(date, "%d-%m-%Y")).date(), log_type=log_type)
@@ -526,7 +533,8 @@ def create_board_log(request):
     except Exception as e:
         print("Error occurred while processing request:", e)
         return Response({'error': 'An unexpected error occurred.'}, status=500)
-    
+
+
 @api_view(['GET'])
 def get_board_logs(request):
     if 'board_number' in request.query_params:

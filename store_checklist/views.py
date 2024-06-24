@@ -1,4 +1,5 @@
 
+from io import BytesIO
 from .models import Checklist, ChecklistSetting
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view
@@ -85,6 +86,7 @@ def handle_bom_cases(request):
 @api_view(['POST'])
 def upload_bom_task(request):
     # try:
+    test_func.delay(5,6)
     bom_file = request.FILES.get('bom_file')
     print('this is bom file', bom_file)
 
@@ -128,8 +130,10 @@ def upload_bom_task(request):
         'bom_rev_no': request.data.get('bom_rev_no'),
         'issue_date': request.data.get('issue_date'),
         'bom_rev_change_note': request.data.get('bom_rev_change_note'),
+        'bom_format_id': request.data.get('bom_format_id'),
         'pcb_file_name': pcb_file_name,
         'pcb_file_path': pcb_path,
+
 
 
         # 'batch_quantity': request.data.get('batch_quantity'),
@@ -534,7 +538,7 @@ def get_boms(request):
         # boms = BillOfMaterials.objects.all()
         # serializer = BillOfMaterialsSerializer(boms, many=True)
 
-        boms_without_line_items = BillOfMaterials.objects.all()
+        boms_without_line_items = BillOfMaterials.objects.all().order_by('-created_at')
         bom_serializer = BillOfMaterialsListSerializer(
             boms_without_line_items, many=True)
 
@@ -1365,10 +1369,14 @@ def create_order(request, *args, **kwargs):
             #     boms_by_project, many=True)
 
             # Return all data in a single response
+            bom_formats = BomFormat.objects.all()
+            bom_formats_serializer = BomFormatSerializer(
+                bom_formats, many=True)
             response_data = {
                 'projects': project_serializer.data,
                 'products': serialized_products,
                 'boms': bom_serializer.data,
+                'bom_formats': bom_formats_serializer.data
                 # 'boms_by_project': bom_by_project_serializer.data,
 
             }
@@ -1471,6 +1479,7 @@ def create_order_task(request):
         'issue_date': request.data.get('issue_date'),
         'bom_rev_change_note': request.data.get('bom_rev_change_note'),
         'batch_quantity': request.data.get('batch_quantity'),
+        'bom_format_id': request.data.get('bom_format_id'),
         'pcb_file_name': pcb_file_name,
         'pcb_file_path': pcb_path,
 
@@ -2171,3 +2180,128 @@ def assign_defect_to_board(request):
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     else:
         return Response({'error': 'Only POST requests are allowed'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+
+# @api_view(['POST'])
+# @authentication_classes([])
+# @permission_classes([])
+# def parse_bom_new(request):
+#     try:
+#         # Get BOM ID from request data
+#         bom_id = request.data.get('bom_id')
+#         bom = get_object_or_404(BillOfMaterials, id=bom_id)
+
+#         # Get the uploaded file
+#         file = request.FILES['file']
+#         excel_data = pd.read_excel(
+#             BytesIO(file.read()), sheet_name='gen2_1600w_aux_supply', header=11)
+
+#         # Replace NaN values with None in the Excel data
+
+#         # Rename columns to match the expected format
+#         excel_data.columns = [
+#             "Level", "VEPL Part No", "Priority Level", "Value", "PCB Footprint",
+#             "Type", "Description", "Mfr", "Mfr. Part No", "Customer Part No",
+#             "Qty", "Reference"
+#         ]
+
+#         for index, row in excel_data.iterrows():
+#             # Check if 'Mfr. Part No' is not None
+#             mfr_part_number = row['Mfr. Part No'] if pd.notna(
+#                 row['Mfr. Part No']) else None
+#             if mfr_part_number is not None:
+#                 # Update or create Manufacturer
+#                 manufacturer_name = row['Mfr'] if pd.notna(
+#                     row['Mfr']) else None
+#                 manufacturer, created = Manufacturer.objects.update_or_create(
+#                     name=manufacturer_name,
+#                     # Specify default values here if necessary
+#                     defaults={} if manufacturer_name is not None else None
+#                 )
+#                 print(
+#                     f"Manufacturer {'updated' if not created else 'created'}: {manufacturer}")
+
+#                 # Create or get ManufacturerPart
+#                 mfr_part, updated = ManufacturerPart.objects.update_or_create(
+#                     part_number=mfr_part_number,
+#                     manufacturer=manufacturer if manufacturer_name is not None else None
+#                 )
+#                 print(
+#                     f"ManufacturerPart {'updated' if not updated else 'created'}: {mfr_part}")
+
+#                 # Create or get BillOfMaterialsLineItemType
+#                 line_item_type_name = row['Type'] if pd.notna(
+#                     row['Type']) else None
+#                 line_item_type, created = BillOfMaterialsLineItemType.objects.update_or_create(
+#                     name=line_item_type_name,
+#                     # Specify default values here if necessary
+#                     defaults={} if line_item_type_name is not None else None
+#                 )
+#                 print(
+#                     f"BillOfMaterialsLineItemType {'updated' if not created else 'created'}: {line_item_type}")
+
+#                 existing_bom_line_item = BillOfMaterialsLineItem.objects.filter(
+#                     bom=bom,
+#                     manufacturer_parts=mfr_part
+#                 ).first()
+
+#                 # Create or update BOM Line Item
+#                 if existing_bom_line_item:
+#                     # ManufacturerPart exists for this BOM Line Item, so update it
+#                     bom_line_item = existing_bom_line_item
+#                     bom_line_item.level = row['Level'] if pd.notna(
+#                         row['Level']) else None
+#                     bom_line_item.priority_level = row['Priority Level'] if pd.notna(
+#                         row['Priority Level']) else None
+#                     bom_line_item.value = row['Value'] if pd.notna(
+#                         row['Value']) else None
+#                     bom_line_item.pcb_footprint = row['PCB Footprint'] if pd.notna(
+#                         row['PCB Footprint']) else None
+#                     bom_line_item.line_item_type = line_item_type
+#                     bom_line_item.description = row['Description'] if pd.notna(
+#                         row['Description']) else None
+#                     bom_line_item.customer_part_number = row['Customer Part No'] if pd.notna(
+#                         row['Customer Part No']) else None
+#                     bom_line_item.quantity = int(
+#                         row['Qty']) if pd.notna(row['Qty']) else 0
+#                     bom_line_item.save()
+#                     print(f"BOM Line Item updated: {bom_line_item}")
+#                 else:
+#                     # ManufacturerPart doesn't exist for this BOM Line Item, so create it
+#                     bom_line_item = BillOfMaterialsLineItem.objects.create(
+#                         bom=bom,
+#                         level=row['Level'] if pd.notna(row['Level']) else None,
+#                         priority_level=row['Priority Level'] if pd.notna(
+#                             row['Priority Level']) else None,
+#                         value=row['Value'] if pd.notna(row['Value']) else None,
+#                         pcb_footprint=row['PCB Footprint'] if pd.notna(
+#                             row['PCB Footprint']) else None,
+#                         line_item_type=line_item_type,
+#                         description=row['Description'] if pd.notna(
+#                             row['Description']) else None,
+#                         customer_part_number=row['Customer Part No'] if pd.notna(
+#                             row['Customer Part No']) else None,
+#                         quantity=int(row['Qty']) if pd.notna(
+#                             row['Qty']) else 0,
+#                     )
+#                     # Add ManufacturerPart to the many-to-many relationship
+#                     bom_line_item.manufacturer_parts.add(mfr_part)
+#                     print(f"BOM Line Item created: {bom_line_item}")
+
+#                 # Update or create BillOfMaterialsLineItemReference instances
+#                 references = row['Reference']
+#                 if references is not None:
+#                     for reference in str(references).split(','):
+#                         ref, _ = BillOfMaterialsLineItemReference.objects.update_or_create(
+#                             name=str(reference).strip(),
+#                             bom_line_item=bom_line_item,  # Include the BillOfMaterialsLineItem reference
+#                             defaults={
+#                                 # 'updated_by': request.user,
+#                                 # 'created_by': request.user,
+#                             }
+#                         )
+#                         # print(f"BillOfMaterialsLineItemReference {'updated' if not _ else 'created'}: {ref}")
+
+#         return Response({"status": "success", "message": "BOM line items parsed and saved successfully."})
+#     except Exception as e:
+#         return Response({"status": "error", "message": str(e)})

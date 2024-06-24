@@ -1,4 +1,5 @@
 from celery import shared_task
+from fastapi import Response
 from store_checklist.models import Product
 from .models import PartPricing
 import requests
@@ -10,6 +11,9 @@ from store_checklist.models import BillOfMaterials, BillOfMaterialsLineItem, Pro
 from django.db.models import Max
 import re
 import logging
+from django.conf import settings
+
+from .distributors import digikey_online_distributor, Oauth_digikey, mouser_online_distributor, element14_online_distributor
 logger = logging.getLogger(__name__)
 
 
@@ -155,3 +159,108 @@ def update_pricing_for_all_products():
         logger.error(
             'An error occurred in update_pricing_for_all_products: %s', e)
         raise
+
+
+@shared_task
+def create_mfr_part_distributor_data():
+    try:
+        logger.info('Task started: create_mfr_part_distributor_data')
+
+        # Fetch all ManufacturerPart instances
+        manufacturer_parts = ManufacturerPart.objects.all()[:100]
+        logger.info(f'Fetched {len(manufacturer_parts)} manufacturer parts')
+
+        # Iterate through each ManufacturerPart
+        for manufacturer_part in manufacturer_parts:
+            try:
+                # Fetch all Distributor instances
+                for distributor in Distributor.objects.all():
+                    try:
+                        if distributor.name.lower() == "digikey":
+                            digi_key_distributor_instance = Distributor.objects.get(
+                                name="Digikey")
+                            if digi_key_distributor_instance.access_id and digi_key_distributor_instance.access_secret:
+                                distributor_response = digikey_online_distributor(
+                                    digi_key_distributor_instance.access_id,
+                                    digi_key_distributor_instance.access_secret,
+                                    manufacturer_part.part_number,
+                                )
+                            else:
+                                logger.warning(
+                                    "Access ID or Access Secret not available for Digikey")
+                        elif distributor.name.lower() == "mouser":
+                            mouser_distributor_instance = Distributor.objects.get(
+                                name="mouser")
+                            if mouser_distributor_instance and mouser_distributor_instance.api_key:
+                                distributor_response = mouser_online_distributor(
+                                    mouser_distributor_instance.api_key,
+                                    manufacturer_part.part_number,
+                                )
+                                if distributor_response and not distributor_response.get("error"):
+                                    pricing = distributor_response.get(
+                                        "Pricing", [])
+                                    for price in pricing:
+                                        if 'Unit Price' in price:
+                                            unit_price_str = price['Unit Price']
+                                            if unit_price_str.startswith('$'):
+                                                unit_price_str = unit_price_str[1:]
+                                            try:
+                                                unit_price = float(
+                                                    unit_price_str)
+                                                price['Unit Price'] = unit_price
+                                            except ValueError:
+                                                logger.error(
+                                                    f"Invalid price format: {unit_price_str}")
+                                        else:
+                                            logger.warning(
+                                                "No 'Unit Price' key found in pricing")
+                            else:
+                                logger.warning(
+                                    "Distributor instance or API key not available for Mouser")
+                        elif distributor.name.lower() == "element14":
+                            element14_distributor_instance = Distributor.objects.get(
+                                name="element14")
+                            if element14_distributor_instance and element14_distributor_instance.api_key:
+                                distributor_response = element14_online_distributor(
+                                    element14_distributor_instance.api_key,
+                                    manufacturer_part.part_number,
+                                )
+                            else:
+                                logger.warning(
+                                    "Distributor instance or API key not available for element14")
+
+                        if distributor_response and not distributor_response.get("error"):
+                            currency_name = distributor_response.get(
+                                "Currency")
+                            currency, _ = Currency.objects.get_or_create(
+                                name=currency_name)
+                            mfr_part_distributor_detail, created = ManufacturerPartDistributorDetail.objects.update_or_create(
+                                manufacturer_part=manufacturer_part,
+                                distributor=distributor,
+                                defaults={
+                                    'description': distributor_response.get("Description", ""),
+                                    'product_url': distributor_response.get("Product Url", ""),
+                                    'datasheet_url': distributor_response.get("Datasheet Url", ""),
+                                    'stock': distributor_response.get("Stock", ""),
+                                    'currency': currency
+                                }
+                            )
+                            pricing = distributor_response.get("Pricing", [])
+                            for price in pricing:
+                                ManufacturerPartPricing.objects.update_or_create(
+                                    manufacturer_part_distributor_detail=mfr_part_distributor_detail,
+                                    quantity=price["Quantity"],
+                                    defaults={'price': price["Unit Price"]}
+                                )
+                    except Exception as dist_err:
+                        logger.error(
+                            f"Error processing distributor {distributor.name}: {dist_err}")
+            except Exception as part_err:
+                logger.error(
+                    f"Error processing manufacturer part {manufacturer_part.part_number}: {part_err}")
+
+        logger.info('Task completed: create_mfr_part_distributor_data')
+        return {"message": "Manufacturer part distributor data created successfully"}
+    except Exception as e:
+        logger.error(f"Error occurred: {e}")
+        return {"error": "An error occurred"}

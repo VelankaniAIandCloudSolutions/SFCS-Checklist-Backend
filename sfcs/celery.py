@@ -7,7 +7,6 @@ from celery.schedules import crontab
 
 # Set the default Django settings module for the 'celery' program.
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'sfcs.settings')
-
 # Create a Celery instance
 app = Celery('sfcs')
 app.conf.enable_utc = False
@@ -40,6 +39,11 @@ app.conf.beat_schedule = {
         'task': 'machine_maintenance.tasks.check_missing_activity_and_send_email_for_today',
         'schedule': crontab(hour=13, minute=6),
     },
+    'create-distributor-data': {
+        'task': 'pricing.tasks.create_mfr_part_distributor_data',
+        'schedule': crontab(hour=3, minute=0),
+    },
+
 
 }
 

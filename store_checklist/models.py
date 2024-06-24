@@ -111,6 +111,15 @@ class BillOfMaterialsType(BaseModel):
         return self.name
 
 
+class BomFormat(BaseModel):
+    name = models.CharField(max_length=255, null=True, blank=True)
+    sample_file = models.FileField(
+        null=True, blank=True, upload_to='bom_format_files/')
+
+    def __str__(self):
+        return self.name
+
+
 class BillOfMaterials(BaseModel):
     product = models.ForeignKey(
         Product, on_delete=models.CASCADE, related_name='boms')
@@ -127,6 +136,8 @@ class BillOfMaterials(BaseModel):
     pcb_file_name = models.CharField(max_length=255, null=True, blank=True)
     bom_file_name = models.CharField(max_length=255, null=True, blank=True)
     change_note = models.TextField(null=True, blank=True)
+    bom_format = models.ForeignKey(
+        BomFormat, on_delete=models.SET_NULL, null=True, blank=True)
 
     def __str__(self):
         return "BOM for: " + self.product.name
@@ -144,7 +155,7 @@ class BillOfMaterialsLineItem(BaseModel):
         BillOfMaterials, on_delete=models.CASCADE, related_name='bom_line_items')
     level = models.CharField(max_length=10, blank=True, null=True)
     # uuid = models.CharField(max_length=20,blank=True,null=True)
-    part_number = models.CharField(max_length=255)
+    part_number = models.CharField(max_length=255, blank=True, null=True)
     priority_level = models.CharField(max_length=4, blank=True, null=True)
     value = models.CharField(max_length=255)
     pcb_footprint = models.CharField(max_length=255, null=True, blank=True)
@@ -164,7 +175,8 @@ class BillOfMaterialsLineItem(BaseModel):
     msl = models.CharField(max_length=255, null=True, blank=True)
 
     def __str__(self):
-        return self.part_number + " for BOM ID: " + str(self.bom.id)
+        part_number = self.part_number if self.part_number else "No Part Number"
+        return part_number + " for BOM ID: " + str(self.bom.id)
 
 
 class BillOfMaterialsLineItemReference(BaseModel):
@@ -270,3 +282,14 @@ class Order(BaseModel):
 
     def __str__(self):
         return 'Order for:  ' + str(self.bom.product.name)
+
+
+class Distributor(models.Model):
+    name = models.CharField(max_length=255)
+    api_url = models.URLField(blank=True, null=True)
+    access_id = models.CharField(max_length=255, blank=True, null=True)
+    access_secret = models.CharField(max_length=255, blank=True, null=True)
+    api_key = models.CharField(max_length=255, blank=True, null=True)
+
+    def __str__(self):
+        return self.name
