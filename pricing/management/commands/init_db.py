@@ -15,14 +15,14 @@ class Command(BaseCommand):
                 'api_key': ''
             },
             {
-                'name': 'mouser',
+                'name': 'Mouser',
                 'api_url': 'https://api.mouser.com/api/v1/search/keyword?apiKey=',
                 'access_id': '',
                 'access_secret': '',
                 'api_key': 'daf53999-5620-4003-8217-5c2ed9947d13'
             },
             {
-                'name': 'element14 ',
+                'name': 'Element14',
                 'api_url': 'https://api.element14.com/catalog/products',
                 'access_id': '',
                 'access_secret': '',
@@ -34,8 +34,8 @@ class Command(BaseCommand):
         for distributor_data in distributors:
             distributor, created = Distributor.objects.update_or_create(
                 name=distributor_data['name'],
+                api_url= distributor_data['api_url'],
                 defaults={
-                    'api_url': distributor_data['api_url'],
                     'access_id': distributor_data['access_id'],
                     'access_secret': distributor_data['access_secret'],
                     'api_key': distributor_data['api_key']
