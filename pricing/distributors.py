@@ -213,6 +213,70 @@ def digikey_online_distributor(client_id, client_secret, part_number,):
     except requests.RequestException as e:
         return {"Manufacturer Part Number": part_number, "error": str(e)}
 
+# digikey recommendation API
+def get_recommended_parts(description, digikey_clientid):
+    
+    access_token = get_digikey_access_token()
+    if not access_token:
+        return {"Manufacturer Part Number": part_number, "error": "Failed to obtain access token"}
+
+    print("token:--->", access_token, "\n")
+    
+    # Recommendation API Call
+    url = f'https://api.digikey.com/products/v4/search/keyword'
+    headers = {
+        'X-DIGIKEY-Client-Id': digikey_clientid,
+        'Authorization': f'Bearer {access_token}',
+        'Content-Type': 'application/json'
+    }
+    payload = {
+        "Keywords": description,
+        "Limit": 50  # maximum number of results to return in the search response - default limit upto 50
+    }
+    response = requests.post(url, headers=headers, json=payload)
+    result = response.json()
+
+    # Transforming the API response into vepl json format
+    similar_pnlist = []
+    for product in result.get("Products", []):
+        package_type = 'N/A'
+        standard_pricing = []
+        for variation in product.get("ProductVariations", []):
+            package_id = variation.get("PackageType", {}).get("Id")
+            if package_id in [2, 3, 62]:  # Cut Tape, Bulk, Bag
+                package_type = variation.get("PackageType", {}).get("Name", "N/A")
+                standard_pricing = variation.get("StandardPricing", [])
+                break
+        standard_pricing_data = [
+            {"Quantity": price["BreakQuantity"], "Unit Price": price["UnitPrice"]}
+            for price in standard_pricing
+        ]
+        standard_json = {
+            "Manufacturer Part Number": product.get("ManufacturerProductNumber"),
+            "Online Distributor Name": "digikey",
+            "Manufacturer Name": product.get("Manufacturer", {}).get("Name"),
+            "Description": product.get("Description", {}).get("DetailedDescription"),
+            "Product Url": product.get("ProductUrl"),
+            "Datasheet Url": product.get("DatasheetUrl"),
+            "Package Type": package_type,
+            "Stock": product.get("QuantityAvailable"),
+            "Currency": "USD",
+            "Pricing": standard_pricing_data
+        }
+        similar_pnlist.append(standard_json)
+
+    if not similar_pnlist:
+        return {
+            "Manufacturer Part Number": description,
+            "Recommendations": similar_pnlist,
+            "Error": "Recommendations Not Found"
+        }
+    else:
+        return {
+            "Manufacturer Part Number": description,
+            "Recommendations": similar_pnlist
+        }
+
 
 # def mouser_online_distributor(key, part_number, web_name, bom_id):
 def mouser_online_distributor(key, part_number):
@@ -251,6 +315,7 @@ def mouser_online_distributor(key, part_number):
         mouser_package_types = DistributorPackageTypeDetail.objects.filter(
             distributor__name="mouser"
         ).values_list('related_field', flat=True)
+        print('mouser packages', mouser_package_types)
         for index in range(no_of_results):
             part = API_response["SearchResults"]["Parts"][index]
             if part["ManufacturerPartNumber"] == part_number:
@@ -295,8 +360,9 @@ def element14_online_distributor(key, part_number):
         key = element14_distributor_instance.api_key
         base_url = element14_distributor_instance.api_url
         # calling API
-        # url = f"https://api.element14.com/catalog/products?versionNumber=1.3&term=manuPartNum%3A{part_number}&storeInfo.id=www.newark.com&resultsSettings.offset=0&resultsSettings.numberOfResults=1&resultsSettings.refinements.filters=rohsCompliant%2CinStock&resultsSettings.responseGroup=large&callInfo.omitXmlSchema=false&callInfo.responseDataFormat=json&callinfo.apiKey={key}"        url = f"https://api.element14.com/catalog/products?versionNumber=1.3&term=manuPartNum%3A{part_number}&storeInfo.id=www.newark.com&resultsSettings.offset=0&resultsSettings.numberOfResults=1&resultsSettings.refinements.filters=rohsCompliant%2CinStock&resultsSettings.responseGroup=large&callInfo.omitXmlSchema=false&callInfo.responseDataFormat=json&callinfo.apiKey={key}"
+        # url = f"https://api.element14.com/catalog/products?versionNumber=1.3&term=manuPartNum%3A{part_number}&storeInfo.id=www.newark.com&resultsSettings.offset=0&resultsSettings.numberOfResults=1&resultsSettings.refinements.filters=rohsCompliant%2CinStock&resultsSettings.responseGroup=large&callInfo.omitXmlSchema=false&callInfo.responseDataFormat=json&callinfo.apiKey={key}"        
         # headers = {'X-Originating-IP': header_ip}
+        # url = f"https://api.element14.com/catalog/products?versionNumber=1.3&term=manuPartNum%3A{part_number}&storeInfo.id=www.newark.com&resultsSettings.offset=0&resultsSettings.numberOfResults=1&resultsSettings.refinements.filters=rohsCompliant%2CinStock&resultsSettings.responseGroup=large&callInfo.omitXmlSchema=false&callInfo.responseDataFormat=json&callinfo.apiKey={key}"
 
         # Construct the URL with query parameters
         query_params = {
@@ -312,21 +378,28 @@ def element14_online_distributor(key, part_number):
             "callinfo.apiKey": key
         }
         url = f"{base_url}?{requests.compat.urlencode(query_params)}"
+
+        print ("Element 14 url from db" , url)
         response = requests.get(url)
         api_response = response.json()
+        print('sasasasasa',api_response)
 
         # Transform API response into standard format
         no_of_results = api_response["manufacturerPartNumberSearchReturn"]["numberOfResults"]
+        print("number res", no_of_results)
         # filtering the 0-results Parts
         if no_of_results == 0:
             return {"Manufacturer Part Number": part_number, "Online Distributor Name": str(element14_distributor_instance.name), "error": "Part Number Not found (or) Stock = 0", "Api_response": api_response}
-
+        print("hellooo")
         element14_package_types = DistributorPackageTypeDetail.objects.filter(
             distributor__name="element14"
         ).values_list('related_field', flat=True)
+        print('el type',element14_package_types)
         for index in range(no_of_results):
             part = api_response["manufacturerPartNumberSearchReturn"]["products"][index]
+            print('this part', part)
             if part_number in part["translatedManufacturerPartNumber"] or part_number.replace("-", "") in part["translatedManufacturerPartNumber"]:
+                print("inside")
                 # if part["packageName"] in ["Cut Tape", "Each"]:
                 if part["packageName"] in element14_package_types:
                     Standard_Pricing = [
@@ -348,6 +421,49 @@ def element14_online_distributor(key, part_number):
         return {"Manufacturer Part Number": part_number, "Online Distributor Name": str(element14_distributor_instance.name), "error": "Part number not found", "API_response": api_response}
     except Exception as e:
         return {"Manufacturer Part Number": part_number, "Online Distributor Name": str(element14_distributor_instance.name), "error": str(e)}
+
+
+def samtec_own_mfg(key,part_number,web_name):
+
+
+    key = "eyJhbGciOiJIUzI1NiIsImtpZCI6InZlbGFua2FuaSIsInR5cCI6IkpXVCJ9.eyJlbnYiOiJwcm9kIiwib3JnIjoidmVsYW5rYW5pIiwibmFtZSI6IiIsImRpYWciOiJmYWxzZSIsImFwcHMiOlsiY2F0YWxvZyIsImNvbS5zYW10ZWMuYXBpIl0sImlzcyI6InNhbXRlYy5jb20iLCJhdWQiOiJzYW10ZWMuc2VydmljZXMifQ.1OWaiYdOCq2hMZ59dXyw_urBoqtz3PyImocf0IzNKK8"
+
+    print(f"Samtec ----- {part_number}")
+    url = f"https://api.samtec.com/catalog/v3/search?query={part_number}&resultCount=1&fullResponse=true"
+    payload = {}
+    headers = {
+    'Authorization': f'Bearer {key}'
+    }
+    response = requests.request("GET", url, headers=headers, data=payload)
+    res = json.loads(response.text)
+    if res == []:
+        return {"Is Manufacturer": False, "Manufacturer Part Number": part_number,"error":"Part number not found"}
+    else:  
+        #transformation into vepl json format
+        product = res[0]
+        # filtering the pricing to fetch Qty and unit price
+        standard_pricing_data = [
+                    {"Quantity": price["minimumQuantity"], "Unit Price": price["price"]}
+                    for price in product.get("price")
+                ]
+        #transforming api_json into vepl_json
+        standard_json = {
+                    "Is Manufacturer": True,
+                    "Manufacturer Part Number": product.get("part"),
+                    "Online Distributor Name": web_name,
+                    "Manufacturer Name": web_name,
+                    "Description": product.get("description"),
+                    "Product Url": product.get("buyNowUrl"),
+                    "Datasheet Url": " ",
+                    "Package Type": product.get("packaging").get("description"),
+                    "Stock": product.get("stockQuantity"),
+                    "Currency": "USD",
+                    "Pricing": standard_pricing_data  
+                }  
+
+        print("JSON From Samtec" , standard_json)
+        return standard_json
+   
 
 
 def api_call(distributor_name, part_no):
