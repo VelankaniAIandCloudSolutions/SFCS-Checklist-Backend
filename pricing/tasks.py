@@ -229,6 +229,19 @@ def create_mfr_part_distributor_data():
                                 logger.warning(
                                     "Distributor instance or API key not available for element14")
 
+                        elif distributor.name.lower() == "samtec" and manufacturer_part.manufacturer.name.lower() == "samtec":
+                            samtec_distributor_instance = Distributor.objects.get(
+                                name = "samtec"
+                            )
+                            if samtec_distributor_instance and samtec_distributor_instance.api_key:
+                                distributor_response = samtec_own_mfg(
+                                    samtec_distributor_instance.api_key,
+                                    manufacturer_part.part_number
+                                )
+                            else:
+                                logger.warning(
+                                    "Distributor instance or API key not available for samtec")
+
                         if distributor_response and not distributor_response.get("error"):
                             currency_name = distributor_response.get(
                                 "Currency")

@@ -18,7 +18,7 @@ from .tasks import *
 from celery.result import AsyncResult
 from django.http import Http404
 
-from .distributors import digikey_online_distributor, Oauth_digikey, mouser_online_distributor, element14_online_distributor
+from .distributors import digikey_online_distributor, Oauth_digikey, mouser_online_distributor, element14_online_distributor , samtec_own_mfg , get_recommended_parts
 
 # @api_view(['GET'])
 # def get_product_pricing(request,product_id):
@@ -164,6 +164,13 @@ def get_bom_pricing(request, bom_id):
                                 # settings.HEADER_IP,                        
                                 "Element14"
 
+                            )
+                        elif distributor.name.lower() == 'samtec' and first_manufacturer_part.manufacturer.name.lower() == 'samtec':
+                            print("calling Samtec API")
+                            distributor_response = samtec_own_mfg(
+                                settings.SAMTEC_API_KEY,
+                                first_manufacturer_part.part_number,
+                                "samtec"
                             )
                             # distributor_responses["mouser"] = distributor_response
                         # else:
@@ -811,6 +818,8 @@ def get_pricing_details(request):
             return JsonResponse({'error': 'Part number is required'}, status=400)
 
         distributors = Distributor.objects.all()
+        print("Distributors fetched:", distributors)
+        
         distributor_responses = {}
         line_items_data = []
         final_json = []
@@ -818,25 +827,42 @@ def get_pricing_details(request):
 
         for distributor in distributors:
             distributor_response = None
+            print(f"Processing distributor: {distributor.name}")
+
             if distributor.name.lower() == "digikey":
+                print("Calling Digikey API")
                 distributor_response = digikey_online_distributor(
                     settings.DIGIKEY_APIS_CLIENT_ID,
                     settings.DIGIKEY_APIS_CLIENT_SECRET,
                     part_number,
                 )
             elif distributor.name.lower() == "mouser":
+                print("Calling Mouser API")
                 distributor_response = mouser_online_distributor(
                     settings.MOUSER_API_KEY,
                     part_number,
                 )
             elif distributor.name.lower() == "element14":
+                print("Calling Element14 API")
                 distributor_response = element14_online_distributor(
                     settings.ELEMENT14_API_KEY,
                     part_number,
                 )
+            
+            elif distributor.name.lower() == 'samtec':
+
+                print("calling Samtec API")
+                distributor_response = samtec_own_mfg(
+                   settings.SAMTEC_API_KEY,
+                   part_number,
+                   "samtec" 
+                )
+
+            print(f"Response from {distributor.name} API:", distributor_response)
 
             if distributor_response:
                 if distributor_response.get("error"):
+                    print(f"Error in {distributor.name} response:", distributor_response.get("error"))
                     continue
                 else:
                     distributor_responses[distributor.name.lower()] = distributor_response
@@ -893,8 +919,10 @@ def get_pricing_details(request):
     except BillOfMaterialsLineItem.DoesNotExist:
         raise Http404("Bill of Materials not found for the given bom_id.")
     except Exception as e:
+        print("An error occurred:", str(e))
         return JsonResponse({'error': str(e)}, status=500)
 
+        
 @api_view(['GET'])
 def get_VeplNumber_prices(request):
     try:
@@ -941,6 +969,13 @@ def get_VeplNumber_prices(request):
                         distributor_response = element14_online_distributor(
                             settings.ELEMENT14_API_KEY,
                             part.part_number,
+                        )
+                    elif distributor.name.lower() == 'samtec' and part.manufacturer.name.lower() == 'samtec':
+                        print("calling Samtec API")
+                        distributor_response = samtec_own_mfg(
+                            settings.SAMTEC_API_KEY,
+                            part.part_number,
+                            "samtec"
                         )
 
                     if distributor_response:
@@ -997,6 +1032,73 @@ def get_VeplNumber_prices(request):
         raise Http404("Bill of Materials not found for the given VEPL number.")
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+
+api_view(["GET"])
+def get_recommendation_details(request):
+    description = request.GET.get('description')
+
+    if not description:
+        return JsonResponse({'error': 'Description is Required'}, status=400)
+
+    recommendations = get_recommended_parts(description, settings.DIGIKEY_APIS_CLIENT_ID)
+
+    final_json = []
+    line_items_data = []
+
+    for part_data in recommendations['Recommendations']:
+        distributor_responses = {part_data["Online Distributor Name"]: part_data.copy()}  # Use .copy() to avoid modifying original part_data
+        part_data['distributors'] = distributor_responses
+        line_items_data.append(part_data)
+
+        for distributor_name, distributor_data in distributor_responses.items():
+            currency_name = distributor_data.get("Currency", "")
+            try:
+                currency = Currency.objects.get(name=currency_name)
+                currency_symbol = currency.symbol
+            except Currency.DoesNotExist:
+                currency_symbol = ""
+
+            row = {
+                "distributor": distributor_name,
+                "Manufacturer Part Number": distributor_data.get("Manufacturer Part Number", ""),
+                "Manufacturer Name": distributor_data.get("Manufacturer Name", ""),
+                "Online Distributor Name": distributor_data.get("Online Distributor Name", ""),
+                "Description": distributor_data.get("Description", ""),
+                "Product Url": distributor_data.get("Product Url", ""),
+                "Datasheet Url": distributor_data.get("Datasheet Url", ""),
+                "Package Type": distributor_data.get("Package Type", ""),
+                "Stock": distributor_data.get("Stock", ""),
+                "Currency": distributor_data.get("Currency", ""),
+                "Currency Symbol": currency_symbol,
+            }
+
+            pricing = distributor_data.get("Pricing", [])
+            for price in pricing:
+                quantity = price["Quantity"]
+                unit_price = price["Unit Price"]
+
+                # Convert price to numeric format
+                if isinstance(unit_price, str):
+                    try:
+                        unit_price = float(unit_price.replace("$", "").replace(",", ""))
+                    except ValueError:
+                        unit_price = None
+
+                row[f"price({quantity})"] = unit_price
+
+            final_json.append(row)
+
+    data = {
+        'line_items': line_items_data,
+        'final_json': final_json
+    }
+
+    return JsonResponse(data)
+
+
+    
+
 
 
 
