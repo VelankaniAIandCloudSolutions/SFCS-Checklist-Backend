@@ -10,5 +10,6 @@ urlpatterns = [
     path('create-mfr-part-distributor-data', create_mfr_part_distributor_data),
     path('get-manufacturer-pricing/<bom_id>/' , get_manufacture_part_pricing),
     path('get-pricing-details/' , get_pricing_details),
-    path('get-VEPLNumber-pricing-details/' , get_VeplNumber_prices )
+    path('get-VEPLNumber-pricing-details/' , get_VeplNumber_prices ),
+    path('get-recommendation-details/' , get_recommendation_details)
 ]

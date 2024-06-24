@@ -208,6 +208,8 @@ MOUSER_API_KEY = "daf53999-5620-4003-8217-5c2ed9947d13"
 ELEMENT14_API_KEY = "574e2u973fa67jt6wb5et68z"
 HEADER_IP = "103.89.8.2"
 
+SAMTEC_API_KEY = "eyJhbGciOiJIUzI1NiIsImtpZCI6InZlbGFua2FuaSIsInR5cCI6IkpXVCJ9.eyJlbnYiOiJwcm9kIiwib3JnIjoidmVsYW5rYW5pIiwibmFtZSI6IiIsImRpYWciOiJmYWxzZSIsImFwcHMiOlsiY2F0YWxvZyIsImNvbS5zYW10ZWMuYXBpIl0sImlzcyI6InNhbXRlYy5jb20iLCJhdWQiOiJzYW10ZWMuc2VydmljZXMifQ.1OWaiYdOCq2hMZ59dXyw_urBoqtz3PyImocf0IzNKK8"
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
