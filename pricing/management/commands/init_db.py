@@ -33,7 +33,7 @@ class Command(BaseCommand):
                 'api_url': 'https://api.element14.com/catalog/products',
                 'access_id': '',
                 'access_secret': '',
-                'api_key': '574e2u973fa67jt6wb5et68z'
+                'api_key': 'eyJhbGciOiJIUzI1NiIsImtpZCI6InZlbGFua2FuaSIsInR5cCI6IkpXVCJ9.eyJlbnYiOiJwcm9kIiwib3JnIjoidmVsYW5rYW5pIiwibmFtZSI6IiIsImRpYWciOiJmYWxzZSIsImFwcHMiOlsiY2F0YWxvZyIsImNvbS5zYW10ZWMuYXBpIl0sImlzcyI6InNhbXRlYy5jb20iLCJhdWQiOiJzYW10ZWMuc2VydmljZXMifQ.1OWaiYdOCq2hMZ59dXyw_urBoqtz3PyImocf0IzNKK8'
             },
             # Add more distributors as needed
         ]
