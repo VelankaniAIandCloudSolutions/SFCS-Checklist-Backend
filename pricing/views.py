@@ -832,20 +832,24 @@ def get_pricing_details(request):
             if distributor.name.lower() == "digikey":
                 print("Calling Digikey API")
                 distributor_response = digikey_online_distributor(
-                    settings.DIGIKEY_APIS_CLIENT_ID,
-                    settings.DIGIKEY_APIS_CLIENT_SECRET,
+                    # settings.DIGIKEY_APIS_CLIENT_ID,
+                    # settings.DIGIKEY_APIS_CLIENT_SECRET,
+                    distributor.access_id,
+                    distributor.access_secret,
                     part_number,
                 )
             elif distributor.name.lower() == "mouser":
                 print("Calling Mouser API")
                 distributor_response = mouser_online_distributor(
-                    settings.MOUSER_API_KEY,
+                    # settings.MOUSER_API_KEY,
+                    distributor.api_key,
                     part_number,
                 )
             elif distributor.name.lower() == "element14":
                 print("Calling Element14 API")
                 distributor_response = element14_online_distributor(
-                    settings.ELEMENT14_API_KEY,
+                    # settings.ELEMENT14_API_KEY,
+                    distributor.api_key,
                     part_number,
                 )
             
@@ -853,7 +857,8 @@ def get_pricing_details(request):
 
                 print("calling Samtec API")
                 distributor_response = samtec_own_mfg(
-                   settings.SAMTEC_API_KEY,
+                #    settings.SAMTEC_API_KEY,
+                   distributor.api_key,
                    part_number,
                    "samtec" 
                 )
@@ -956,24 +961,29 @@ def get_VeplNumber_prices(request):
                     distributor_response = None
                     if distributor.name.lower() == "digikey":
                         distributor_response = digikey_online_distributor(
-                            settings.DIGIKEY_APIS_CLIENT_ID,
-                            settings.DIGIKEY_APIS_CLIENT_SECRET,
+                            # settings.DIGIKEY_APIS_CLIENT_ID,
+                            # settings.DIGIKEY_APIS_CLIENT_SECRET,
+                            distributor.access_id,
+                            distributor.access_secret,
                             part.part_number,
                         )
                     elif distributor.name.lower() == "mouser":
                         distributor_response = mouser_online_distributor(
-                            settings.MOUSER_API_KEY,
+                            # settings.MOUSER_API_KEY,
+                            distributor.api_key,
                             part.part_number,
                         )
                     elif distributor.name.lower() == "element14":
                         distributor_response = element14_online_distributor(
-                            settings.ELEMENT14_API_KEY,
+                            # settings.ELEMENT14_API_KEY,
+                            distributor.api_key,
                             part.part_number,
                         )
                     elif distributor.name.lower() == 'samtec' and part.manufacturer.name.lower() == 'samtec':
                         print("calling Samtec API")
                         distributor_response = samtec_own_mfg(
-                            settings.SAMTEC_API_KEY,
+                            # settings.SAMTEC_API_KEY,
+                            distributor.api_key,
                             part.part_number,
                             "samtec"
                         )

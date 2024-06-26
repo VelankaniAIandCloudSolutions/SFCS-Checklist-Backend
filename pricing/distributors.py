@@ -223,7 +223,14 @@ def get_recommended_parts(description, digikey_clientid):
     print("token:--->", access_token, "\n")
     
     # Recommendation API Call
-    url = f'https://api.digikey.com/products/v4/search/keyword'
+    # url = f'https://api.digikey.com/products/v4/search/keyword'
+
+    recommendation_parts = Distributor.objects.get(name="Digikey")
+
+    base_url = recommendation_parts.api_url
+
+    url = f'{base_url}keyword'
+
     headers = {
         'X-DIGIKEY-Client-Id': digikey_clientid,
         'Authorization': f'Bearer {access_token}',
@@ -235,7 +242,8 @@ def get_recommended_parts(description, digikey_clientid):
     }
     response = requests.post(url, headers=headers, json=payload)
     result = response.json()
-
+    print('test',result)
+    
     # Transforming the API response into vepl json format
     similar_pnlist = []
     for product in result.get("Products", []):
@@ -243,7 +251,7 @@ def get_recommended_parts(description, digikey_clientid):
         standard_pricing = []
         for variation in product.get("ProductVariations", []):
             package_id = variation.get("PackageType", {}).get("Id")
-            if package_id in [2, 3, 62]:  # Cut Tape, Bulk, Bag
+            if package_id in [2, 3, 62]:  # Cut Tape, Bulk, Bag\
                 package_type = variation.get("PackageType", {}).get("Name", "N/A")
                 standard_pricing = variation.get("StandardPricing", [])
                 break
@@ -264,6 +272,8 @@ def get_recommended_parts(description, digikey_clientid):
             "Pricing": standard_pricing_data
         }
         similar_pnlist.append(standard_json)
+
+        # print(" Recommendations :" , standard_json)
 
     if not similar_pnlist:
         return {
@@ -426,43 +436,70 @@ def element14_online_distributor(key, part_number):
 def samtec_own_mfg(key,part_number,web_name):
 
 
-    key = "eyJhbGciOiJIUzI1NiIsImtpZCI6InZlbGFua2FuaSIsInR5cCI6IkpXVCJ9.eyJlbnYiOiJwcm9kIiwib3JnIjoidmVsYW5rYW5pIiwibmFtZSI6IiIsImRpYWciOiJmYWxzZSIsImFwcHMiOlsiY2F0YWxvZyIsImNvbS5zYW10ZWMuYXBpIl0sImlzcyI6InNhbXRlYy5jb20iLCJhdWQiOiJzYW10ZWMuc2VydmljZXMifQ.1OWaiYdOCq2hMZ59dXyw_urBoqtz3PyImocf0IzNKK8"
+    # key = "eyJhbGciOiJIUzI1NiIsImtpZCI6InZlbGFua2FuaSIsInR5cCI6IkpXVCJ9.eyJlbnYiOiJwcm9kIiwib3JnIjoidmVsYW5rYW5pIiwibmFtZSI6IiIsImRpYWciOiJmYWxzZSIsImFwcHMiOlsiY2F0YWxvZyIsImNvbS5zYW10ZWMuYXBpIl0sImlzcyI6InNhbXRlYy5jb20iLCJhdWQiOiJzYW10ZWMuc2VydmljZXMifQ.1OWaiYdOCq2hMZ59dXyw_urBoqtz3PyImocf0IzNKK8"
 
-    print(f"Samtec ----- {part_number}")
-    url = f"https://api.samtec.com/catalog/v3/search?query={part_number}&resultCount=1&fullResponse=true"
-    payload = {}
-    headers = {
-    'Authorization': f'Bearer {key}'
-    }
-    response = requests.request("GET", url, headers=headers, data=payload)
-    res = json.loads(response.text)
-    if res == []:
-        return {"Is Manufacturer": False, "Manufacturer Part Number": part_number,"error":"Part number not found"}
-    else:  
-        #transformation into vepl json format
-        product = res[0]
-        # filtering the pricing to fetch Qty and unit price
-        standard_pricing_data = [
-                    {"Quantity": price["minimumQuantity"], "Unit Price": price["price"]}
-                    for price in product.get("price")
-                ]
-        #transforming api_json into vepl_json
-        standard_json = {
-                    "Is Manufacturer": True,
-                    "Manufacturer Part Number": product.get("part"),
-                    "Online Distributor Name": web_name,
-                    "Manufacturer Name": web_name,
-                    "Description": product.get("description"),
-                    "Product Url": product.get("buyNowUrl"),
-                    "Datasheet Url": " ",
-                    "Package Type": product.get("packaging").get("description"),
-                    "Stock": product.get("stockQuantity"),
-                    "Currency": "USD",
-                    "Pricing": standard_pricing_data  
-                }  
+    # print(f"Samtec ----- {part_number}")
+    # url = f"https://api.samtec.com/catalog/v3/search?query={part_number}&resultCount=1&fullResponse=true"
 
-        print("JSON From Samtec" , standard_json)
-        return standard_json
+    # query_params = {
+
+    # }
+
+    try : 
+
+        samtec_distributor_instance = Distributor.objects.get(
+            name="samtec"
+        )
+        key = samtec_distributor_instance.api_key
+        base_url = samtec_distributor_instance.api_url
+
+        print(f"Samtec ---- {part_number}")
+
+        query_params = {
+
+            "query":part_number,
+            "resultCount":1,
+            "fullResponse":"true"
+        }
+
+        url = f"{base_url}?{requests.compat.urlencode(query_params)}"
+
+
+        payload = {}
+        headers = {
+        'Authorization': f'Bearer {key}'
+        }
+        response = requests.request("GET", url, headers=headers, data=payload)
+        res = json.loads(response.text)
+        if res == []:
+            return {"Is Manufacturer": False, "Manufacturer Part Number": part_number,"error":"Part number not found"}
+        else:  
+            #transformation into vepl json format
+            product = res[0]
+            # filtering the pricing to fetch Qty and unit price
+            standard_pricing_data = [
+                        {"Quantity": price["minimumQuantity"], "Unit Price": price["price"]}
+                        for price in product.get("price")
+                    ]
+            #transforming api_json into vepl_json
+            standard_json = {
+                        "Is Manufacturer": True,
+                        "Manufacturer Part Number": product.get("part"),
+                        "Online Distributor Name": web_name,
+                        "Manufacturer Name": web_name,
+                        "Description": product.get("description"),
+                        "Product Url": product.get("buyNowUrl"),
+                        "Datasheet Url": " ",
+                        "Package Type": product.get("packaging").get("description"),
+                        "Stock": product.get("stockQuantity"),
+                        "Currency": "USD",
+                        "Pricing": standard_pricing_data  
+                    }  
+
+            print("JSON From Samtec" , standard_json)
+            return standard_json
+    except Exception as e :
+        return {"Manufacturer Part Number" : part_number , "Online Distributor Name" : str(samtec_distributor_instance.name) , "error" : str(e)}
    
 
 

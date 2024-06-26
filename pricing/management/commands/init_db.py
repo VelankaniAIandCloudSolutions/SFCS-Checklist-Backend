@@ -28,6 +28,13 @@ class Command(BaseCommand):
                 'access_secret': '',
                 'api_key': '574e2u973fa67jt6wb5et68z'
             },
+            {
+                'name': 'Samtec ',
+                'api_url': 'https://api.element14.com/catalog/products',
+                'access_id': '',
+                'access_secret': '',
+                'api_key': '574e2u973fa67jt6wb5et68z'
+            },
             # Add more distributors as needed
         ]
 
