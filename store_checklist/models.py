@@ -289,7 +289,12 @@ class Distributor(models.Model):
     api_url = models.URLField(blank=True, null=True)
     access_id = models.CharField(max_length=255, blank=True, null=True)
     access_secret = models.CharField(max_length=255, blank=True, null=True)
-    api_key = models.CharField(max_length=255, blank=True, null=True)
+    api_key = models.CharField(max_length=2048, blank=True, null=True)   
 
     def __str__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+        if self.api_url and not self.api_url.endswith('/'):
+            self.api_url += '/'
+        super().save(*args, **kwargs)
