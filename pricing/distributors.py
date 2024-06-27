@@ -253,7 +253,7 @@ def get_recommended_parts(description, digikey_clientid):
         ]
         standard_json = {
             "Manufacturer Part Number": product.get("ManufacturerProductNumber"),
-            "Online Distributor Name": "digikey",
+            "Online Distributor Name": "Digikey",
             "Manufacturer Name": product.get("Manufacturer", {}).get("Name"),
             "Description": product.get("Description", {}).get("DetailedDescription"),
             "Product Url": product.get("ProductUrl"),
