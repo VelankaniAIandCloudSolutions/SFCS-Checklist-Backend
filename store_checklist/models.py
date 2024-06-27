@@ -294,7 +294,7 @@ class Distributor(models.Model):
     def __str__(self):
         return self.name
 
-    def save(self, *args, **kwargs):
-        if self.api_url and not self.api_url.endswith('/'):
-            self.api_url += '/'
-        super().save(*args, **kwargs)
+    # def save(self, *args, **kwargs):
+    #     if self.api_url and not self.api_url.endswith('/'):
+    #         self.api_url += '/'
+    #     super().save(*args, **kwargs)

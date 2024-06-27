@@ -145,7 +145,8 @@ def get_bom_pricing(request, bom_id):
                                 settings.DIGIKEY_APIS_CLIENT_SECRET,
                                 first_manufacturer_part.part_number,
                                 "DigiKey",
-                                bom_id
+                                bom_id,
+                                distributor,
                             )
                             distributor_responses["digikey"] = distributor_response
 
@@ -154,7 +155,8 @@ def get_bom_pricing(request, bom_id):
                                 settings.MOUSER_API_KEY,
                                 first_manufacturer_part.part_number,
                                 "Mouser",
-                                bom_id
+                                bom_id,
+                                distributor,
                             )
 
                         elif distributor.name.lower() == "element14":
@@ -162,7 +164,8 @@ def get_bom_pricing(request, bom_id):
                                 settings.ELEMENT14_API_KEY,
                                 first_manufacturer_part.part_number,
                                 # settings.HEADER_IP,                        
-                                "Element14"
+                                "Element14",
+                                distributor,
 
                             )
                         elif distributor.name.lower() == 'samtec' and first_manufacturer_part.manufacturer.name.lower() == 'samtec':
@@ -170,7 +173,8 @@ def get_bom_pricing(request, bom_id):
                             distributor_response = samtec_own_mfg(
                                 settings.SAMTEC_API_KEY,
                                 first_manufacturer_part.part_number,
-                                "samtec"
+                                "samtec",
+                                distributor,
                             )
                             # distributor_responses["mouser"] = distributor_response
                         # else:
@@ -566,7 +570,7 @@ def create_mfr_part_distributor_data(request):
                             #     "Mouser"
                             # )
                             mouser_distributor_instance = Distributor.objects.get(
-                                name="mouser")
+                                name="Mouser")
                             if mouser_distributor_instance and mouser_distributor_instance.api_key:
                                 # Call the API function with the provided API key
                                 distributor_response = mouser_online_distributor(
@@ -602,7 +606,7 @@ def create_mfr_part_distributor_data(request):
                                     "Distributor instance or API key not available for Mouser")
                                 # You might want to set distributor_response to something indicating the error
 
-                        elif distributor.name.lower() == "element14":
+                        elif distributor.name.lower() == "Element14":
                             element14_distributor_instance = Distributor.objects.get(
                                 name="element14")
                             if element14_distributor_instance and element14_distributor_instance.api_key:
@@ -837,6 +841,7 @@ def get_pricing_details(request):
                     distributor.access_id,
                     distributor.access_secret,
                     part_number,
+                    distributor,
                 )
             elif distributor.name.lower() == "mouser":
                 print("Calling Mouser API")
@@ -844,6 +849,8 @@ def get_pricing_details(request):
                     # settings.MOUSER_API_KEY,
                     distributor.api_key,
                     part_number,
+                    distributor
+                  
                 )
             elif distributor.name.lower() == "element14":
                 print("Calling Element14 API")
@@ -851,6 +858,8 @@ def get_pricing_details(request):
                     # settings.ELEMENT14_API_KEY,
                     distributor.api_key,
                     part_number,
+                    distributor,
+                    
                 )
             
             elif distributor.name.lower() == 'samtec':
@@ -860,7 +869,8 @@ def get_pricing_details(request):
                 #    settings.SAMTEC_API_KEY,
                    distributor.api_key,
                    part_number,
-                   "samtec" 
+                   "samtec" ,
+                   distributor,
                 )
 
             print(f"Response from {distributor.name} API:", distributor_response)
@@ -966,18 +976,21 @@ def get_VeplNumber_prices(request):
                             distributor.access_id,
                             distributor.access_secret,
                             part.part_number,
+                            distributor,
                         )
                     elif distributor.name.lower() == "mouser":
                         distributor_response = mouser_online_distributor(
                             # settings.MOUSER_API_KEY,
                             distributor.api_key,
                             part.part_number,
+                            distributor,
                         )
                     elif distributor.name.lower() == "element14":
                         distributor_response = element14_online_distributor(
                             # settings.ELEMENT14_API_KEY,
                             distributor.api_key,
                             part.part_number,
+                            distributor,
                         )
                     elif distributor.name.lower() == 'samtec' and part.manufacturer.name.lower() == 'samtec':
                         print("calling Samtec API")
@@ -985,7 +998,8 @@ def get_VeplNumber_prices(request):
                             # settings.SAMTEC_API_KEY,
                             distributor.api_key,
                             part.part_number,
-                            "samtec"
+                            "samtec",
+                            distributor,
                         )
 
                     if distributor_response:
