@@ -105,7 +105,7 @@ def get_digikey_access_token():
 
 
 # def digikey_online_distributor(client_id, client_secret, part_number, web_name, bom_id):
-def digikey_online_distributor(client_id, client_secret, part_number,):
+def digikey_online_distributor(client_id, client_secret, part_number, distributor):
     access_token = get_digikey_access_token()
     if not access_token:
         return {"Manufacturer Part Number": part_number, "error": "Failed to obtain access token"}
@@ -118,7 +118,7 @@ def digikey_online_distributor(client_id, client_secret, part_number,):
     #     raise Http404("Bill of Materials not found for the given bom_id.")
 
     try:
-        distributor = Distributor.objects.get(name="Digikey")
+        # distributor = Distributor.objects.get(name="Digikey")
         base_url = distributor.api_url
         url = f"{base_url}{part_number}/productdetails"
         print('digi_key url from db', url)
@@ -223,14 +223,7 @@ def get_recommended_parts(description, digikey_clientid):
     print("token:--->", access_token, "\n")
     
     # Recommendation API Call
-    # url = f'https://api.digikey.com/products/v4/search/keyword'
-
-    recommendation_parts = Distributor.objects.get(name="Digikey")
-
-    base_url = recommendation_parts.api_url
-
-    url = f'{base_url}keyword'
-
+    url = f'https://api.digikey.com/products/v4/search/keyword'
     headers = {
         'X-DIGIKEY-Client-Id': digikey_clientid,
         'Authorization': f'Bearer {access_token}',
@@ -243,7 +236,6 @@ def get_recommended_parts(description, digikey_clientid):
     response = requests.post(url, headers=headers, json=payload)
     result = response.json()
     print('test',result)
-    
     # Transforming the API response into vepl json format
     similar_pnlist = []
     for product in result.get("Products", []):
@@ -289,16 +281,16 @@ def get_recommended_parts(description, digikey_clientid):
 
 
 # def mouser_online_distributor(key, part_number, web_name, bom_id):
-def mouser_online_distributor(key, part_number):
+def mouser_online_distributor(key, part_number , distributor):
     print(f"Mouser ----- {part_number}")
     # calling mouser api
-    distributor = Distributor.objects.get(name="mouser")
+    # distributor = Distributor.objects.get(name="mouser")
     key = distributor.api_key
 
     # key = "daf53999-5620-4003-8217-5c2ed9947d13"
     try:
         base_url = distributor.api_url
-        url = f"{base_url}{key}"
+        url = f"{base_url}/keyword?apiKey={key}"
         print('mouser url from db', url)
         # url = f"https://api.mouser.com/api/v1/search/keyword?apiKey={key}"
         payload = json.dumps({
@@ -360,13 +352,14 @@ def mouser_online_distributor(key, part_number):
         return {"Manufacturer Part Number": part_number, "Online Distributor Name": str(distributor.name), "error": str(e)}
 
 
-def element14_online_distributor(key, part_number):
+def element14_online_distributor(key, part_number , element14_distributor_instance):
     print(f"Element14 ----------- {part_number}")
 
     try:
         # key = "574e2u973fa67jt6wb5et68z"
-        element14_distributor_instance = Distributor.objects.get(
-            name="element14")
+        # element14_distributor_instance = Distributor.objects.get(
+        #     name="Element14")
+        print('el', element14_distributor_instance)
         key = element14_distributor_instance.api_key
         base_url = element14_distributor_instance.api_url
         # calling API
@@ -392,24 +385,24 @@ def element14_online_distributor(key, part_number):
         print ("Element 14 url from db" , url)
         response = requests.get(url)
         api_response = response.json()
-        print('sasasasasa',api_response)
+        # print('sasasasasa',api_response)
 
         # Transform API response into standard format
         no_of_results = api_response["manufacturerPartNumberSearchReturn"]["numberOfResults"]
-        print("number res", no_of_results)
+        # print("number res", no_of_results)
         # filtering the 0-results Parts
         if no_of_results == 0:
             return {"Manufacturer Part Number": part_number, "Online Distributor Name": str(element14_distributor_instance.name), "error": "Part Number Not found (or) Stock = 0", "Api_response": api_response}
-        print("hellooo")
+        # print("hellooo")
         element14_package_types = DistributorPackageTypeDetail.objects.filter(
-            distributor__name="element14"
+            distributor__name="Element14"
         ).values_list('related_field', flat=True)
         print('el type',element14_package_types)
         for index in range(no_of_results):
             part = api_response["manufacturerPartNumberSearchReturn"]["products"][index]
             print('this part', part)
             if part_number in part["translatedManufacturerPartNumber"] or part_number.replace("-", "") in part["translatedManufacturerPartNumber"]:
-                print("inside")
+                # print("inside")
                 # if part["packageName"] in ["Cut Tape", "Each"]:
                 if part["packageName"] in element14_package_types:
                     Standard_Pricing = [
@@ -433,7 +426,7 @@ def element14_online_distributor(key, part_number):
         return {"Manufacturer Part Number": part_number, "Online Distributor Name": str(element14_distributor_instance.name), "error": str(e)}
 
 
-def samtec_own_mfg(key,part_number,web_name):
+def samtec_own_mfg(key,part_number,web_name , samtec_distributor_instance):
 
 
     # key = "eyJhbGciOiJIUzI1NiIsImtpZCI6InZlbGFua2FuaSIsInR5cCI6IkpXVCJ9.eyJlbnYiOiJwcm9kIiwib3JnIjoidmVsYW5rYW5pIiwibmFtZSI6IiIsImRpYWciOiJmYWxzZSIsImFwcHMiOlsiY2F0YWxvZyIsImNvbS5zYW10ZWMuYXBpIl0sImlzcyI6InNhbXRlYy5jb20iLCJhdWQiOiJzYW10ZWMuc2VydmljZXMifQ.1OWaiYdOCq2hMZ59dXyw_urBoqtz3PyImocf0IzNKK8"
@@ -447,9 +440,12 @@ def samtec_own_mfg(key,part_number,web_name):
 
     try : 
 
-        samtec_distributor_instance = Distributor.objects.get(
-            name="samtec"
-        )
+        # samtec_distributor_instance = Distributor.objects.get(
+        #     name="samtec"
+        # )
+
+        print("sam " , samtec_distributor_instance)
+
         key = samtec_distributor_instance.api_key
         base_url = samtec_distributor_instance.api_url
 
@@ -464,6 +460,7 @@ def samtec_own_mfg(key,part_number,web_name):
 
         url = f"{base_url}?{requests.compat.urlencode(query_params)}"
 
+        print("Sam URL :" , url)
 
         payload = {}
         headers = {
