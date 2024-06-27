@@ -184,8 +184,7 @@ def get_bom_pricing(request, bom_id):
                             if distributor_response.get("error"):
                                 continue
                             else:
-                                distributor_responses[distributor.name.lower(
-                                )] = distributor_response
+                                distributor_responses[distributor.name] = distributor_response
 
                     if distributor_response.items():
 
@@ -880,7 +879,7 @@ def get_pricing_details(request):
                     print(f"Error in {distributor.name} response:", distributor_response.get("error"))
                     continue
                 else:
-                    distributor_responses[distributor.name.lower()] = distributor_response
+                    distributor_responses[distributor.name] = distributor_response
 
         if distributor_responses:
             part_data['distributors'] = distributor_responses
@@ -1006,7 +1005,7 @@ def get_VeplNumber_prices(request):
                         if distributor_response.get("error"):
                             continue
                         else:
-                            distributor_responses[distributor.name.lower()] = distributor_response
+                            distributor_responses[distributor.name] = distributor_response
 
                 if distributor_responses:
                     part_data['distributors'] = distributor_responses
