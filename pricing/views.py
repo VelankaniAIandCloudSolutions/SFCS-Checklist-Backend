@@ -18,7 +18,7 @@ from .tasks import *
 from celery.result import AsyncResult
 from django.http import Http404
 
-from .distributors import digikey_online_distributor, Oauth_digikey, mouser_online_distributor, element14_online_distributor , samtec_own_mfg , get_recommended_parts
+from .distributors import digikey_online_distributor, Oauth_digikey, mouser_online_distributor, element14_online_distributor , samtec_own_mfg , get_recommended_parts , arrow_online_distributor
 
 # @api_view(['GET'])
 # def get_product_pricing(request,product_id):
@@ -871,6 +871,19 @@ def get_pricing_details(request):
                    "samtec" ,
                    distributor,
                 )
+
+            elif distributor.name.lower() == 'arrow':
+
+                print("calling Arrow API")
+                distributor_response = arrow_online_distributor(
+                #    settings.SAMTEC_API_KEY,
+                   distributor.api_key,
+                   distributor.access_secret,
+                   part_number,
+                   "arrow" ,
+                   distributor,
+                #    distributor,
+                )    
 
             print(f"Response from {distributor.name} API:", distributor_response)
 

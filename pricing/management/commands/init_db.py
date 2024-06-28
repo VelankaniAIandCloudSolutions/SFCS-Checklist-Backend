@@ -37,6 +37,13 @@ class Command(BaseCommand):
                 'access_secret': '',
                 'api_key': 'eyJhbGciOiJIUzI1NiIsImtpZCI6InZlbGFua2FuaSIsInR5cCI6IkpXVCJ9.eyJlbnYiOiJwcm9kIiwib3JnIjoidmVsYW5rYW5pIiwibmFtZSI6IiIsImRpYWciOiJmYWxzZSIsImFwcHMiOlsiY2F0YWxvZyIsImNvbS5zYW10ZWMuYXBpIl0sImlzcyI6InNhbXRlYy5jb20iLCJhdWQiOiJzYW10ZWMuc2VydmljZXMifQ.1OWaiYdOCq2hMZ59dXyw_urBoqtz3PyImocf0IzNKK8'
             },
+            {
+                'name': 'Arrow',
+                'api_url': 'http://api.arrow.com/itemservice/v4/en/search/',
+                'access_id': '',
+                'access_secret': 'velankani1',
+                'api_key': 'cc377bced547b2d0e1ce259cad3c6aabc288553b0aabb9f2ec4e7ff251bafc2c'
+            },
             # Add more distributors as needed
         ]
 
@@ -62,8 +69,9 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         package_types = [
             'Cut Tape',
-            'Tape & Reel',
+            # 'Tape & Reel',
             'Bulk',
+            'Bag',
             'Ammo Pack',
             'Each',
             # Add more package types as needed
@@ -91,16 +99,23 @@ class Command(BaseCommand):
                 'package_type_name': 'Cut Tape',
                 'related_field': '2'
             },
-            {
-                'distributor_name': 'Digikey',
-                'package_type_name': 'Tape & Reel',
-                'related_field': '3'
-            },
+            # {
+            #     'distributor_name': 'Digikey',
+            #     'package_type_name': 'Tape & Reel',
+            #     'related_field': '1'
+            # },
             {
                 'distributor_name': 'Digikey',
                 'package_type_name': 'Bulk',
+                'related_field': '3'
+            },
+
+            {
+                'distributor_name': 'Digikey',
+                'package_type_name': 'Bag',
                 'related_field': '62'
             },
+
             {
                 'distributor_name': 'Mouser',
                 'package_type_name': 'Cut Tape',

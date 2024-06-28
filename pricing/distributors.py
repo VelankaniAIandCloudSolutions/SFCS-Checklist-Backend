@@ -105,6 +105,7 @@ def get_digikey_access_token():
 
 
 # def digikey_online_distributor(client_id, client_secret, part_number, web_name, bom_id):
+
 def digikey_online_distributor(client_id, client_secret, part_number, distributor):
     access_token = get_digikey_access_token()
     if not access_token:
@@ -136,6 +137,8 @@ def digikey_online_distributor(client_id, client_secret, part_number, distributo
         response.raise_for_status()
         digikey_api_response = response.json()
 
+        print(" Digikey Online Response :" , digikey_api_response)
+
         # print(
         #     f"bom_id: {bom_id}, digikey_api_response: {digikey_api_response}")
         # print(
@@ -158,15 +161,23 @@ def digikey_online_distributor(client_id, client_secret, part_number, distributo
             package_type_details = DistributorPackageTypeDetail.objects.filter(
                 distributor=distributor)
 
+            print(" Digike Package type id above :" , package_id)
+
             # Iterate through each related DistributorPackageTypeDetail instance
             for package_type_detail in package_type_details:
                 # package_id = package_type_detail.package_type_id
                 # Use the package type IDs dynamically from the related fields
-                if package_id in [package_type_detail.related_field]:
+                if str(package_id) == str(package_type_detail.related_field):
                     package_type = package_type_detail.package_type.name
                     standard_pricing = variation.get("StandardPricing", [])
                     found_data = True
+                    print("found")
                     break
+                print(" Digikey packagge type :" ,package_id )
+
+                
+
+                
 
         if not found_data:
             for variation in product.get("ProductVariations", []):
@@ -413,7 +424,7 @@ def element14_online_distributor(key, part_number , element14_distributor_instan
                         "Manufacturer Name": part["vendorName"],
                         "Description": part["displayName"],
                         "Product Url": part["productURL"],
-                        "Datasheet Url": part["datasheets"][0]["url"] if "datasheets" in part else "N/A",
+                        "Datasheet Url": part["datasheets"][0]["url"] if "datasheets" in part else "",
                         "Package Type": part["packageName"],
                         "Stock": part["stock"]["level"],
                         "Currency": "USD",
@@ -497,6 +508,108 @@ def samtec_own_mfg(key,part_number,web_name , samtec_distributor_instance):
             return standard_json
     except Exception as e :
         return {"Manufacturer Part Number" : part_number , "Online Distributor Name" : str(samtec_distributor_instance.name) , "error" : str(e)}
+
+
+
+def arrow_online_distributor(key,login,part_number,web_name , arrow_distributor_instence):
+    try:
+
+        arrow_apikey = "cc377bced547b2d0e1ce259cad3c6aabc288553b0aabb9f2ec4e7ff251bafc2c"
+        arrow_login = "velankani1"
+        
+        print("arrow api---- ", part_number)
+        # url = f"http://api.arrow.com/itemservice/v4/en/search/token?login={login}&apikey={key}&search_token={part_number}"
+
+        base_url = arrow_distributor_instence.api_url
+
+        login = arrow_distributor_instence.access_secret
+        key = arrow_distributor_instence.api_key
+
+        query_params = {
+            "login": login,
+            "apikey": key,
+            "search_token": part_number
+        }
+
+        url = f"{base_url}token?{requests.compat.urlencode(query_params)}"
+
+        print(" the Arrow url :" , url)
+
+        response = requests.get(url)
+        response.raise_for_status()
+        arrow_api_response = response.json()
+
+        print(" Arrow Responce :" , arrow_api_response)
+       
+        # Test case: product not found
+        if not arrow_api_response["itemserviceresult"]["data"][0]:
+            return {"Manufacturer Part Number": part_number, "Online Distributor Name": web_name,"Error": "Product not found"}
+       
+        # Extract required information
+        product = arrow_api_response["itemserviceresult"]["data"][0]["PartList"][0]
+        datasheet_url = next((r["uri"] for r in product.get("resources", []) if r["type"] == "datasheet"), "")
+        web = product.get("InvOrg", {}).get("webSites", [])
+       
+        # Test case: domain is not available
+        if not web:
+            return {
+                "Manufacturer Part Number": product.get("partNum"),
+                "Online Distributor Name": web_name,
+                "Error": "Product not available in both domains (arrow.com, Verical.com). A datasheet is only available for this product at this time."
+            }
+       
+        # Test case: arrow domain is not available
+        domain_list = [domain.get("code") for domain in web]
+        if "arrow.com" not in domain_list:
+            return {
+                "Manufacturer Part Number": product.get("partNum"),
+                "Online Distributor Name": web_name,
+                "Product Url": next((r["uri"] for r in product.get("resources", []) if r["type"] == "cloud_part_detail"), ""),
+                "Datasheet Url": datasheet_url,
+                "Error": "Product not available on arrow.com but available on Verical.com. A datasheet is only available for this product at this time."
+            }
+       
+        # Successful API response
+        for domain in web:
+            if domain.get("code") == "arrow.com":      
+                currency = domain["sources"][0]["currency"]
+                package_type = ""
+                stock = ""
+                product_url = ""
+                standard_pricing = []
+               
+                for source_part in domain["sources"][0]["sourceParts"]:
+                    min_qty = source_part["minimumOrderQuantity"]
+                    price_type = source_part["containerType"]
+                    if price_type.lower().strip() in ["cut strips", "tray" , "tape and reel"]:
+                        package_type = price_type
+                    stock = source_part["Availability"][0]["fohQty"]
+                    
+                    standard_pricing = source_part["Prices"]["resaleList"]
+
+                    for item in source_part["resources"]:
+                        if item["type"] == "detail":
+                            product_url = item["uri"]
+                    if package_type.lower().strip() == "cut strips":
+                        break
+
+                standard_pricing_data = [{"Quantity": price["minQty"], "Unit Price": price["price"]} for price in standard_pricing]
+                standard_json = {
+                    "Manufacturer Part Number": product.get("partNum"),
+                    "Online Distributor Name": web_name,
+                    "Manufacturer Name": product.get("manufacturer", {}).get("mfrName"),
+                    "Description": product.get("desc"),
+                    "Product Url": product_url,
+                    "Datasheet Url": datasheet_url,
+                    "Package Type": package_type,
+                    "Stock": stock,
+                    "Minimum Order Quantity": min_qty,
+                    "Currency": currency,
+                    "Pricing": standard_pricing_data
+                }
+                return standard_json
+    except Exception as e:
+        return {"Manufacturer Part Number": part_number, "Online Distributor Name": web_name, "Error": str(e)}
    
 
 
