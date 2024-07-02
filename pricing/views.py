@@ -18,7 +18,7 @@ from .tasks import *
 from celery.result import AsyncResult
 from django.http import Http404
 
-from .distributors import digikey_online_distributor, Oauth_digikey, mouser_online_distributor, element14_online_distributor , samtec_own_mfg , get_recommended_parts
+from .distributors import digikey_online_distributor, Oauth_digikey, mouser_online_distributor, element14_online_distributor , samtec_own_mfg , get_recommended_parts , arrow_online_distributor
 
 # @api_view(['GET'])
 # def get_product_pricing(request,product_id):
@@ -141,8 +141,10 @@ def get_bom_pricing(request, bom_id):
                     for distributor in distributors:
                         if distributor.name.lower() == "digikey":
                             distributor_response = digikey_online_distributor(
-                                settings.DIGIKEY_APIS_CLIENT_ID,
-                                settings.DIGIKEY_APIS_CLIENT_SECRET,
+                                # settings.DIGIKEY_APIS_CLIENT_ID,
+                                # settings.DIGIKEY_APIS_CLIENT_SECRET,
+                                distributor.access_id,
+                                distributor.access_secret,
                                 first_manufacturer_part.part_number,
                                 "DigiKey",
                                 bom_id,
@@ -152,7 +154,8 @@ def get_bom_pricing(request, bom_id):
 
                         elif distributor.name.lower() == "mouser":
                             distributor_response = mouser_online_distributor(
-                                settings.MOUSER_API_KEY,
+                                # settings.MOUSER_API_KEY,
+                                distributor.api_key,
                                 first_manufacturer_part.part_number,
                                 "Mouser",
                                 bom_id,
@@ -161,7 +164,8 @@ def get_bom_pricing(request, bom_id):
 
                         elif distributor.name.lower() == "element14":
                             distributor_response = element14_online_distributor(
-                                settings.ELEMENT14_API_KEY,
+                                # settings.ELEMENT14_API_KEY,
+                                distributor.api_key,
                                 first_manufacturer_part.part_number,
                                 # settings.HEADER_IP,                        
                                 "Element14",
@@ -171,11 +175,24 @@ def get_bom_pricing(request, bom_id):
                         elif distributor.name.lower() == 'samtec' and first_manufacturer_part.manufacturer.name.lower() == 'samtec':
                             print("calling Samtec API")
                             distributor_response = samtec_own_mfg(
-                                settings.SAMTEC_API_KEY,
+                                # settings.SAMTEC_API_KEY,
+                                distributor.api_key,
                                 first_manufacturer_part.part_number,
                                 "samtec",
                                 distributor,
                             )
+
+                        elif distributor.name.lower() == 'arrow':
+
+                            print("calling Arrow API")
+                            distributor_response = arrow_online_distributor(
+                            #    settings.SAMTEC_API_KEY,
+                            distributor.api_key,
+                            distributor.access_secret,
+                            first_manufacturer_part.part_number,
+                            "arrow" ,
+                            distributor,
+                            )  
                             # distributor_responses["mouser"] = distributor_response
                         # else:
                         #     distributor_responses[distributor.name.lower()] = {'error': f'No API defined for {distributor.name}'}
@@ -872,6 +889,19 @@ def get_pricing_details(request):
                    distributor,
                 )
 
+            elif distributor.name.lower() == 'arrow':
+
+                print("calling Arrow API")
+                distributor_response = arrow_online_distributor(
+                #    settings.SAMTEC_API_KEY,
+                   distributor.api_key,
+                   distributor.access_secret,
+                   part_number,
+                   "arrow" ,
+                   distributor,
+                #    distributor,
+                )    
+
             print(f"Response from {distributor.name} API:", distributor_response)
 
             if distributor_response:
@@ -1001,6 +1031,18 @@ def get_VeplNumber_prices(request):
                             distributor,
                         )
 
+                    elif distributor.name.lower() == 'arrow':
+
+                        print("calling Arrow API")
+                        distributor_response = arrow_online_distributor(
+                        #    settings.SAMTEC_API_KEY,
+                        distributor.api_key,
+                        distributor.access_secret,
+                        part.part_number,
+                        "arrow" ,
+                        distributor,
+                        )    
+
                     if distributor_response:
                         if distributor_response.get("error"):
                             continue
@@ -1059,12 +1101,22 @@ def get_VeplNumber_prices(request):
 
 api_view(["GET"])
 def get_recommendation_details(request):
-    description = request.GET.get('description')
+    description = request.GET.get('Description')
+    distributor_name = request.GET.get('distributor')
+
+    print(" api des :" , description)
+    print(" api distr :" , distributor_name)
+
 
     if not description:
         return JsonResponse({'error': 'Description is Required'}, status=400)
 
-    recommendations = get_recommended_parts(description, settings.DIGIKEY_APIS_CLIENT_ID)
+    try:
+        distributor = Distributor.objects.get(name=distributor_name)
+    except Distributor.DoesNotExist:
+        return JsonResponse({'error': 'Distributor not found'}, status=404)
+
+    recommendations = get_recommended_parts(description, settings.DIGIKEY_APIS_CLIENT_ID , distributor)
 
     final_json = []
     line_items_data = []
