@@ -225,7 +225,8 @@ def digikey_online_distributor(client_id, client_secret, part_number, distributo
         return {"Manufacturer Part Number": part_number, "error": str(e)}
 
 # digikey recommendation API
-def get_recommended_parts(description, digikey_clientid):
+
+def get_recommended_parts(description, digikey_clientid , distributor):
     
     access_token = get_digikey_access_token()
     if not access_token:
@@ -254,10 +255,21 @@ def get_recommended_parts(description, digikey_clientid):
         standard_pricing = []
         for variation in product.get("ProductVariations", []):
             package_id = variation.get("PackageType", {}).get("Id")
-            if package_id in [2, 3, 62]:  # Cut Tape, Bulk, Bag\
-                package_type = variation.get("PackageType", {}).get("Name", "N/A")
-                standard_pricing = variation.get("StandardPricing", [])
-                break
+
+            package_type_details = DistributorPackageTypeDetail.objects.filter(distributor=distributor)
+
+            print("Package type details function:", package_type_details)
+
+            for package_type_detail in package_type_details:
+
+                if str(package_id) == str(package_type_detail.related_field):
+                    package_type = package_type_detail.package_type.name
+                    standard_pricing = variation.get("StandardPricing", [])
+
+            # if package_id in [2, 3, 62]:  # Cut Tape, Bulk, Bag\
+            #     package_type = variation.get("PackageType", {}).get("Name", "N/A")
+            #     standard_pricing = variation.get("StandardPricing", [])
+                    break
         standard_pricing_data = [
             {"Quantity": price["BreakQuantity"], "Unit Price": price["UnitPrice"]}
             for price in standard_pricing
@@ -289,6 +301,71 @@ def get_recommended_parts(description, digikey_clientid):
             "Manufacturer Part Number": description,
             "Recommendations": similar_pnlist
         }
+
+# def get_recommended_parts(description, digikey_clientid):
+    
+#     access_token = get_digikey_access_token()
+#     if not access_token:
+#         return {"Manufacturer Part Number": part_number, "error": "Failed to obtain access token"}
+
+#     print("token:--->", access_token, "\n")
+    
+#     # Recommendation API Call
+#     url = f'https://api.digikey.com/products/v4/search/keyword'
+#     headers = {
+#         'X-DIGIKEY-Client-Id': digikey_clientid,
+#         'Authorization': f'Bearer {access_token}',
+#         'Content-Type': 'application/json'
+#     }
+#     payload = {
+#         "Keywords": description,
+#         "Limit": 50  # maximum number of results to return in the search response - default limit upto 50
+#     }
+#     response = requests.post(url, headers=headers, json=payload)
+#     result = response.json()
+#     print('test',result)
+#     # Transforming the API response into vepl json format
+#     similar_pnlist = []
+#     for product in result.get("Products", []):
+#         package_type = 'N/A'
+#         standard_pricing = []
+#         for variation in product.get("ProductVariations", []):
+#             package_id = variation.get("PackageType", {}).get("Id")
+#             if package_id in [2, 3, 62]:  # Cut Tape, Bulk, Bag\
+#                 package_type = variation.get("PackageType", {}).get("Name", "N/A")
+#                 standard_pricing = variation.get("StandardPricing", [])
+#                 break
+#         standard_pricing_data = [
+#             {"Quantity": price["BreakQuantity"], "Unit Price": price["UnitPrice"]}
+#             for price in standard_pricing
+#         ]
+#         standard_json = {
+#             "Manufacturer Part Number": product.get("ManufacturerProductNumber"),
+#             "Online Distributor Name": "Digikey",
+#             "Manufacturer Name": product.get("Manufacturer", {}).get("Name"),
+#             "Description": product.get("Description", {}).get("DetailedDescription"),
+#             "Product Url": product.get("ProductUrl"),
+#             "Datasheet Url": product.get("DatasheetUrl"),
+#             "Package Type": package_type,
+#             "Stock": product.get("QuantityAvailable"),
+#             "Currency": "USD",
+#             "Pricing": standard_pricing_data
+#         }
+#         similar_pnlist.append(standard_json)
+
+#         # print(" Recommendations :" , standard_json)
+
+#     if not similar_pnlist:
+#         return {
+#             "Manufacturer Part Number": description,
+#             "Recommendations": similar_pnlist,
+#             "Error": "Recommendations Not Found"
+#         }
+#     else:
+#         return {
+#             "Manufacturer Part Number": description,
+#             "Recommendations": similar_pnlist
+#         }
 
 
 # def mouser_online_distributor(key, part_number, web_name, bom_id):

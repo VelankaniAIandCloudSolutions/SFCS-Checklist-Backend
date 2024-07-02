@@ -167,7 +167,7 @@ def create_mfr_part_distributor_data():
         logger.info('Task started: create_mfr_part_distributor_data')
 
         # Fetch all ManufacturerPart instances
-        manufacturer_parts = ManufacturerPart.objects.all()[:100]
+        manufacturer_parts = ManufacturerPart.objects.all()
         logger.info(f'Fetched {len(manufacturer_parts)} manufacturer parts')
 
         # Iterate through each ManufacturerPart
