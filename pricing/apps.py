@@ -12,7 +12,14 @@ class PricingConfig(AppConfig):
 
     def run_init_db(self):
         try:
-            call_command('init_db')
+            commands = [
+                'init_distributors',
+                'init_package_types',
+                'init_distributor_package_details'
+            ]
+
+            for command in commands:
+                call_command(command)
         except OperationalError as e:
             print(f"Database error: {e}")
         except Exception as e:

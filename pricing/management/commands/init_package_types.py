@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand
 from store_checklist.models import Distributor
 
-from pricing.models import PackageType , DistributorPackageTypeDetail , PackageType
+from pricing.models import PackageType , PackageType
 
 
 class Command(BaseCommand):
